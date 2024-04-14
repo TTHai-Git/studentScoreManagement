@@ -41,15 +41,17 @@ class MySubjectAdmin(admin.ModelAdmin):
 
 admin.site.register(User)
 admin.site.register(Teacher)
-admin.site.register(Student)
+admin.site.register(Student, name="Student")
 admin.site.register(StudentClassRoom)
 
 admin.site.register(StudyClassRoom)
 admin.site.register(Department)
 admin.site.register(Group)
+admin.site.register(Semester)
 admin.site.register(Topic)
 admin.site.register(Comment)
 admin.site.register(Subject, MySubjectAdmin)
+
 
 admin.site.register(ScoreColumn)
 admin.site.register(Study)
