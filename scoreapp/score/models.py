@@ -94,6 +94,7 @@ class Subject(BaseModel):
     def __str__(self):
         return f'{self.id} - {self.name}'
 
+
 class StudyClassRoom(BaseModel):
     name = models.CharField(max_length=10)
     islock = models.BooleanField(default=False)

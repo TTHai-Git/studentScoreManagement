@@ -56,10 +56,3 @@ admin.site.register(Subject, MySubjectAdmin)
 admin.site.register(ScoreColumn)
 admin.site.register(Study)
 admin.site.register(ScoreDetails)
-
-
-
-
-
-
-

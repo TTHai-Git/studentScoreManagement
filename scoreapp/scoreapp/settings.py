@@ -107,7 +107,8 @@ DATABASES = {
         'ENGINE': 'django.db.backends.mysql',
         'NAME': 'scoredb',
         'USER': 'root',
-        'PASSWORD': '123456a@A',
+        # 'PASSWORD': '123456a@A',
+        'PASSWORD': 'Admin@123',
         'HOST': ''  # mặc định localhost
     }
 }
@@ -153,8 +154,16 @@ DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
 import cloudinary
 
+#Hải
+# cloudinary.config(
+#     cloud_name="dh5jcbzly",
+#     api_key="956284944785852",
+#     api_secret="ZYqL_9IS8N4a6uZ1esDJUBHNeq4"
+# )
+
+#Hoàng
 cloudinary.config(
-    cloud_name="dh5jcbzly",
-    api_key="956284944785852",
-    api_secret="ZYqL_9IS8N4a6uZ1esDJUBHNeq4"
+    cloud_name="dvsnl4nsh",
+    api_key="672181655553596",
+    api_secret="4ve100xmuA2kUAOvcmfWC9xSM1c"
 )
