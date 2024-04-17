@@ -22,6 +22,9 @@ from drf_yasg.views import get_schema_view
 from drf_yasg import openapi
 
 router = routers.DefaultRouter()
+router.register('teachers', views.TeacherViewSet, basename='teachers')
+router.register('studyclassrooms', views.StudyClassRoomViewSet, basename='studyclassrooms')
+router.register('students', views.StudentViewSet, basename='students')
 
 schema_view = get_schema_view(
     openapi.Info(

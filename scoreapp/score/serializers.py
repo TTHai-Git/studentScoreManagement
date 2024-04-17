@@ -65,6 +65,11 @@ class TeacherSerializer(serializers.ModelSerializer):
             }
         }
 
+    def to_representation(self, instance):
+        rep = super().to_representation(instance)
+        rep['avatar'] = instance.avatar.url
+        return rep
+
 
 class StudentSerializer(serializers.ModelSerializer):
     def create(self, validated_data):
@@ -91,6 +96,11 @@ class StudentSerializer(serializers.ModelSerializer):
                 'write_only': True
             }
         }
+
+    def to_representation(self, instance):
+        rep = super().to_representation(instance)
+        rep['avatar'] = instance.avatar.url
+        return rep
 
 
 class UserSerializer(serializers.ModelSerializer):
@@ -155,7 +165,7 @@ class CommentSerializer(serializers.ModelSerializer):
 
 class StudySerializer(serializers.ModelSerializer):
     student = StudentSerializer()
-    studyclassroom = StudyClassRoom()
+    studyclassroom = StudyClassRoomSerializer()
 
     class Meta:
         model = Study
@@ -170,10 +180,10 @@ class ScoreColumnSerializer(serializers.ModelSerializer):
         fields = ['id', 'type', 'percent', 'studyclassroom']
 
 
-class ScoreDetails(serializers.ModelSerializer):
+class ScoreDetailsSerializer(serializers.ModelSerializer):
     study = StudySerializer()
-    scorecolumn = ScoreColumnSerializer()
+    scorecolumn = ScoreColumnSerializer(many=False)
 
     class Meta:
         model = ScoreDetails
-        fields = ['id', 'study', 'scorecolumn']
+        fields = ['id', 'study', 'scorecolumn', 'score']

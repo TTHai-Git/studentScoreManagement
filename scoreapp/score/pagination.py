@@ -1,11 +1,19 @@
 from rest_framework import pagination
 
 
-class StudyClassRoom(pagination.PageNumberPagination):
+class TeacherPaginator(pagination.PageNumberPagination):
     page_size = 5
 
 
-class Subject(pagination.PageNumberPagination):
+class StudentPaginator(pagination.PageNumberPagination):
+    page_size = 5
+
+
+class StudyClassRoomPaginator(pagination.PageNumberPagination):
+    page_size = 5
+
+
+class SubjectPaginator(pagination.PageNumberPagination):
     page_size = 5
 
 

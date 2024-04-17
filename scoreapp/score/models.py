@@ -104,8 +104,8 @@ class StudyClassRoom(BaseModel):
     semester = models.ForeignKey(Semester, on_delete=models.RESTRICT)
 
     def __str__(self):
-        return f'{self.id} - {self.name} - {self.subject.name} - {self.teacher.last_name} {self.teacher.first_name} ' \
-               f'- {self.group.name} - {self.semester} - {self.islock}'
+        return f'{self.id} - {self.name} - {self.subject} - {self.teacher} {self.teacher} ' \
+               f'- {self.group} - {self.semester} - {self.islock}'
 
 
 class Topic(BaseModel):
@@ -136,12 +136,12 @@ class Comment(Interaction):
 
 class ScoreColumn(models.Model):
     type = models.CharField(max_length=50)
-    percent = models.IntegerField
+    percent = models.IntegerField(default=0)
     studyclassroom = models.ForeignKey(StudyClassRoom, on_delete=models.RESTRICT)
 
     def __str__(self):
         return f'{self.id} - {self.type} - {self.percent} - {self.studyclassroom.name} -  ' \
-               f'{self.teacher.last_name} - {self.studyclassroom.teacher.first_name} ' \
+               f'{self.studyclassroom.teacher.last_name} - {self.studyclassroom.teacher.first_name} ' \
                f'- {self.studyclassroom.subject.name}'
 
 
