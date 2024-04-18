@@ -2,6 +2,7 @@ from django.db import models
 from django.contrib.auth.models import AbstractUser
 from ckeditor.fields import RichTextField
 from cloudinary.models import CloudinaryField
+from django.core.validators import MinValueValidator, MaxValueValidator
 
 # Create your models here.
 from rest_framework.exceptions import ValidationError
@@ -154,7 +155,7 @@ class Study(BaseModel):
 
 
 class ScoreDetails(BaseModel):
-    score = models.FloatField(default=0.0)
+    score = models.FloatField(default=0.0, validators=[MinValueValidator(0), MaxValueValidator(10)])
     study = models.ForeignKey(Study, on_delete=models.RESTRICT)
     scorecolumn = models.ForeignKey(ScoreColumn, on_delete=models.RESTRICT)
 
