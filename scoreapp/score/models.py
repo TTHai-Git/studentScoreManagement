@@ -159,5 +159,8 @@ class ScoreDetails(BaseModel):
     study = models.ForeignKey(Study, on_delete=models.RESTRICT)
     scorecolumn = models.ForeignKey(ScoreColumn, on_delete=models.RESTRICT)
 
+    class Meta:
+        unique_together = ('study', 'scorecolumn')
+
     def __str__(self):
         return f'{self.study} - {self.scorecolumn} - {self.score}'

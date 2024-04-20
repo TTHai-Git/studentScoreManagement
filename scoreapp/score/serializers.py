@@ -22,9 +22,11 @@ class DepartmentSerializer(serializers.ModelSerializer):
 
 
 class GroupSerializer(serializers.ModelSerializer):
+    department_name = serializers.CharField(source='department.name')
+
     class Meta:
         model = Group
-        fields = ['id', 'department']
+        fields = ['id', 'name', 'department_name']
 
 
 class SemesterSerializer(serializers.ModelSerializer):
@@ -130,9 +132,17 @@ class UserSerializer(serializers.ModelSerializer):
 
 
 class StudyClassRoomSerializer(serializers.ModelSerializer):
+    subject_name = serializers.CharField(source='subject.name')
+    teacher_name = serializers.SerializerMethodField()
+    semester = SemesterSerializer()
+    group = GroupSerializer()
+
+    def get_teacher_name(self, obj):
+        return obj.teacher.last_name + ' ' + obj.teacher.first_name
+
     class Meta:
         model = StudyClassRoom
-        fields = ['id', 'name', 'subject', 'teacher', 'group', 'semester', 'islock']
+        fields = ['id', 'name', 'subject_name', 'teacher_name', 'group', 'semester', 'islock']
 
 
 class TopicSerializer(ItemSerializer):
@@ -164,12 +174,18 @@ class CommentSerializer(serializers.ModelSerializer):
 
 
 class StudySerializer(serializers.ModelSerializer):
-    student = StudentSerializer()
+    student_id = serializers.IntegerField(source='student.id')
+    student_name = serializers.SerializerMethodField()
+    student_code = serializers.CharField(source='student.code')
+    student_email = serializers.CharField(source='student.email')
     studyclassroom = StudyClassRoomSerializer()
+
+    def get_student_name(self, obj):
+        return obj.student.last_name + ' ' + obj.student.first_name;
 
     class Meta:
         model = Study
-        fields = ['id', 'student', 'studyclassroom']
+        fields = ['id', 'student_id', 'student_code', 'student_name', 'student_email', 'studyclassroom']
 
 
 class ScoreColumnSerializer(serializers.ModelSerializer):
@@ -182,8 +198,10 @@ class ScoreColumnSerializer(serializers.ModelSerializer):
 
 class ScoreDetailsSerializer(serializers.ModelSerializer):
     study = StudySerializer()
-    scorecolumn = ScoreColumnSerializer(many=False)
+    scorecolumn_type = serializers.CharField(source='scorecolumn.type')
+    scorecolumn_percent = serializers.IntegerField(source='scorecolumn.percent')
 
     class Meta:
         model = ScoreDetails
-        fields = ['id', 'study', 'scorecolumn', 'score']
+        fields = ['id', 'study', 'scorecolumn_type', 'scorecolumn_percent', 'score']
+

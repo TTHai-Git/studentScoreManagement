@@ -63,7 +63,7 @@ class StudyClassRoomViewSet(viewsets.ViewSet, viewsets.generics.ListAPIView):
     pagination_class = pagination.StudyClassRoomPaginator
 
     @action(methods=['get'], url_path='students', detail=True)
-    def get_students(self, request, pk):
+    def get_students_studyclassroom(self, request, pk):
         studyclassroom = self.get_object()
         teacher = request.user
         if studyclassroom.teacher.id == teacher.id:
@@ -80,6 +80,24 @@ class StudyClassRoomViewSet(viewsets.ViewSet, viewsets.generics.ListAPIView):
             return Response({"message": "Bạn không có quyền xem danh sách học sinh của lớp này."},
                             status=status.HTTP_401_UNAUTHORIZED)
 
+    @action(methods=['get'], url_path='students/scores', detail=True)
+    def get_score_students_studyclassroom(self, request, pk):
+        studyclassroom = self.get_object()
+        teacher = request.user
+        if studyclassroom.teacher.id == teacher.id:
+            studies = Study.objects.filter(studyclassroom=studyclassroom).order_by('studyclassroom_id')
+            scoredetails = ScoreDetails.objects.filter(study__in=studies).order_by('id')
+            paginator = pagination.ScoreDetailsPaginator()
+            page = paginator.paginate_queryset(scoredetails, request)
+            if page is not None:
+                serializer = serializers.ScoreDetailsSerializer(page, many=True)
+                return paginator.get_paginated_response(serializer.data)
+            return Response(serializers.ScoreDetailsSerializer(), status.HTTP_200_OK)
+
+        else:
+            return Response({"message": "Bạn không có quyền xem bảng điểm của lớp học này."},
+                            status=status.HTTP_401_UNAUTHORIZED)
+
 
 class StudentViewSet(viewsets.ViewSet, viewsets.generics.ListAPIView):
     queryset = Student.objects.all()
@@ -90,7 +108,12 @@ class StudentViewSet(viewsets.ViewSet, viewsets.generics.ListAPIView):
     def get_details_study(self, request, pk):
         student = self.get_object()
         if request.user.id == student.id:
+            sub_name = request.query_params.get('sub_name')
             studies = student.study_set.select_related('student')
+            if sub_name:
+                subject = Subject.objects.filter(name__icontains=sub_name)
+                studyclassroom = StudyClassRoom.objects.filter(subject__in=subject)
+                studies = student.study_set.select_related('student').filter(studyclassroom__in=studyclassroom)
             scoredetails = ScoreDetails.objects.filter(study__in=studies).order_by('id')
             paginator = pagination.ScoreDetailsPaginator()
             page = paginator.paginate_queryset(scoredetails, request)
