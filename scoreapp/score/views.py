@@ -36,6 +36,13 @@ class TeacherViewSet(viewsets.ViewSet, viewsets.generics.ListAPIView):
     serializer_class = serializers.TeacherSerializer
     pagination_class = pagination.TeacherPaginator
 
+    def get_queryset(self):
+        teacher = self.request.user
+        queryset = self.queryset
+        if self.action.__eq__('list'):
+            queryset = queryset.filter(id=teacher.id)
+        return queryset
+
     @action(methods=['get'], url_path='student-scoredetails', detail=False)
     def get_student_scoredetails(self, request):
         code = request.query_params.get('code')
@@ -62,6 +69,13 @@ class StudyClassRoomViewSet(viewsets.ViewSet, viewsets.generics.ListAPIView):
     serializer_class = serializers.StudyClassRoomSerializer
     pagination_class = pagination.StudyClassRoomPaginator
 
+    def get_queryset(self):
+        teacher = self.request.user
+        queryset = self.queryset
+        if self.action.__eq__('list'):
+            queryset = queryset.filter(teacher=teacher)
+        return queryset
+
     @action(methods=['get'], url_path='students', detail=True)
     def get_students_studyclassroom(self, request, pk):
         studyclassroom = self.get_object()
@@ -82,8 +96,8 @@ class StudyClassRoomViewSet(viewsets.ViewSet, viewsets.generics.ListAPIView):
 
     @action(methods=['get'], url_path='students/scores', detail=True)
     def get_score_students_studyclassroom(self, request, pk):
+        teacher = self.request.user
         studyclassroom = self.get_object()
-        teacher = request.user
         if studyclassroom.teacher.id == teacher.id:
             studies = Study.objects.filter(studyclassroom=studyclassroom).order_by('studyclassroom_id')
             scoredetails = ScoreDetails.objects.filter(study__in=studies).order_by('id')
@@ -98,11 +112,50 @@ class StudyClassRoomViewSet(viewsets.ViewSet, viewsets.generics.ListAPIView):
             return Response({"message": "Bạn không có quyền xem bảng điểm của lớp học này."},
                             status=status.HTTP_401_UNAUTHORIZED)
 
+    @action(methods=['get', 'post'], url_path='students/add-scores', detail=True)
+    def add_score_students_studyclassroom(self, request, pk):
+        try:
+            student_id = request.query_params.get('student_id')
+            scorecolumn_id = request.query_params.get('scorecolumn_id')
+            score = request.query_params.get('score')
+
+            teacher = request.user
+            stuyclassroom = self.get_object()
+
+            student_id = int(student_id)
+            scorecolumn_id = int(scorecolumn_id)
+            score = float(score)
+
+            if stuyclassroom.teacher.id == teacher.id:
+
+                student = Student.objects.get(id=student_id)
+                study = Study.objects.get(student=student, studyclassroom=stuyclassroom)
+
+                scorecolumn = ScoreColumn.objects.get(id=scorecolumn_id, studyclassroom=stuyclassroom)
+
+                scoredetails = ScoreDetails.objects.create(study=study, scorecolumn=scorecolumn, score=score)
+
+                return Response(serializers.ScoreDetailsSerializer(scoredetails).data, status=status.HTTP_201_CREATED)
+
+            else:
+                return Response({"message": "Bạn không có quyền nhập bảng điểm của lớp học này."},
+                                status=status.HTTP_401_UNAUTHORIZED)
+
+        except Exception as ex:
+            return Response({"message_error": str(ex)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
 
 class StudentViewSet(viewsets.ViewSet, viewsets.generics.ListAPIView):
     queryset = Student.objects.all()
     serializer_class = serializers.StudentSerializer
     pagination_class = pagination.StudentPaginator
+
+    def get_queryset(self):
+        student = self.request.user
+        queryset = self.queryset
+        if self.action.__eq__('list'):
+            queryset = queryset.filter(id=student.id)
+        return queryset
 
     @action(methods=['get'], url_path='studies', detail=True)
     def get_details_study(self, request, pk):
@@ -113,7 +166,7 @@ class StudentViewSet(viewsets.ViewSet, viewsets.generics.ListAPIView):
             if sub_name:
                 subject = Subject.objects.filter(name__icontains=sub_name)
                 studyclassroom = StudyClassRoom.objects.filter(subject__in=subject)
-                studies = student.study_set.select_related('student').filter(studyclassroom__in=studyclassroom)
+                studies = studies.filter(studyclassroom__in=studyclassroom)
             scoredetails = ScoreDetails.objects.filter(study__in=studies).order_by('id')
             paginator = pagination.ScoreDetailsPaginator()
             page = paginator.paginate_queryset(scoredetails, request)
