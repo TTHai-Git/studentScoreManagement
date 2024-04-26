@@ -57,7 +57,7 @@ class StudentClassRoom(BaseModel):
 
 
 class Student(User):
-    code = models.CharField(max_length=10)
+    code = models.CharField(max_length=10, unique=True)
     studentclassroom = models.ForeignKey(StudentClassRoom, on_delete=models.CASCADE)
 
     def __str__(self):
