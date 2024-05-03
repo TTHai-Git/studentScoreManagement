@@ -145,12 +145,12 @@ class StudyClassRoomSerializer(serializers.ModelSerializer):
         fields = ['id', 'name', 'subject_name', 'teacher_name', 'group', 'semester', 'islock']
 
 
-class TopicSerializer(ItemSerializer):
-    studyclassrom = StudyClassRoomSerializer()
+class TopicSerializer(serializers.ModelSerializer):
+    studyclassroom = StudyClassRoomSerializer()
 
     class Meta:
         model = Topic
-        fields = ['id', 'subject', 'created_date', 'image', 'updated_date', 'studyclassrom', 'content']
+        fields = ['id', 'title',  'created_date', 'active', 'studyclassroom']
 
 
 class UserCommentSerializer(serializers.ModelSerializer):
@@ -166,11 +166,12 @@ class UserCommentSerializer(serializers.ModelSerializer):
 
 class CommentSerializer(serializers.ModelSerializer):
     user = UserCommentSerializer()
-    topic = TopicSerializer()
+    topic_id = serializers.CharField(source='topic.id')
+    topic_title = serializers.CharField(source='topic.title')
 
     class Meta:
         model = Comment
-        fields = ['id', 'content', 'created_date', 'updated_date', 'user', 'topic']
+        fields = ['topic_id', 'topic_title', 'id', 'content', 'created_date', 'updated_date', 'user']
 
 
 class StudySerializer(serializers.ModelSerializer):

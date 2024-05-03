@@ -9,11 +9,12 @@ https://docs.djangoproject.com/en/5.0/topics/settings/
 For the full list of settings and their values, see
 https://docs.djangoproject.com/en/5.0/ref/settings/
 """
-
+import os
 from pathlib import Path
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
-BASE_DIR = Path(__file__).resolve().parent.parent
+BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+# BASE_DIR = Path(__file__).resolve().parent.parent
 
 MEDIA_ROOT = '%s/score/static/' % BASE_DIR
 
@@ -25,6 +26,14 @@ SECRET_KEY = 'django-insecure-n4h&0zdg98q8&-(&47rnc7^a3_(mj&b$arida+9pnba-+ztt%)
 
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
+
+# Email Settings
+EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
+EMAIL_HOST = 'smtp.gmail.com'
+EMAIL_USE_TLS = True
+EMAIL_PORT = 587
+EMAIL_HOST_USER = 'spaceboy534@gmail.com'
+EMAIL_HOST_PASSWORD = 'jhcg sbrg vqzc gxgg'
 
 ALLOWED_HOSTS = []
 
@@ -84,7 +93,7 @@ ROOT_URLCONF = 'scoreapp.urls'
 TEMPLATES = [
     {
         'BACKEND': 'django.template.backends.django.DjangoTemplates',
-        'DIRS': [],
+        'DIRS': [os.path.join(BASE_DIR, 'scoreapp', 'score', 'static', 'templates', 'locked_classroom_email.html')],
         'APP_DIRS': True,
         'OPTIONS': {
             'context_processors': [
@@ -107,8 +116,8 @@ DATABASES = {
         'ENGINE': 'django.db.backends.mysql',
         'NAME': 'scoredb',
         'USER': 'root',
-        # 'PASSWORD': '123456a@A',
-        'PASSWORD': 'Admin@123',
+        'PASSWORD': '123456a@A',
+        # 'PASSWORD': 'Admin@123',
         'HOST': ''  # mặc định localhost
     }
 }
@@ -155,15 +164,15 @@ DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 import cloudinary
 
 #Hải
-# cloudinary.config(
-#     cloud_name="dh5jcbzly",
-#     api_key="956284944785852",
-#     api_secret="ZYqL_9IS8N4a6uZ1esDJUBHNeq4"
-# )
+cloudinary.config(
+    cloud_name="dh5jcbzly",
+    api_key="956284944785852",
+    api_secret="ZYqL_9IS8N4a6uZ1esDJUBHNeq4"
+)
 
 #Hoàng
-cloudinary.config(
-    cloud_name="dvsnl4nsh",
-    api_key="672181655553596",
-    api_secret="4ve100xmuA2kUAOvcmfWC9xSM1c"
-)
+# cloudinary.config(
+#     cloud_name="dvsnl4nsh",
+#     api_key="672181655553596",
+#     api_secret="4ve100xmuA2kUAOvcmfWC9xSM1c"
+# )

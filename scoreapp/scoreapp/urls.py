@@ -26,6 +26,7 @@ router.register('studyclassrooms', views.StudyClassRoomViewSet, basename='studyc
 router.register('teachers', views.TeacherViewSet, basename='teachers')
 router.register('students', views.StudentViewSet, basename='students')
 router.register('users', views.UserViewSet, basename='users')
+router.register('topics', views.TopicViewSet, basename='topics')
 
 schema_view = get_schema_view(
     openapi.Info(
