@@ -4,6 +4,7 @@ import { Picker } from '@react-native-picker/picker';
 import { TextInput, Button } from "react-native-paper";
 import Icon from "react-native-vector-icons/FontAwesome";
 import Styles from "../User/Styles"
+import MyStyle from "../../styles/MyStyle";
 
 const Login = () => {
     const [email, setEmail] = React.useState("")
@@ -14,8 +15,10 @@ const Login = () => {
 
     const [selectedValue, setSelectedValue] = React.useState("student");
 
+    //Cần hàm xử lý đăng nhập
+
     return (
-        <View style={Styles.log}>
+        <View style={MyStyle.container}>
             <View style={Styles.log_items}>
                 <TextInput style={Styles.input}
                     label="Email"

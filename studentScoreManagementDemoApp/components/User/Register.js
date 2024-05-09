@@ -1,8 +1,9 @@
 import React from "react";
-import { View, TouchableOpacity } from "react-native";
+import { View, TouchableOpacity, Text } from "react-native";
 import { TextInput, Button } from "react-native-paper";
 import Icon from "react-native-vector-icons/FontAwesome";
 import Styles from "../User/Styles"
+import MyStyle from "../../styles/MyStyle";
 
 const Register = () => {
     const [email, setEmail] = React.useState("")
@@ -12,8 +13,15 @@ const Register = () => {
 
     const [showPassword, setShowPassword] = React.useState(false);
 
+    //Cần hàm xử lý đăng ký
+
     return (
-        <View style={Styles.log}>
+        <View style={MyStyle.container}>
+            {/* Quay trở lại trang trước */}
+            <Button style={MyStyle.goBack} mode="contained" onPress={() => console.log('Go Back')}>
+                <Text style={MyStyle.goBack_text}> <Icon name={'angle-left'} size={25} style={{color: "#000", fontWeight: "bold"}} /> Quay lại</Text>
+            </Button>
+
             <View style={Styles.log_items}>
                 <TextInput style={Styles.input}
                     label="Email"
