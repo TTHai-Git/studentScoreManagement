@@ -1,5 +1,7 @@
 import csv
 import os
+
+from django.core.files.storage import FileSystemStorage
 from django.core.mail import send_mail
 from rest_framework import viewsets, permissions, status, parsers
 from rest_framework.decorators import action
@@ -51,35 +53,6 @@ class TeacherViewSet(viewsets.ViewSet, viewsets.generics.ListAPIView):
     #     if self.action.__eq__('list'):
     #         queryset = queryset.filter(id=teacher.id)
     #     return queryset
-
-    @action(methods=['get'], url_path='student-scoredetails', detail=False)
-    def get_student_scoredetails(self, request):
-        code = request.query_params.get('code')
-        first_name = request.query_params.get('first_name')
-        last_name = request.query_params.get('last_name')
-
-        if code:
-            student = Student.objects.filter(code=code).first()
-            if not student:
-                return Response("Không tìm thấy sinh viên", status=status.HTTP_404_NOT_FOUND)
-
-        elif last_name and first_name:
-            students = Student.objects.filter(last_name__icontains=last_name, first_name__icontains=first_name)
-
-            if not students:
-                return Response("Không tìm thấy sinh viên", status=status.HTTP_404_NOT_FOUND)
-        else:
-            return Response(
-                "Hãy cung cấp mssv 'code' hoặc tên 'first_name' và họ 'last_name' của sinh viên cần xem thông tin học tập",
-                status=status.HTTP_400_BAD_REQUEST)
-
-        scoredetails = ScoreDetails.objects.filter(study__student__in=students).order_by('id')
-
-        paginator = pagination.ScoreDetailsPaginator()
-        page = paginator.paginate_queryset(scoredetails, request)
-
-        serializer = serializers.ScoreDetailsSerializer(page, many=True)
-        return paginator.get_paginated_response(serializer.data)
 
 
 class TopicViewSet(viewsets.ViewSet, viewsets.generics.ListAPIView):
@@ -152,17 +125,28 @@ class StudyClassRoomViewSet(viewsets.ViewSet, viewsets.generics.ListAPIView):
     @action(methods=['get'], url_path='students', detail=True)
     def get_students_studyclassroom(self, request, pk):
         teacher = Teacher.objects.get(id=request.user.id)
+
+        code = request.query_params.get('code')
+        first_name = request.query_params.get('first_name')
+        last_name = request.query_params.get('last_name')
+
         studyclassroom = self.get_object()
         if studyclassroom.teacher == teacher:
-            studies = Study.objects.filter(studyclassroom=studyclassroom).order_by('studyclassroom_id')
+            studies = Study.objects.filter(studyclassroom=studyclassroom)
+            if code:
+                student = Student.objects.get(code=code)
+                studies = studies.filter(studyclassroom=studyclassroom, student=student).order_by('studyclassroom_id')
+            elif first_name and last_name:
+                student = Student.objects.get(first_name=first_name, last_name=last_name)
+                studies = studies.filter(studyclassroom=studyclassroom, student=student).order_by('studyclassroom_id')
             paginator = pagination.StudyPaginator()
             page = paginator.paginate_queryset(studies, request)
 
             if page is not None:
-                serializer = serializers.StudySerializer(page, many=True)
+                serializer = serializers.StudentsOfStudyClassRoom(page, many=True)
                 return paginator.get_paginated_response(serializer.data)
 
-            return Response(serializers.StudySerializer(), status=status.HTTP_200_OK)
+            return Response(serializers.StudentsOfStudyClassRoom(), status=status.HTTP_200_OK)
         else:
             return Response({"message": "Bạn không có quyền xem danh sách học sinh của lớp này."},
                             status=status.HTTP_401_UNAUTHORIZED)
@@ -171,8 +155,20 @@ class StudyClassRoomViewSet(viewsets.ViewSet, viewsets.generics.ListAPIView):
     def get_students_scores_studyclassroom(self, request, pk):
         teacher = Teacher.objects.get(id=request.user.id)
         studyclassroom = self.get_object()
+
+        code = request.query_params.get('code')
+        first_name = request.query_params.get('first_name')
+        last_name = request.query_params.get('last_name')
+
         if studyclassroom.teacher == teacher:
             studies = Study.objects.filter(studyclassroom=studyclassroom).order_by('studyclassroom_id')
+            if code:
+                student = Student.objects.get(code=code)
+                studies = studies.filter(studyclassroom=studyclassroom, student=student).order_by('studyclassroom_id')
+            elif first_name and last_name:
+                student = Student.objects.get(first_name=first_name, last_name=last_name)
+                studies = studies.filter(studyclassroom=studyclassroom, student=student).order_by('studyclassroom_id')
+
             scoredetails = ScoreDetails.objects.filter(study__in=studies).order_by('id')
             paginator = pagination.ScoreDetailsPaginator()
             page = paginator.paginate_queryset(scoredetails, request)
@@ -361,6 +357,7 @@ class StudyClassRoomViewSet(viewsets.ViewSet, viewsets.generics.ListAPIView):
             response = HttpResponse(content_type='application/pdf')
             response['Content-Disposition'] = f'attachment; filename="{filename}"'
 
+            # Create the PDF document
             doc = SimpleDocTemplate(response, pagesize=letter)
             table = Table(data)
 
@@ -378,7 +375,14 @@ class StudyClassRoomViewSet(viewsets.ViewSet, viewsets.generics.ListAPIView):
             # Add table to document
             doc.build([table])
 
-            return response
+            # Save the PDF locally
+            filename_with_path = os.path.join(
+                'F:\\PythonProject\\studentScoreManagement\\scoreapp\\score\\static\\Score_pdf', filename)
+            with open(filename_with_path, 'wb') as f:
+                f.write(response.content)
+
+            return Response({'message': 'PDF file exported successfully.', 'file_name': filename},
+                            status=status.HTTP_200_OK)
 
         else:
             return Response({"message": "Bạn không có quyền xuất bảng điểm của lớp học này."},

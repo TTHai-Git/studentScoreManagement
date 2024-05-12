@@ -174,19 +174,31 @@ class CommentSerializer(serializers.ModelSerializer):
         fields = ['topic_id', 'topic_title', 'id', 'content', 'created_date', 'updated_date', 'user']
 
 
-class StudySerializer(serializers.ModelSerializer):
-    student_id = serializers.IntegerField(source='student.id')
+class StudentsOfStudyClassRoom(serializers.ModelSerializer):
     student_name = serializers.SerializerMethodField()
     student_code = serializers.CharField(source='student.code')
     student_email = serializers.CharField(source='student.email')
-    studyclassroom = StudyClassRoomSerializer()
 
     def get_student_name(self, obj):
         return obj.student.last_name + ' ' + obj.student.first_name;
 
     class Meta:
         model = Study
-        fields = ['id', 'student_id', 'student_code', 'student_name', 'student_email', 'studyclassroom']
+        fields = ['id', 'student_code', 'student_name', 'student_email']
+
+
+class StudySerializer(serializers.ModelSerializer):
+    student_id = serializers.IntegerField(source='student.id')
+    student_name = serializers.SerializerMethodField()
+    student_code = serializers.CharField(source='student.code')
+    student_email = serializers.CharField(source='student.email')
+
+    def get_student_name(self, obj):
+        return obj.student.last_name + ' ' + obj.student.first_name;
+
+    class Meta:
+        model = Study
+        fields = ['id', 'student_id', 'student_code', 'student_name', 'student_email']
 
 
 class ScoreColumnSerializer(serializers.ModelSerializer):
