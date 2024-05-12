@@ -1,0 +1,11 @@
+{
+  "expo": {
+    "name": "studentScoreManagementDemoApp",
+    "slug": "studentScoreManagementDemoApp",
+    "version": "1.0.0",
+    "assetBundlePatterns": [
+      "**/*"
+    ]
+  },
+  "name": "studentScoreManagementDemoApp"
+}
