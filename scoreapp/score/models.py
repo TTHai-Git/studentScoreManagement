@@ -81,7 +81,7 @@ class Teacher(User):
 
 class Semester(models.Model):
     name = models.CharField(max_length=10)
-    year = models.CharField(max_length=5, default="2024")
+    year = models.CharField(max_length=11, default="2023 - 2024")
 
     def __str__(self):
         return f'{self.name} - {self.year}'

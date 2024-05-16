@@ -150,7 +150,7 @@ class TopicSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Topic
-        fields = ['id', 'title',  'created_date', 'active', 'studyclassroom']
+        fields = ['id', 'title', 'created_date', 'active', 'studyclassroom']
 
 
 class UserCommentSerializer(serializers.ModelSerializer):
@@ -218,3 +218,21 @@ class ScoreDetailsSerializer(serializers.ModelSerializer):
         model = ScoreDetails
         fields = ['id', 'study', 'scorecolumn_type', 'scorecolumn_percent', 'score']
 
+
+class StudyResultOfStudent(serializers.ModelSerializer):
+    group_name = serializers.CharField(source='study.studyclassroom.group.name')
+    teacher_name = serializers.SerializerMethodField()
+    subject_name = serializers.CharField(source='study.studyclassroom.subject.name')
+    semester_name = serializers.CharField(source='study.studyclassroom.semester.name')
+    semester_year = serializers.CharField(source='study.studyclassroom.semester.year')
+    scorecolumn_type = serializers.CharField(source='scorecolumn.type')
+    scorecolumn_percent = serializers.IntegerField(source='scorecolumn.percent')
+
+    def get_teacher_name(self, obj):
+        return obj.study.studyclassroom.teacher.last_name + ' ' + obj.study.studyclassroom.teacher.first_name;
+
+    class Meta:
+        model = ScoreDetails
+        fields = ['id', 'group_name', 'subject_name', 'teacher_name', 'semester_name', 'semester_year',
+                  'scorecolumn_type', 'scorecolumn_percent',
+                  'score']
