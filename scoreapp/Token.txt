@@ -65,3 +65,12 @@ client_secret = "3FJlILnIxptAwsnoQxSUcltQzwLhV87sEXbVRkrsMlJbM3aZjNy90o6VqNtGwNz
     "scope": "read write",
     "refresh_token": "0IyaL9mi5B8BKILomQRFA4AFgEbwiM"
 }
+
+{
+    "username": Test,
+    "access_token": "CUvmw9A4HqA8aSkeLQy61yaj2Tmozx",
+    "expires_in": 36000,
+    "token_type": "Bearer",
+    "scope": "read write",
+    "refresh_token": "rWRzIh3yaEHEk8WUNh1oUfm7Rqrb6K"
+}

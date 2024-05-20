@@ -6,7 +6,7 @@ class CanCommentOnPost(permissions.IsAuthenticated):
         if request.user.is_authenticated:
             if obj.studyclassroom.teacher.id == request.user.id:
                 return True
-            if obj.comment_set.filter(user=request.user).exists():
+            if obj.studyclassroom.study_set.filter(student__id=request.user.id).exists():
                 return True
         return False
 
@@ -17,3 +17,10 @@ class isTeacherOfStudyClassRoom(permissions.IsAuthenticated):
             if obj.teacher.id == request.user.id:
                 return True
         return False
+
+
+class CanLockTopic(permissions.IsAuthenticated):
+    def has_object_permission(self, request, view, obj):
+        if request.user.is_authenticated:
+            if obj.studyclassroom.teacher.id == request.user.id:
+                return True

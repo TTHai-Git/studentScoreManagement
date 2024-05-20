@@ -26,7 +26,7 @@ class User(AbstractUser):
 
     dob = models.DateField(max_length=8, auto_now_add=True)
     address = models.CharField(max_length=254, null=True)
-    avatar = CloudinaryField(null=True)
+    avatar = CloudinaryField('avatar', null=True)
     email = models.CharField(max_length=254, validators=[validate_ou_mail])
 
     def __str__(self):

@@ -1,7 +1,5 @@
 import csv
 import os
-
-from django.core.files.storage import FileSystemStorage
 from django.core.mail import send_mail
 from rest_framework import viewsets, permissions, status, parsers, generics
 from rest_framework.decorators import action
@@ -20,19 +18,18 @@ def index(request):
     return HttpResponse("CourseApp")
 
 
-class UserViewSet(viewsets.ViewSet, viewsets.generics.ListAPIView):
-    queryset = User.objects.filter(is_active=True)
+class UserViewSet(viewsets.ViewSet, generics.CreateAPIView):
+    queryset = User.objects.filter(is_active=True).all()
     serializer_class = serializers.UserSerializer
-    pagination_class = pagination.UserPaginator
-    parser_classes = [parsers.MultiPartParser, ]
+    parser_classes = [parsers.MultiPartParser]
 
     def get_permissions(self):
-        if self.action.__eq__('get_current_user'):
+        if self.action.__eq__('current_user'):
             return [permissions.IsAuthenticated()]
 
         return [permissions.AllowAny()]
 
-    @action(methods=['get'], url_path='current-user', detail=False)
+    @action(methods=['get', 'patch'], url_path='current-user', url_name='current-user', detail=False)
     def get_current_user(self, request):
         user = request.user
         if request.method.__eq__('PATCH'):
@@ -56,8 +53,8 @@ class TopicViewSet(viewsets.ViewSet, generics.ListAPIView):
     def get_permissions(self):
         if self.action == 'add_comment':
             return [permissions.IsAuthenticated(), perms.CanCommentOnPost()]
-        # if self.action == 'lock_topic':
-        #     return [permissions.IsAuthenticated(), perms.isTeacherOfStudyClassRoom()]
+        if self.action == 'lock_topic':
+            return [permissions.IsAuthenticated(), perms.CanLockOrUnlockTopic()]
         else:
             return [permissions.AllowAny()]
 
@@ -85,10 +82,11 @@ class TopicViewSet(viewsets.ViewSet, generics.ListAPIView):
                 if content:
                     comment = Comment.objects.create(content=content, user=user, topic=topic)
                 else:
-                    return Response({"message": "Thiếu thông tin content trong request!!!"},
+                    return Response({"message": "không được bỏ trống nội dung comment!!!"},
                                     status=status.HTTP_400_BAD_REQUEST)
             else:
-                return Response({"message": "Topic này đã bị khóa!!! Bạn không thể comment vào topic này được nữa!!!"},
+                return Response({"message": f'Topic {topic.title} '
+                                            f'đã bị khóa!!! Bạn không thể comment vào topic này được nữa!!!'},
                                 status=status.HTTP_400_BAD_REQUEST)
         except Exception as ex:
             return Response({"message": str(ex)}
@@ -132,6 +130,8 @@ class StudyClassRoomViewSet(viewsets.ViewSet, viewsets.generics.ListAPIView):
             return [permissions.IsAuthenticated(), perms.isTeacherOfStudyClassRoom()]
         return [permissions.AllowAny()]
 
+
+
     @action(methods=['get'], url_path='students', detail=True)
     def get_students_studyclassroom(self, request, pk):
         teacher = Teacher.objects.get(id=request.user.id)
@@ -146,12 +146,11 @@ class StudyClassRoomViewSet(viewsets.ViewSet, viewsets.generics.ListAPIView):
                 studies = Study.objects.filter(studyclassroom=studyclassroom)
                 if code:
                     student = Student.objects.get(code=code)
-                    studies = studies.filter(studyclassroom=studyclassroom, student=student).order_by(
-                        'studyclassroom_id')
+                    studies = studies.filter(studyclassroom=studyclassroom, student=student)
+
                 elif first_name and last_name:
                     student = Student.objects.get(first_name=first_name, last_name=last_name)
-                    studies = studies.filter(studyclassroom=studyclassroom, student=student).order_by(
-                        'studyclassroom_id')
+                    studies = studies.filter(studyclassroom=studyclassroom, student=student)
                 paginator = pagination.StudyPaginator()
                 page = paginator.paginate_queryset(studies, request)
 
@@ -170,38 +169,41 @@ class StudyClassRoomViewSet(viewsets.ViewSet, viewsets.generics.ListAPIView):
 
     @action(methods=['get'], url_path='students/scores', detail=True)
     def get_students_scores_studyclassroom(self, request, pk):
-        teacher = Teacher.objects.get(id=request.user.id)
-        studyclassroom = self.get_object()
-
-        code = request.query_params.get('code')
-        first_name = request.query_params.get('first_name')
-        last_name = request.query_params.get('last_name')
         try:
-            if studyclassroom.teacher == teacher:
-                studies = Study.objects.filter(studyclassroom=studyclassroom).order_by('studyclassroom_id')
-                if code:
-                    student = Student.objects.get(code=code)
-                    studies = studies.filter(studyclassroom=studyclassroom, student=student).order_by(
-                        'studyclassroom_id')
-                elif first_name and last_name:
-                    student = Student.objects.get(first_name=first_name, last_name=last_name)
-                    studies = studies.filter(studyclassroom=studyclassroom, student=student).order_by(
-                        'studyclassroom_id')
+            teacher = Teacher.objects.get(id=request.user.id)
+            studyclassroom = self.get_object()
 
-                scoredetails = ScoreDetails.objects.filter(study__in=studies).order_by('id')
-                paginator = pagination.ScoreDetailsPaginator()
-                page = paginator.paginate_queryset(scoredetails, request)
-                if page is not None:
-                    serializer = serializers.ScoreDetailsSerializer(page, many=True)
-                    return paginator.get_paginated_response(serializer.data)
-                return Response(serializers.ScoreDetailsSerializer(), status=status.HTTP_200_OK)
-            else:
+            if studyclassroom.teacher != teacher:
                 return Response({"message": "Bạn không có quyền xem bảng điểm của lớp học này."},
                                 status=status.HTTP_401_UNAUTHORIZED)
+
+            code = request.query_params.get('code')
+            first_name = request.query_params.get('first_name')
+            last_name = request.query_params.get('last_name')
+
+            studies = Study.objects.filter(studyclassroom=studyclassroom).order_by('studyclassroom_id')
+
+            if code:
+                student = Student.objects.get(code=code)
+                studies = studies.filter(student=student)
+            elif first_name and last_name:
+                student = Student.objects.get(first_name=first_name, last_name=last_name)
+                studies = studies.filter(student=student)
+
+            scoredetails = ScoreDetails.objects.filter(study__in=studies).order_by('id')
+            paginator = pagination.ScoreDetailsPaginator()
+            page = paginator.paginate_queryset(scoredetails, request)
+
+            if page is not None:
+                serializer = serializers.ScoreDetailsSerializer(page, many=True)
+                return paginator.get_paginated_response(serializer.data)
+
+            return Response(serializers.ScoreDetailsSerializer(scoredetails, many=True).data, status=status.HTTP_200_OK)
+
+        except Student.DoesNotExist:
+            return Response({"message": "Không tìm thấy sinh viên!!!"}, status=status.HTTP_404_NOT_FOUND)
         except Exception as ex:
-            if str(ex).__eq__("Student matching query does not exist."):
-                return Response({"message": "Không tìm thấy sinh viên!!!"}, status=status.HTTP_404_NOT_FOUND)
-            return Response({"message": str(ex)})
+            return Response({"message": str(ex)}, status=status.HTTP_400_BAD_REQUEST)
 
     @action(methods=['post'], url_path='students/add-scores', detail=True)
     def add_score_students_studyclassroom(self, request, pk):
