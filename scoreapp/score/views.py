@@ -30,7 +30,7 @@ class UserViewSet(viewsets.ViewSet, generics.CreateAPIView):
         return [permissions.AllowAny()]
 
     @action(methods=['get', 'patch'], url_path='current-user', url_name='current-user', detail=False)
-    def get_current_user(self, request):
+    def current_user(self, request):
         user = request.user
         if request.method.__eq__('PATCH'):
             for k, v in request.data.items():
