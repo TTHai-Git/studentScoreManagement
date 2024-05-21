@@ -1,13 +1,5 @@
 import React, { useState } from "react";
-import {
-  View,
-  TouchableOpacity,
-  Text,
-  PermissionsAndroid,
-  Image,
-  ActivityIndicator,
-  ScrollView,
-} from "react-native";
+import { View, TouchableOpacity, Text, PermissionsAndroid, Image, ActivityIndicator, ScrollView } from "react-native";
 import { launchCamera, launchImageLibrary } from "react-native-image-picker";
 import { Button, TextInput } from "react-native-paper";
 import Icon from "react-native-vector-icons/FontAwesome";
@@ -25,13 +17,12 @@ const Register = ({ navigation }) => {
     avatar:
       "https://i2.wp.com/genshinbuilds.aipurrjects.com/genshin/characters/yae_miko/image.png?strip=all&quality=75&w=256",
   });
+
   const [confirm_password, setConfirm_Password] = React.useState("");
 
   const [showPassword, setShowPassword] = React.useState(false);
 
   const [loading, setLoading] = useState(false);
-
-  //Cần hàm xử lý đăng ký
 
   const register = async () => {
     setLoading(true);
@@ -56,10 +47,10 @@ const Register = ({ navigation }) => {
       console.info(res.data);
       navigation.navigate("Login");
     } catch (ex) {
-      console.error(ex);
+        console.error(ex);
     } finally {
-      setLoading(false);
-      console.log(user);
+        setLoading(false);
+        console.log(user);
     }
   };
 
@@ -91,7 +82,7 @@ const Register = ({ navigation }) => {
 
   return (
     <ScrollView>
-      <View style={MyStyle.container}>
+      <View style={[MyStyle.container, MyStyle.centerContainer]}>
         <View style={Styles.log_items}>
           <TextInput
             style={Styles.input}
@@ -176,15 +167,9 @@ const Register = ({ navigation }) => {
           <TouchableOpacity style={Styles.input} onPress={picker}>
             <Text>Chọn ảnh đại diện...</Text>
           </TouchableOpacity>
-          {user.avatar ? (
-            <Image style={Styles.avatar} source={{ uri: user.avatar.uri }} />
-          ) : (
-            ""
-          )}
-          {loading === true ? (
-            <ActivityIndicator />
-          ) : (
-            <>
+          {user.avatar ? <Image style={Styles.avatar} source={{ uri: user.avatar.uri }} /> : ""}
+
+          {loading === true ? <ActivityIndicator /> : <>
               <Button
                 style={Styles.button_user}
                 mode="contained"
@@ -192,16 +177,8 @@ const Register = ({ navigation }) => {
               >
                 Đăng Ký
               </Button>
-            </>
-          )}
+            </>}
         </View>
-
-        {/* <View style={Styles.button}>
-        <Button mode="contained" onPress={() => console.log("Register")}>
-          {" "}
-          Đăng ký{" "}
-        </Button>
-      </View> */}
       </View>
     </ScrollView>
   );

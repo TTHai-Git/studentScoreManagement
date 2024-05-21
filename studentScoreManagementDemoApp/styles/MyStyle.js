@@ -2,11 +2,13 @@ import { StyleSheet } from "react-native";
 
 export default StyleSheet.create({
   container: {
-    backgroundColor: "#b3b3cc",
+    backgroundColor: "#80b3ff",
     flex: 1,
+    padding: 10
+  },
+  centerContainer: {
     alignItems: "center",
     justifyContent: "center",
-    padding: 5
   },
   goBack: {
     backgroundColor: "#b3b3cc",
@@ -18,5 +20,10 @@ export default StyleSheet.create({
     color: "#000",
     fontWeight: "bold",
     fontSize: 20
+  }, 
+  button_user: {
+    backgroundColor: "#ff7733",
+    marginBottom: 10,
+    color: "#ff7733",
   }
 });

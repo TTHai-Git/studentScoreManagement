@@ -20,13 +20,11 @@ const Login = ({ navigation }) => {
 
   // const [selectedValue, setSelectedValue] = React.useState("student");
 
-  //Cần hàm xử lý đăng nhập
-
   const login = async () => {
     setLoading(true);
 
     try {
-      let res = await APIs.post(endpoints["login"], {
+        let res = await APIs.post(endpoints["login"], {
         username: username,
         password: password,
         client_id: "3jFUdqJsKwnhj1X5wf5WihTyp2g7mfdWp6V3mhl5",
@@ -46,16 +44,25 @@ const Login = ({ navigation }) => {
       });
       navigation.navigate("Home");
     } catch (ex) {
-      console.error(ex);
+        console.error(ex);
     } finally {
-      setLoading(false);
-      console.log(res);
-      console.log(user);
+        setLoading(false);
+        console.log(res);
+        console.log(user);
     }
   };
 
   return (
-    <View style={MyStyle.container}>
+    <View style={[MyStyle.container, MyStyle.centerContainer]}>
+      {/* <View style={Styles.log_items}>
+              <TextInput
+                style={Styles.input}
+                label="Email"
+                value={email}
+                onChangeText={(email) => setEmail(email)}
+              />
+      </View> */}
+
       <View style={Styles.log_items}>
         <TextInput
           style={Styles.input}
@@ -64,15 +71,6 @@ const Login = ({ navigation }) => {
           onChangeText={(username) => setUserName(username)}
         />
       </View>
-
-      {/* <View style={Styles.log_items}>
-        <TextInput
-          style={Styles.input}
-          label="Email"
-          value={email}
-          onChangeText={(email) => setEmail(email)}
-        />
-      </View> */}
 
       <View style={Styles.log_items}>
         <TextInput
@@ -94,6 +92,7 @@ const Login = ({ navigation }) => {
           />
         </TouchableOpacity>
       </View>
+
       {/* <View style={Styles.log_items}>
         {
           <Picker
@@ -109,17 +108,19 @@ const Login = ({ navigation }) => {
           </Picker>
         }
       </View> */}
-      {loading === true ? (
-        <ActivityIndicator />
-      ) : (
-        <>
+
+      {/* <View style={Styles.button}>
+            <Button mode="contained" onPress={() => console.log('Login')}> Đăng nhập </Button>
+            <Button mode="contained" onPress={() => console.log('Register')}> Đăng ký </Button>
+      </View> */}
+
+      {loading === true ? <ActivityIndicator /> : <>
           <View style={Styles.button}>
             <Button mode="contained" onPress={login}>
               Đăng nhập
             </Button>
           </View>
-        </>
-      )}
+      </>}
     </View>
   );
 };
