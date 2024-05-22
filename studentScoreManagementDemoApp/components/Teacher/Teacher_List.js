@@ -24,6 +24,18 @@ const TeacherList = () => {
                     <Text style={Styles.text_class}>Môn: </Text>
                     <Button style={MyStyle.button_user} mode="contained" onPress={() => console.log('Login')}> Quản lý điểm </Button>
                 </View>
+
+                <View style={Styles.class}>
+                    <Text style={Styles.text_class}>Lớp: </Text>
+                    <Text style={Styles.text_class}>Môn: </Text>
+                    <Button style={MyStyle.button_user} mode="contained" onPress={() => console.log('Login')}> Quản lý điểm </Button>
+                </View>
+
+                <View style={Styles.class}>
+                    <Text style={Styles.text_class}>Lớp: </Text>
+                    <Text style={Styles.text_class}>Môn: </Text>
+                    <Button style={MyStyle.button_user} mode="contained" onPress={() => console.log('Login')}> Quản lý điểm </Button>
+                </View>
             </ScrollView>
         </View>
     );

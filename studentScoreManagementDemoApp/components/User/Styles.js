@@ -2,11 +2,11 @@ import { StyleSheet } from "react-native";
 
 export default StyleSheet.create({
   log_items: {
-    width: "80%",
-    marginBottom: 20,
+    width: "90%",
   },
   input: {
-    backgroundColor: "#fff"
+    backgroundColor: "#fff",
+    marginBottom: 10
   },
   button: {
     justifyContent: "space-around",
