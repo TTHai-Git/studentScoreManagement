@@ -49,9 +49,8 @@ const Register = ({ navigation }) => {
     try {
       setLoading(true);
       let res = await APIs.post(endpoints["register"], form, {
-        headers: {
-          "Content-Type": "multipart/form-data",
-        },
+        headers: { "Content-Type": "multipart/form-data" },
+        data: form,
       });
       console.info(res.data);
       navigation.navigate("Login");

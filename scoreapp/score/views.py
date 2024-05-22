@@ -18,6 +18,11 @@ def index(request):
     return HttpResponse("CourseApp")
 
 
+class RoleViewSet(viewsets.ViewSet, generics.CreateAPIView, generics.ListAPIView):
+    queryset = Role.objects.all()
+    serializer_class = serializers.Role
+
+
 class UserViewSet(viewsets.ViewSet, generics.CreateAPIView):
     queryset = User.objects.filter(is_active=True).all()
     serializer_class = serializers.UserSerializer
@@ -39,10 +44,11 @@ class UserViewSet(viewsets.ViewSet, generics.CreateAPIView):
         return Response(serializers.UserSerializer(user).data)
 
 
-class TeacherViewSet(viewsets.ViewSet, viewsets.generics.ListAPIView):
+class TeacherViewSet(viewsets.ViewSet, generics.ListAPIView, generics.CreateAPIView):
     queryset = Teacher.objects.all()
     serializer_class = serializers.TeacherSerializer
     pagination_class = pagination.TeacherPaginator
+    parser_classes = [parsers.MultiPartParser]
 
 
 class TopicViewSet(viewsets.ViewSet, generics.ListAPIView):
@@ -129,8 +135,6 @@ class StudyClassRoomViewSet(viewsets.ViewSet, viewsets.generics.ListAPIView):
                            'locked_score_of_studyclassroom', 'export_csv_scores_students_studyclassroom', 'add_topic']:
             return [permissions.IsAuthenticated(), perms.isTeacherOfStudyClassRoom()]
         return [permissions.AllowAny()]
-
-
 
     @action(methods=['get'], url_path='students', detail=True)
     def get_students_studyclassroom(self, request, pk):
@@ -445,11 +449,11 @@ class StudyClassRoomViewSet(viewsets.ViewSet, viewsets.generics.ListAPIView):
                             status=status.HTTP_404_NOT_FOUND)
 
 
-class StudentViewSet(viewsets.ViewSet, viewsets.generics.ListAPIView):
+class StudentViewSet(viewsets.ViewSet, generics.ListAPIView, generics.CreateAPIView):
     queryset = Student.objects.all()
     serializer_class = serializers.StudentSerializer
     pagination_class = pagination.StudentPaginator
-    permission_classes = [permissions.IsAuthenticated]
+    parser_classes = [parsers.MultiPartParser]
 
     @action(methods=['get'], url_path='studies', detail=True)
     def get_details_study(self, request, pk):

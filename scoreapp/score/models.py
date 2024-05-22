@@ -1,3 +1,5 @@
+import enum
+
 from django.db import models
 from django.contrib.auth.models import AbstractUser
 from ckeditor.fields import RichTextField
@@ -17,20 +19,34 @@ class BaseModel(models.Model):
         abstract = True
 
 
+class RoleEnum(models.TextChoices):
+    ADMIN = 'admin'
+    STUDENT = 'student'
+    TEACHER = 'teacher'
+
+
+class Role (models.Model):
+    name = models.CharField(max_length=50, choices=RoleEnum.choices, unique=True)
+
+    def __str__(self):
+        return self.name
+
+
 class User(AbstractUser):
     def validate_ou_mail(value):
-        if "@ou.edu.vn" in value:
+        if str(value).endswith("@ou.edu.vn"):
             return value
         else:
-            raise ValidationError("This field accepts mail id of OU only")
+            raise ValidationError("Phải dùng tài khoản mail trường @ou.edu.svn!!!")
 
     dob = models.DateField(max_length=8, auto_now_add=True)
     address = models.CharField(max_length=254, null=True)
     avatar = CloudinaryField('avatar', null=True)
-    email = models.CharField(max_length=254, validators=[validate_ou_mail])
+    email = models.EmailField(max_length=254, validators=[validate_ou_mail])
+    role = models.ForeignKey(Role, on_delete=models.CASCADE, null=True, blank=True)
 
     def __str__(self):
-        return f'{self.id} - {self.last_name}  {self.first_name} - {self.username}'
+        return f'{self.id} - {self.last_name}  {self.first_name} - {self.username} - {self.role}'
 
 
 class Department(BaseModel):
@@ -57,8 +73,8 @@ class StudentClassRoom(BaseModel):
 
 
 class Student(User):
-    code = models.CharField(max_length=10, unique=True)
-    studentclassroom = models.ForeignKey(StudentClassRoom, on_delete=models.CASCADE)
+    code = models.CharField(max_length=10, unique=True, default=None, null=True)
+    studentclassroom = models.ForeignKey(StudentClassRoom, on_delete=models.CASCADE, null=True, default=None)
 
     def __str__(self):
         return f'{self.id} - {self.code} - {self.last_name} {self.first_name} - {self.username}'
@@ -69,7 +85,7 @@ class Student(User):
 
 
 class Teacher(User):
-    code = models.CharField(max_length=10)
+    code = models.CharField(max_length=10, unique=True, default=None, null=True)
 
     def __str__(self):
         return f'{self.id} - {self.code} - {self.last_name} {self.first_name} - {self.username}'

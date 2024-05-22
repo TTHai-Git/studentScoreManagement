@@ -7,7 +7,6 @@ import MyStyle from "../../styles/MyStyle";
 import APIs, { authApi, endpoints } from "../../configs/APIs";
 import MyContext from "../../configs/MyContext";
 import { AsyncStorage } from "react-native";
-import { Picker } from "@react-native-picker/picker";
 
 const Login = ({ navigation }) => {
   // const [email, setEmail] = React.useState("");

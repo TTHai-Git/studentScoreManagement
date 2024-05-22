@@ -2,6 +2,76 @@ from rest_framework import serializers
 from score.models import *
 
 
+class RoleSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Role
+        fields = ['id', 'name']
+
+
+class UserSerializer(serializers.ModelSerializer):
+    def update(self, instance, validated_data):
+        data = validated_data.copy()
+        user = User(**data)
+        user.set_password(data["password"])
+        user.set_avatar(data["avatar"])
+        user.save()
+
+    class Meta:
+        model = User
+        fields = ['id', 'first_name', 'last_name', 'username', 'password', 'email', 'avatar', 'role']
+        extra_kwargs = {
+            'password': {
+                'write_only': True
+            }
+        }
+
+
+class TeacherSerializer(serializers.ModelSerializer):
+    def update(self, instance, validated_data):
+        data = validated_data.copy()
+        user = Student(**data)
+        user.set_password(data["password"])
+        user.set_avatar(data["avatar"])
+        user.save()
+
+    class Meta:
+        model = Teacher
+        fields = ['id', 'code', 'first_name', 'last_name', 'username', 'password', 'email', 'avatar', 'role']
+        extra_kwargs = {
+            'password': {
+                'write_only': True
+            }
+        }
+
+    def to_representation(self, instance):
+        rep = super().to_representation(instance)
+        rep['avatar'] = instance.avatar.url
+        return rep
+
+
+class StudentSerializer(serializers.ModelSerializer):
+    def update(self, instance, validated_data):
+        data = validated_data.copy()
+        user = Student(**data)
+        user.set_password(data["password"])
+        user.set_avatar(data["avatar"])
+        user.save()
+
+    class Meta:
+        model = Student
+        fields = ['id', 'code', 'first_name', 'last_name', 'username', 'password', 'email', 'avatar', 'role']
+        extra_kwargs = {
+            'password': {
+                'write_only': True
+            }
+        }
+
+    def to_representation(self, instance):
+        rep = super().to_representation(instance)
+        rep['avatar'] = instance.avatar.url
+        return rep
+
+
 class ItemSerializer(serializers.ModelSerializer):
     def to_representation(self, instance):
         rep = super().to_representation(instance)
@@ -41,96 +111,6 @@ class StudentClassRoom(serializers.ModelSerializer):
         fields = ['id', 'name', 'department']
 
 
-class TeacherSerializer(serializers.ModelSerializer):
-    def create(self, validated_data):
-        data = validated_data.copy()
-        user = Teacher(**data)
-        user.set_code(data["code"])
-        user.set_password(data["password"])
-        user.save()
-
-        return user
-
-    def update(self, instance, validated_data):
-        data = validated_data.copy()
-        user = Student(**data)
-        user.set_password(data["password"])
-        user.set_avatar(data["avatar"])
-        user.save()
-
-    class Meta:
-        model = Teacher
-        fields = ['id', 'code', 'first_name', 'last_name', 'username', 'password', 'email', 'avatar']
-        extra_kwargs = {
-            'password': {
-                'write_only': True
-            }
-        }
-
-    def to_representation(self, instance):
-        rep = super().to_representation(instance)
-        rep['avatar'] = instance.avatar.url
-        return rep
-
-
-class StudentSerializer(serializers.ModelSerializer):
-    def create(self, validated_data):
-        data = validated_data.copy()
-        user = Student(**data)
-        user.set_code(data["code"])
-        user.set_password(data["password"])
-        user.save()
-
-        return user
-
-    def update(self, instance, validated_data):
-        data = validated_data.copy()
-        user = Student(**data)
-        user.set_password(data["password"])
-        user.set_avatar(data["avatar"])
-        user.save()
-
-    class Meta:
-        model = Student
-        fields = ['id', 'code', 'first_name', 'last_name', 'username', 'password', 'email', 'avatar']
-        extra_kwargs = {
-            'password': {
-                'write_only': True
-            }
-        }
-
-    def to_representation(self, instance):
-        rep = super().to_representation(instance)
-        rep['avatar'] = instance.avatar.url
-        return rep
-
-
-class UserSerializer(serializers.ModelSerializer):
-    def create(self, validated_data):
-        data = validated_data.copy()
-        user = User(**data)
-        user.set_password(data["password"])
-        user.save()
-
-        return user
-
-    def update(self, instance, validated_data):
-        data = validated_data.copy()
-        user = User(**data)
-        user.set_password(data["password"])
-        user.set_avatar(data["avatar"])
-        user.save()
-
-    class Meta:
-        model = User
-        fields = ['id', 'first_name', 'last_name', 'username', 'password', 'email', 'avatar']
-        extra_kwargs = {
-            'password': {
-                'write_only': True
-            }
-        }
-
-
 class StudyClassRoomSerializer(serializers.ModelSerializer):
     subject_name = serializers.CharField(source='subject.name')
     teacher_name = serializers.SerializerMethodField()
@@ -156,7 +136,7 @@ class TopicSerializer(serializers.ModelSerializer):
 class UserCommentSerializer(serializers.ModelSerializer):
     class Meta:
         model = User
-        fields = ['id', 'first_name', 'last_name', 'username', 'avatar']
+        fields = ['id', 'first_name', 'last_name', 'username', 'avatar', 'role']
 
     def to_representation(self, instance):
         rep = super().to_representation(instance)

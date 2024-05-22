@@ -39,6 +39,7 @@ class MySubjectAdmin(admin.ModelAdmin):
             return mark_safe(f"<img width='120' src='/static/{instance.image.name}' />")
 
 
+admin.site.register(Role)
 admin.site.register(User)
 admin.site.register(Teacher)
 admin.site.register(Student, name="Student")
