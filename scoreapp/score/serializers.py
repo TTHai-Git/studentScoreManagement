@@ -9,6 +9,14 @@ class RoleSerializer(serializers.ModelSerializer):
 
 
 class UserSerializer(serializers.ModelSerializer):
+    def create(self, validated_data):
+        data = validated_data.copy()
+        user = Student(**data)
+        user.set_password(data["password"])
+        user.save()
+
+        return user
+
     def update(self, instance, validated_data):
         data = validated_data.copy()
         user = User(**data)
@@ -25,11 +33,24 @@ class UserSerializer(serializers.ModelSerializer):
             }
         }
 
+    def to_representation(self, instance):
+        rep = super().to_representation(instance)
+        rep['avatar'] = instance.avatar.url
+        return rep
+
 
 class TeacherSerializer(serializers.ModelSerializer):
+    def create(self, validated_data):
+        data = validated_data.copy()
+        user = Teacher(**data)
+        user.set_password(data["password"])
+        user.save()
+
+        return user
+
     def update(self, instance, validated_data):
         data = validated_data.copy()
-        user = Student(**data)
+        user = Teacher(**data)
         user.set_password(data["password"])
         user.set_avatar(data["avatar"])
         user.save()
@@ -50,6 +71,14 @@ class TeacherSerializer(serializers.ModelSerializer):
 
 
 class StudentSerializer(serializers.ModelSerializer):
+    def create(self, validated_data):
+        data = validated_data.copy()
+        user = Student(**data)
+        user.set_password(data["password"])
+        user.save()
+
+        return user
+
     def update(self, instance, validated_data):
         data = validated_data.copy()
         user = Student(**data)

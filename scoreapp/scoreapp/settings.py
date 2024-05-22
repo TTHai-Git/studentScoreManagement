@@ -35,7 +35,7 @@ EMAIL_PORT = 587
 EMAIL_HOST_USER = 'spaceboy534@gmail.com'
 EMAIL_HOST_PASSWORD = 'jhcg sbrg vqzc gxgg'
 
-ALLOWED_HOSTS = ["192.168.1.3"]
+ALLOWED_HOSTS = []
 
 # Application definition
 
