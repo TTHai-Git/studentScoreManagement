@@ -1,5 +1,3 @@
-import axios from "axios";
-
 // const axios = require("axios");
 
 // async function getTeachers(page) {
@@ -10,6 +8,8 @@ import axios from "axios";
 // getTeachers().then((data) => {
 //   console.log(data);
 // });
+
+import axios from "axios";
 
 const BASE_URL = "http://192.168.1.3:8000";
 
@@ -38,7 +38,7 @@ export const endpoints = {
   login: "/o/token/",
         "current-user": "/users/current-user/",
     
-  register: "/users/",
+  register: "/students/",
 };
 
 export const authApi = (accessToken) =>

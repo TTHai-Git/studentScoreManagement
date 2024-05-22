@@ -23,6 +23,13 @@ Cài đặt Table Component
 1. npm install react-native-table-component
 
 Cài đặt Async Storage
+
+1. npm install @react-native-async-storage/async-storage
+
+Cài đặt Image Picker
+1. npx expo install expo-image-picker
+
+Cài đặt Async Storage
 1. npm install @react-native-async-storage/async-storage
 
 Cài đặt Image Picker
