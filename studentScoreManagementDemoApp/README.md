@@ -18,8 +18,11 @@ Cài đặt Native Stack
 
 Cài đặt Bottom Tabs
 
+<<<<<<< HEAD
 1. npm insta
    Cài đặt Bottom Tabs
+=======
+>>>>>>> ab1b74f4a66168975d07b19c33c4587daaf91e21
 1. npm install @react-navigation/bottom-tabs
 
 Cài đặt Render HTMl
@@ -27,6 +30,7 @@ Cài đặt Render HTMl
 1. npm install react-native-render-html
 
 Cài đặt Table Component
+<<<<<<< HEAD
 
 1. npm install react-native-table-component
 
@@ -42,3 +46,11 @@ Fix lỗi không cùng phiên bản Expo
 
 1. npm install expo@latest
 2. npm install expo@51
+=======
+1. npm install react-native-table-component
+
+Fix lỗi không cùng phiên bản Expo
+
+1. npm install expo@latest
+2. npm install expo@51
+>>>>>>> ab1b74f4a66168975d07b19c33c4587daaf91e21

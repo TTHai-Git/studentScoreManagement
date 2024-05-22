@@ -6,7 +6,7 @@ export default StyleSheet.create({
     marginBottom: 20,
   },
   input: {
-    backgroundColor: "#fff",
+    backgroundColor: "#fff"
   },
   button: {
     justifyContent: "space-around",
@@ -21,26 +21,22 @@ export default StyleSheet.create({
   avatar_button: {
     marginTop: 10,
     width: "30%",
-    backgroundColor: "#fff",
+    backgroundColor: "#fff"
   },
   info: {
     width: "90%",
-    marginBottom: 20,
+    marginBottom: 20
   },
   text_name: {
     fontSize: 30,
     fontWeight: "bold",
     textAlign: "center",
-    padding: 5,
+    padding: 5
   },
   info_detail: {
-    alignItems: "flex-start",
+    alignItems: "flex-start"
   },
   text_detail: {
-    fontSize: 20,
-  },
-  button_user: {
-    marginTop: 13,
-    marginBottom: 13,
-  },
+    fontSize: 20
+  }
 });
