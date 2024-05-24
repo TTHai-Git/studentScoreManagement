@@ -1,14 +1,3 @@
-// const axios = require("axios");
-
-// async function getTeachers(page) {
-//   const response = await axios.get(`http://127.0.0.1:8000/teachers/`);
-//   return response.data.results;
-// }
-
-// getTeachers().then((data) => {
-//   console.log(data);
-// });
-
 import axios from "axios";
 
 const BASE_URL = "http://127.0.0.1:8000";
@@ -45,10 +34,7 @@ export const endpoints = {
 
   login: "/o/token/",
   "current-user": "/users/current-user/",
-
   register: "/students/",
-
-  roles: (roles_id) => ``
 };
 
 export const authApi = (accessToken) =>
