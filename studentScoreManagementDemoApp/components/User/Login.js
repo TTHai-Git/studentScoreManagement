@@ -1,10 +1,4 @@
-import {
-  View,
-  Text,
-  KeyboardAvoidingView,
-  Platform,
-  ScrollView,
-} from "react-native";
+import { View, Text, KeyboardAvoidingView, Platform, ScrollView } from "react-native";
 import { Button, TextInput } from "react-native-paper";
 import MyStyle from "../../styles/MyStyle";
 import React, { useContext } from "react";
@@ -18,6 +12,7 @@ import { Picker } from "@react-native-picker/picker";
 const Login = () => {
   const [user, setUser] = React.useState({});
   const [selectedValue, setSelectedValue] = React.useState("student");
+
   const fields = [
     {
       label: "Tên đăng nhập",
@@ -29,6 +24,7 @@ const Login = () => {
       secureTextEntry: true,
     },
   ];
+
   const [loading, setLoading] = React.useState(false);
   const nav = useNavigation();
   const dispatch = useContext(MyDispatchContext);
@@ -75,17 +71,8 @@ const Login = () => {
 
   return (
     <View style={MyStyle.container}>
-      <KeyboardAvoidingView
-        behavior={Platform.OS === "ios" ? "padding" : "height"}
-        style={{ flex: 1 }}
-      >
-        <ScrollView
-          contentContainerStyle={{
-            flexGrow: 1,
-            justifyContent: "center",
-            alignItems: "center",
-          }}
-        >
+      <KeyboardAvoidingView behavior={Platform.OS === "ios" ? "padding" : "height"} style={{ flex: 1 }} >
+        <ScrollView contentContainerStyle={{ flexGrow: 1, justifyContent: "center", alignItems: "center", }} >
           <View style={Styles.log_items}>
             {fields.map((c) => (
               <View
@@ -103,12 +90,7 @@ const Login = () => {
               </View>
             ))}
 
-            <View
-              style={{
-                ...Styles.log_items,
-                width: "100%",
-                position: "relative",
-              }}
+            <View style={{...Styles.log_items, width: "100%", position: "relative" }}
             >
               <Picker
                 style={Styles.input}
@@ -123,10 +105,7 @@ const Login = () => {
               </Picker>
             </View>
 
-            <Button mode="contained" onPress={login}>
-              {" "}
-              Đăng nhập{" "}
-            </Button>
+            <Button mode="contained" onPress={login}> ĐĂNG NHẬP </Button>
           </View>
         </ScrollView>
       </KeyboardAvoidingView>

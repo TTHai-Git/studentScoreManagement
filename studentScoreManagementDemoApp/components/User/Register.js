@@ -1,20 +1,5 @@
-import {
-  View,
-  Text,
-  Alert,
-  Image,
-  ScrollView,
-  KeyboardAvoidingView,
-  Platform,
-  TouchableOpacity,
-} from "react-native";
-import {
-  Button,
-  HelperText,
-  Icon,
-  TextInput,
-  TouchableRipple,
-} from "react-native-paper";
+import { View, Text, Alert, Image, ScrollView, KeyboardAvoidingView, Platform, TouchableOpacity } from "react-native";
+import { Button, HelperText, Icon, TextInput, TouchableRipple } from "react-native-paper";
 import MyStyle from "../../styles/MyStyle";
 import * as ImagePicker from "expo-image-picker";
 import React from "react";
@@ -139,7 +124,7 @@ const Register = () => {
                   style={Styles.input}
                   label={c.label}
                 />
-                {(c.name === "password" || c.name === "confirm") && (
+                {/* {(c.name === "password" || c.name === "confirm") && (
                   <TouchableOpacity
                     style={{ position: "absolute", right: 10, top: 30 }} // Adjust top as necessary
                     onPress={() => {
@@ -164,7 +149,7 @@ const Register = () => {
                       color="#000"
                     />
                   </TouchableOpacity>
-                )}
+                )} */}
               </View>
             ))}
 
@@ -186,18 +171,11 @@ const Register = () => {
               </Text>
             </Button>
 
-            {user.avatar && (
+            {/* {user.avatar && (
               <Image source={{ uri: user.avatar.uri }} style={Styles.avatar} />
-            )}
+            )} */}
 
-            <Button
-              icon="account"
-              loading={loading}
-              mode="contained"
-              onPress={register}
-            >
-              ĐĂNG KÝ
-            </Button>
+            <Button icon="account" loading={loading} mode="contained" onPress={register} > ĐĂNG KÝ </Button>
           </View>
         </ScrollView>
       </KeyboardAvoidingView>

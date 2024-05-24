@@ -49,5 +49,5 @@ Fix lỗi không cùng phiên bản Expo
 1. npm install expo@latest
 2. npm install expo@51
 
-Chú ý: cái adb nó chạy ip khác ở port khác => Mình phải chuyển ip + port backend từ local qua ip cua thằng adb => Để thằng android nó connect được
+Chú ý: cái adb nó chạy ip khác ở port khác => Mình phải chuyển ip + port backend từ local qua ip của thằng adb => Để thằng android nó connect được
 (Ông thầy bỏ lên pyanywhere để ip public, cho lúc nào cũng connect vô được mà kh cần reverse á ) -> "start": "adb reverse tcp:8000 tcp:8000 && expo start --dev-client", (MAP PORT)
