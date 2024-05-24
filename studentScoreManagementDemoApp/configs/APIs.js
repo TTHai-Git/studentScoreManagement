@@ -35,6 +35,7 @@ export const endpoints = {
     `/studyclassrooms/${studyclassroom_id}/students/export-pdf-scores/`,
 
   topics: "/topics/",
+
   comments: (topic_id) => `/topics/${topic_id}/comments/`,
   "add-topic": (studyclassroom_id) => `/studyclassrooms/${studyclassroom_id}/`,
   "add-comment": (topic_id) => `/topics/${topic_id}/add-comment/`,
@@ -44,7 +45,10 @@ export const endpoints = {
 
   login: "/o/token/",
   "current-user": "/users/current-user/",
+
   register: "/students/",
+
+  roles: (roles_id) => ``
 };
 
 export const authApi = (accessToken) =>
