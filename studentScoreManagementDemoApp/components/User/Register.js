@@ -16,7 +16,7 @@ import {
   TouchableRipple,
 } from "react-native-paper";
 import MyStyle from "../../styles/MyStyle";
-// import * as ImagePicker from "expo-image-picker";
+import * as ImagePicker from "expo-image-picker";
 import React from "react";
 import APIs, { endpoints } from "../../configs/APIs";
 import { useNavigation } from "@react-navigation/native";
@@ -88,20 +88,20 @@ const Register = () => {
       for (let key in user)
         if (key !== "confirm")
           if (key === "avatar") {
-            // form.append(key, {
-            //   uri: user.avatar.uri,
-            //   name: user.avatar.fileName,
-            //   type: user.avatar.type,
-            // });
+            form.append(key, {
+              uri: user.avatar.uri,
+              name: user.avatar.fileName,
+              type: user.avatar.type,
+            });
           } else form.append(key, user[key]);
 
       console.info(form);
       setLoading(true);
       try {
         let res = await APIs.post(endpoints["register"], form, {
-          // headers: {
-          //   "Content-Type": "multipart/form-data",
-          // },
+          headers: {
+            "Content-Type": "multipart/form-data",
+          },
         });
 
         if (res.status === 201) nav.navigate("Login");
