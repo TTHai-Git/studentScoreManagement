@@ -74,6 +74,7 @@ class StudentSerializer(serializers.ModelSerializer):
     def create(self, validated_data):
         data = validated_data.copy()
         user = Student(**data)
+        user.set_role_id("student")
         user.set_password(data["password"])
         user.save()
 

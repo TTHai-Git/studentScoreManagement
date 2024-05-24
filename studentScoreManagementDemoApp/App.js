@@ -132,7 +132,7 @@ const MyTab = () => {
       ) : (
         <>
           <Tab.Screen
-            name="Profile"
+            name="Home"
             component={Home}
             options={{
               title: user.username,

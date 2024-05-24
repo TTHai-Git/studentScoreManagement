@@ -11,7 +11,7 @@
 //     const [avatarSource, setAvatarSource] = React.useState("https://i2.wp.com/genshinbuilds.aipurrjects.com/genshin/characters/yae_miko/image.png?strip=all&quality=75&w=256");
 
 //     //Xét role
-//     const option = 'academicAffair'; 
+//     const option = 'academicAffair';
 
 //     let info, func_user;
 
@@ -96,16 +96,18 @@ import { Button } from "react-native-paper";
 import { MyDispatchContext, MyUserContext } from "../../configs/Contexts";
 import MyStyle from "../../styles/MyStyle";
 
-const Home = () => {
-    const user = useContext(MyUserContext);
-    const dispatch = useContext(MyDispatchContext);
-   
-    return (
-        <View style={[MyStyle.container, MyStyle.centerContainer]}>
-            <Text style={MyStyle.goBack_text}>CHÀO {user.username}!</Text>
-            <Button icon="logout" onPress={() => dispatch({"type": "logout"})}>Đăng xuất</Button>
-        </View>
-    );
-}
+const Home = ({ navigation }) => {
+  const user = useContext(MyUserContext);
+  const dispatch = useContext(MyDispatchContext);
+
+  return (
+    <View style={[MyStyle.container, MyStyle.centerContainer]}>
+      <Text style={MyStyle.goBack_text}>CHÀO {user.username}!</Text>
+      <Button icon="logout" onPress={() => dispatch({ type: "logout" })}>
+        Đăng xuất
+      </Button>
+    </View>
+  );
+};
 
 export default Home;

@@ -26,7 +26,7 @@ class RoleEnum(models.TextChoices):
 
 
 class Role (models.Model):
-    name = models.CharField(max_length=50, choices=RoleEnum.choices, unique=True)
+    name = models.CharField(max_length=50, choices=RoleEnum.choices, primary_key=True)
 
     def __str__(self):
         return self.name

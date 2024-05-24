@@ -56,6 +56,9 @@ INSTALLED_APPS = [
     'oauth2_provider',
 ]
 
+
+OAUTH2_PROVIDER = {'OAUTH2_BACKEND_CLASS': 'oauth2_provider.oauth2_backends.JSONOAuthLibCore'}
+
 REST_FRAMEWORK = {
     'DEFAULT_PAGINATION_CLASS':
         'rest_framework.pagination.PageNumberPagination',
@@ -87,6 +90,8 @@ MIDDLEWARE = [
 ]
 
 CORS_ALLOW_ALL_ORIGINS = True
+CORS_ALLOW_CREDENTIALS = True
+
 
 ROOT_URLCONF = 'scoreapp.urls'
 
@@ -163,14 +168,14 @@ DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
 import cloudinary
 
-#Hải
+# Hải
 cloudinary.config(
     cloud_name="dh5jcbzly",
     api_key="956284944785852",
     api_secret="ZYqL_9IS8N4a6uZ1esDJUBHNeq4"
 )
 
-#Hoàng
+# Hoàng
 # cloudinary.config(
 #     cloud_name="dvsnl4nsh",
 #     api_key="672181655553596",

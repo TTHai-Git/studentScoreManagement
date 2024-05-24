@@ -18,11 +18,6 @@ def index(request):
     return HttpResponse("CourseApp")
 
 
-class RoleViewSet(viewsets.ViewSet, generics.CreateAPIView, generics.ListAPIView):
-    queryset = Role.objects.all()
-    serializer_class = serializers.Role
-
-
 class UserViewSet(viewsets.ViewSet, generics.CreateAPIView):
     queryset = User.objects.filter(is_active=True).all()
     serializer_class = serializers.UserSerializer
