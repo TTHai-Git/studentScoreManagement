@@ -140,7 +140,7 @@ const Register = () => {
 
                     {/* {user.avatar && <Image source={{uri: user.avatar.uri}} style={Styles.avatar} />} */}
 
-                    <Button icon="account" loading={loading} mode="contained" onPress={register}>ĐĂNG KÝ</Button>
+                <Button loading={loading} mode="contained" onPress={register}> ĐĂNG KÝ </Button>
                 </View>
             </ScrollView>
             </KeyboardAvoidingView>   

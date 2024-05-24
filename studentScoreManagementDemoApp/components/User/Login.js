@@ -10,8 +10,6 @@ import Styles from "../User/Styles";
 import { Picker } from "@react-native-picker/picker";
 
 const Login = () => {
-    const [user, setUser] = React.useState({});
-    const [selectedValue, setSelectedValue] = React.useState("student");
     const fields = [{
         "label": "Tên đăng nhập",
         "name": "username"
@@ -20,6 +18,9 @@ const Login = () => {
         "name": "password",
         "secureTextEntry": true
     }];
+
+    const [user, setUser] = React.useState({});
+    const [selectedValue, setSelectedValue] = React.useState("student");
     const [loading, setLoading] = React.useState(false);
     const nav = useNavigation();
     const dispatch = useContext(MyDispatchContext);
@@ -35,8 +36,8 @@ const Login = () => {
         try {
             let res = await APIs.post(endpoints['login'], {
                 ...user,
-                'client_id': 'Xx3MdHxmJSC3nLTtp7s9jlImYDBOv8fX8blZchbs',
-                'client_secret': '24j2gRnkO4CI811To1JxWDlhavmfjm2x1K4wKSOisGUBi1wuMRfJbZkE8JNVgurMoMXTUfMab4ZLevDhwqKJ0QNLnwrQYlkUws4MRdANr9DNxEopzqmNeA0pWzkx5jpM',
+                'client_id': 'uisXGeCrZ5rxJV96OCx6bpk2LOI8dkGqrcHfQupo',
+                'client_secret': 'McTliaChLn8aan1owmpkyFhlghBPm37td9yEPxqouiGJFeyjsH19n8LnVixDGByQurlHY2PIxGfrDg5M3WnMFllx58FYRvce6pbf9uAevjFDjLilixqQkdFUwNvlG2RD',
                 'grant_type': 'password'
             });
             console.info(res.data);
@@ -86,7 +87,7 @@ const Login = () => {
                         </Picker>
                     </View>
 
-                    <Button mode="contained" onPress={() => console.log('Login')}> Đăng nhập </Button>
+                    <Button loading={loading} mode="contained" onPress={login}> Đăng nhập </Button>
 
                 </View>
             </ScrollView>
