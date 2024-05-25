@@ -23,18 +23,21 @@ export const endpoints = {
   "export-pdf-scores": (studyclassroom_id) =>
     `/studyclassrooms/${studyclassroom_id}/students/export-pdf-scores/`,
 
-  topics: "/topics/",
+  "get-topics": (studyclassroom_id) => {
+    `/studyclassrooms/${studyclassroom_id}/get-topics`;
+  },
 
   comments: (topic_id) => `/topics/${topic_id}/comments/`,
   "add-topic": (studyclassroom_id) => `/studyclassrooms/${studyclassroom_id}/`,
   "add-comment": (topic_id) => `/topics/${topic_id}/add-comment/`,
-  "lock-or-unlock-topic": (topic_id) => `/topics/${topic_id}/comments/`,
+  "lock-or-unlock-topic": (topic_id) =>
+    `/topics/${topic_id}/lock_or_unlock_topic/`,
 
   studies: (student_id) => `/students/${student_id}/studies/`,
 
   login: "/o/token/",
   "current-user": "/users/current-user/",
-  
+
   register: "/students/",
 };
 

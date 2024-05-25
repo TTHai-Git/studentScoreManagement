@@ -1,6 +1,7 @@
 import csv
 import os
 from django.core.mail import send_mail
+from django.db.models.functions import Concat
 from rest_framework import viewsets, permissions, status, parsers, generics
 from rest_framework.decorators import action
 from rest_framework.response import Response
@@ -12,6 +13,7 @@ from reportlab.platypus import SimpleDocTemplate, Table, TableStyle
 from django.http import HttpResponse
 
 from scoreapp import settings
+from django.db.models import Q, Value
 
 
 def index(request):
@@ -135,21 +137,20 @@ class StudyClassRoomViewSet(viewsets.ViewSet, viewsets.generics.ListAPIView):
     def get_students_studyclassroom(self, request, pk):
         teacher = Teacher.objects.get(id=request.user.id)
 
-        code = request.query_params.get('code')
-        first_name = request.query_params.get('first_name')
-        last_name = request.query_params.get('last_name')
+        kw = request.query_params.get('kw')
+        # first_name = request.query_params.get('first_name')
+        # last_name = request.query_params.get('last_name')
 
         studyclassroom = self.get_object()
         try:
             if studyclassroom.teacher == teacher:
                 studies = Study.objects.filter(studyclassroom=studyclassroom)
-                if code:
-                    student = Student.objects.get(code=code)
-                    studies = studies.filter(studyclassroom=studyclassroom, student=student)
-
-                elif first_name and last_name:
-                    student = Student.objects.get(first_name=first_name, last_name=last_name)
-                    studies = studies.filter(studyclassroom=studyclassroom, student=student)
+                if kw:
+                    student = Student.objects.annotate(search_name=Concat('last_name', Value(' '), 'first_name'))\
+                        .filter(
+                        Q(code__contains=kw) |
+                        Q(search_name__icontains=kw))
+                    studies = studies.filter(studyclassroom=studyclassroom, student__in=student)
                 paginator = pagination.StudyPaginator()
                 page = paginator.paginate_queryset(studies, request)
 
@@ -176,23 +177,16 @@ class StudyClassRoomViewSet(viewsets.ViewSet, viewsets.generics.ListAPIView):
                 return Response({"message": "Bạn không có quyền xem bảng điểm của lớp học này."},
                                 status=status.HTTP_401_UNAUTHORIZED)
 
-            code = request.query_params.get('code')
-            first_name = request.query_params.get('first_name')
-            last_name = request.query_params.get('last_name')
-
-            studies = Study.objects.filter(studyclassroom=studyclassroom).order_by('studyclassroom_id')
-
-            if code:
-                student = Student.objects.get(code=code)
-                studies = studies.filter(student=student)
-            elif first_name and last_name:
-                student = Student.objects.get(first_name=first_name, last_name=last_name)
-                studies = studies.filter(student=student)
-
+            kw = request.query_params.get('kw')
+            student = Student.objects.all()
+            if kw:
+                student = student.objects.anotate(search_name=Concat('last_name', Value(''), 'first_name'))\
+                    .filter(Q(code__contains=kw) | Q(search_name__icontains=kw))
+            studies = Study.objects.filter(studyclassroom=studyclassroom, student__in=student).order_by(
+                'studyclassroom_id')
             scoredetails = ScoreDetails.objects.filter(study__in=studies).order_by('id')
             paginator = pagination.ScoreDetailsPaginator()
             page = paginator.paginate_queryset(scoredetails, request)
-
             if page is not None:
                 serializer = serializers.ScoreDetailsSerializer(page, many=True)
                 return paginator.get_paginated_response(serializer.data)
@@ -443,6 +437,22 @@ class StudyClassRoomViewSet(viewsets.ViewSet, viewsets.generics.ListAPIView):
             return Response({"message": "Không tìm thấy giáo viên tương ứng với tài khoản này.", },
                             status=status.HTTP_404_NOT_FOUND)
 
+    @action(methods=['get'], url_path='get-topics', detail=True)
+    def get_topics(self, request, pk):
+        try:
+            teacher = Teacher.objects.get(id=request.user.id)
+            studyclassroom = self.get_object()
+            if studyclassroom.teacher == teacher:
+                topics = studyclassroom.topic_set.select_related('studyclassroom')
+                paginator = pagination.TopicPaginator()
+                page = paginator.paginate_queryset(topics, request)
+                serializer = serializers.TopicSerializer(page, many=True)
+        except Exception as ex:
+            return Response({"message": str(ex)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+        finally:
+            return paginator.get_paginated_response(serializer.data) if page else Response(
+                {"message": "Không tìm thấy topic nào!!!"}, status=status.HTTP_404_NOT_FOUND)
+
 
 class StudentViewSet(viewsets.ViewSet, generics.ListAPIView, generics.CreateAPIView):
     queryset = Student.objects.all()
@@ -453,11 +463,11 @@ class StudentViewSet(viewsets.ViewSet, generics.ListAPIView, generics.CreateAPIV
     @action(methods=['get'], url_path='studies', detail=True)
     def get_details_study(self, request, pk):
         student = self.get_object()
-        sub_name = request.query_params.get('sub_name')
+        kw = request.query_params.get('kw')
 
         try:
-            if sub_name:
-                subjects = Subject.objects.filter(name__icontains=sub_name)
+            if kw:
+                subjects = Subject.objects.filter(name__icontains=kw)
                 studyclassrooms = StudyClassRoom.objects.filter(subject__in=subjects, islock=True)
             else:
                 studyclassrooms = StudyClassRoom.objects.filter(islock=True)

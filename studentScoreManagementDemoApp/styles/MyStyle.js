@@ -5,6 +5,7 @@ export default StyleSheet.create({
     backgroundColor: "#80b3ff",
     flex: 1,
     padding: 10,
+    marginTop: 50,
   },
   centerContainer: {
     alignItems: "center",

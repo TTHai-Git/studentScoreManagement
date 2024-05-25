@@ -1,7 +1,7 @@
 import { useState } from "react";
 import {
   ActivityIndicator,
-  Pressable,
+  Image,
   RefreshControl,
   ScrollView,
   TouchableOpacity,
@@ -12,24 +12,24 @@ import MyStyle from "../../styles/MyStyle";
 import { Button, TextInput } from "react-native-paper";
 
 // Diễn đàn của sinh viên và giáo viên
-const Topics = ({ navigaion, route }) => {
-  const studyclassroom_id = route.params?.studyclassroom_id;
+const Comments = ({ navigaion, route }) => {
+  const topic_id = route.params?.topic_id_id;
   const token = route.params?.token;
   const [loading, setLoading] = useState(false);
   const [page, setPage] = useState(1);
-  const [topics, setTopics] = useState([]);
-  const [title, setTitle] = useState("");
+  const [comments, setComments] = useState([]);
+  const [content, setContent] = useState("");
 
-  const loadTopics = async () => {
+  const loadComments = async () => {
     if (page > 0) {
       try {
         setLoading(true);
-        let url = `${endpoints["get-topics"](studyclassroom_id)}?page=${page}`;
+        let url = `${endpoints["comments"](topic_id_id)}?page=${page}`;
         let res = await authApi(token).get(url);
         console.log(res.data.results);
-        if (page === 1) setTopics(res.data.Topics);
+        if (page === 1) setComments(res.data.Topics);
         else if (page > 1)
-          setTopics((cunrrent) => {
+          setComments((cunrrent) => {
             return [...cunrrent, res.data.results];
           });
         if (res.data.next === null) setPage(0);
@@ -41,23 +41,11 @@ const Topics = ({ navigaion, route }) => {
     }
   };
 
-  const lockOrUnlockTopic = async (topic_id) => {
+  const addComment = async () => {
     try {
-      let url = `${endpoints["lock-or-unlock-topic"](topic_id)}`;
-      let res = await authApi(token).patch(url);
-      console.log(res.data.message);
-    } catch (ex) {
-      console.error(ex);
-    } finally {
-      console.log(res.data.message);
-    }
-  };
-
-  const addTopic = async () => {
-    try {
-      let url = `${endpoints["add-topic"](studyclassroom_id)}`;
+      let url = `${endpoints["add-comment"](topic_id)}`;
       let res = await authApi(token).post(url, {
-        title: title,
+        content: content,
       });
 
       console.log(res.data.message);
@@ -87,7 +75,7 @@ const Topics = ({ navigaion, route }) => {
   };
 
   useEffect(() => {
-    loadStudents();
+    loadComments();
   }, [page]);
 
   return (
@@ -95,30 +83,29 @@ const Topics = ({ navigaion, route }) => {
       <ScrollView onScroll={loadMore}>
         <RefreshControl onRefresh={() => loadTopics} />
         {loading && <ActivityIndicator />}
-        {topics.map((c) => {
+        {comments.map((c) => {
           return (
-            <TouchableOpacity
-              key={c.id}
-              onPress={() => navigaion.navigate("Comments", { topic_id: c.id })}
-            >
-              <Text>Id: {c.id}</Text>
-              <Text>Title{c.title}</Text>
-              <Text>Thời gian tạo diễn đàn: {c.created_date}</Text>
-              <Text>Tình trạng{c.active}</Text>
-              <Button onPress={() => lockOrUnlockTopic(c.id)}>
-                Khoa Diễn Đàn
-              </Button>
+            <TouchableOpacity key={c.id}>
+              <View>
+                <Text>Id: {c.id}</Text>
+                <Text>content: {c.content}</Text>
+                <Text>Thời gian bình luận: {c.created_date}</Text>
+              </View>
+              <View>
+                <Text>Username: {c.user.username}</Text>
+                <Image source={{ uri: c.user.avatar.uri }}></Image>
+              </View>
             </TouchableOpacity>
           );
         })}
         {loading && page > 1 && <ActivityIndicator />}
       </ScrollView>
       <TextInput
-        placeholder="Nhập tên diễn đàn cần tạo..."
-        value={title}
-        onChangeText={(t) => setTitle(t)}
+        placeholder="Nhập comment..."
+        value={content}
+        onChangeText={(t) => setContent(t)}
       ></TextInput>
-      <Button onPress={addTopic}>Tạo diễn đàn</Button>
+      <Button onPress={addComment}>Bình luận</Button>
     </View>
   );
 };

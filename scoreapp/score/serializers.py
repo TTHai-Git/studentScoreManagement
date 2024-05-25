@@ -221,12 +221,13 @@ class ScoreColumnSerializer(serializers.ModelSerializer):
 
 class ScoreDetailsSerializer(serializers.ModelSerializer):
     study = StudySerializer()
+    scorecolumn_id = serializers.IntegerField(source='scorecolumn.id')
     scorecolumn_type = serializers.CharField(source='scorecolumn.type')
     scorecolumn_percent = serializers.IntegerField(source='scorecolumn.percent')
 
     class Meta:
         model = ScoreDetails
-        fields = ['id', 'study', 'scorecolumn_type', 'scorecolumn_percent', 'score']
+        fields = ['id', 'study', 'scorecolumn_id','scorecolumn_type', 'scorecolumn_percent', 'score']
 
 
 class StudyResultOfStudent(serializers.ModelSerializer):
