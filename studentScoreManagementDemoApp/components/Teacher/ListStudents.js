@@ -12,7 +12,7 @@ import {
 import MyStyle from "../../styles/MyStyle";
 import { Searchbar } from "react-native-paper";
 
-const Students = ({ navigation, route }) => {
+const ListStudents = ({ navigation, route }) => {
   const studyclassroom_id = route.params?.studyclassroom_id;
   const token = route.params?.token;
 
@@ -110,4 +110,5 @@ const Students = ({ navigation, route }) => {
     </View>
   );
 };
-export default Students;
+
+export default ListStudents;

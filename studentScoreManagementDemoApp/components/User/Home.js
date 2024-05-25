@@ -15,7 +15,7 @@ const Home = ({ navigation, route }) => {
   const picker = async () => {
     const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
     if (status !== "granted") {
-      Alert.alert("iCourseApp", "Permissions Denied!");
+      Alert.alert("iStudentScoreManagement", "Permissions Denied!");
     } else {
       let res = await ImagePicker.launchImageLibraryAsync({
         mediaTypes: ImagePicker.MediaTypeOptions.Images,
@@ -41,8 +41,8 @@ const Home = ({ navigation, route }) => {
     case "student":
       info_detail = (
         <>
-          <Text style={Styles.text_detail}>MSSV:{user.code}</Text>
-          <Text style={Styles.text_detail}>Email:{user.email}</Text>
+          <Text style={Styles.text_detail}>MSSV: {user.code}</Text>
+          <Text style={Styles.text_detail}>Email: {user.email}</Text>
         </>
       );
 
@@ -51,9 +51,11 @@ const Home = ({ navigation, route }) => {
           <Button
             style={MyStyle.button_user}
             mode="contained"
-            onPress={() => console.log("Xem danh sách các môn đang học")}
+            onPress={() =>
+            navigation.navigate("StudyClassRooms", { token: token })
+          }
           >
-            Xem danh sách các môn đang học
+            Xem danh sách lớp học
           </Button>
           <Button
             style={MyStyle.button_user}
@@ -69,7 +71,7 @@ const Home = ({ navigation, route }) => {
     case "teacher":
       info_detail = (
         <>
-          <Text style={Styles.text_detail}>Email:{user.email}</Text>
+          <Text style={Styles.text_detail}>Email: {user.email}</Text>
         </>
       );
 
@@ -87,12 +89,12 @@ const Home = ({ navigation, route }) => {
       break;
 
     case "admin":
-      info_detail = <Text style={Styles.text_detail}>Email:{user.email}</Text>;
+      info_detail = <Text style={Styles.text_detail}>Email: {user.email}</Text>;
       button_user = (
         <Button
           style={MyStyle.button_user}
           mode="contained"
-          onPress={() => console.log("Đăng ký tài khoản")}
+          onPress={() => navigation.navigate("Admin")}
         >
           Đăng ký tài khoản
         </Button>
@@ -103,10 +105,12 @@ const Home = ({ navigation, route }) => {
   return (
     <View style={[MyStyle.container, MyStyle.centerContainer]}>
       <View style={Styles.avatar}>
-        <Avatar.Image
+        {user.avatar && (
+          <Avatar.Image
           size={250}
-          source={user.avatar?.uri ? { uri: user.avatar.uri } : null}
+          source={{ uri:user.avatar.uri }}
         />
+        )}
         <Button style={Styles.avatar_button} mode="contained" onPress={picker}>
           <Icon name="camera" size={20} color="#000" />
         </Button>
@@ -122,7 +126,7 @@ const Home = ({ navigation, route }) => {
         <Button
           style={MyStyle.button_user}
           mode="contained"
-          onPress={() => console.log("Chat")}
+          onPress={() => navigation.navigate("Chat")}
         >
           Chat
         </Button>

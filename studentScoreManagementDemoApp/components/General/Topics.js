@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import {
   ActivityIndicator,
   Pressable,
@@ -86,9 +86,9 @@ const Topics = ({ navigaion, route }) => {
     }
   };
 
-  useEffect(() => {
-    loadStudents();
-  }, [page]);
+  // useEffect(() => {
+  //   loadStudents();
+  // }, [page]);
 
   return (
     <View style={[MyStyle.container, MyStyle.centerContainer]}>

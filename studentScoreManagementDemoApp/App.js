@@ -8,21 +8,53 @@ import Register from "./components/User/Register";
 import Login from "./components/User/Login";
 import Home from "./components/User/Home";
 import StudyClassRooms from "./components/General/Studyclassrooms";
-import Students from "./components/Teacher/ListStudent";
-import ListStudentScores from "./components/Teacher/ListStudentScore";
+import Students from "./components/Teacher/ListStudents";
+import ListStudentScores from "./components/Teacher/ListStudentScores";
 import Topics from "./components/General/Topics";
 import ScoreDetails from "./components/Student/ScoreDetails";
+import Chat from "./components/General/Chat";
+import { createStackNavigator } from "@react-navigation/stack";
+import ListStudents from "./components/Teacher/ListStudents";
 
 const Tab = createBottomTabNavigator();
+const Stack = createStackNavigator();
+
+const MyStack = () => {
+  return (
+    <Stack.Navigator>
+      <Stack.Screen name="Home" options={{title: "Trang chủ"}} component={Home}/>
+      <Stack.Screen name="Chat" component={Chat}/>
+
+      {/* Giao diện chung của sinh viên và giảng viên */}
+      <Stack.Screen name="StudyClassRooms" options={{title: "Danh sách lớp học"}} component={StudyClassRooms}/>
+      <Stack.Screen name="Topics" options={{title: "Diễn đàn"}} component={Topics}/>
+
+      {/* Giao diện của sinh viên */}
+      <Stack.Screen name="ScoreDetails" options={{title: "Điểm các môn học"}} component={ScoreDetails}/>
+
+      {/* Giao diện của giảng viên */}
+      <Stack.Screen name="ListStudents" options={{title: "Danh sách sinh viên"}} component={ListStudents}/>
+      <Stack.Screen name="ListStudentScores" options={{title: "Quản lý điểm sinh viên"}} component={ListStudentScores}/>
+    </Stack.Navigator>
+  );
+}
 
 const MyTab = () => {
   const user = useContext(MyUserContext);
 
   return (
     <Tab.Navigator screenOptions={{ headerShown: false }}>
-      {/* <Tab.Screen name="Home" component={MyStack} options={{ title: "Khóa học", tabBarIcon: () => <Icon size={30} color="blue" source="home" />}} /> */}
       {user === null ? (
         <>
+          <Tab.Screen
+            name="Login"
+            component={Login}
+            options={{
+              title: "Đăng nhập",
+              tabBarIcon: () => <Icon size={30} color="blue" source="login" />,
+            }}
+          />
+
           <Tab.Screen
             name="Register"
             component={Register}
@@ -33,76 +65,18 @@ const MyTab = () => {
               ),
             }}
           />
-          <Tab.Screen
-            name="Login"
-            component={Login}
-            options={{
-              title: "Đăng nhập",
-              tabBarIcon: () => <Icon size={30} color="blue" source="login" />,
-            }}
-          />
         </>
       ) : (
-        <>
-          <Tab.Screen
-            name="Home"
-            component={Home}
+        <Tab.Screen
+            name="MyStack"
+            component={MyStack}
             options={{
-              title: user.username,
+              title: "Trang chủ",
               tabBarIcon: () => (
-                <Icon size={30} color="blue" source="account" />
+                <Icon size={30} color="blue" source="home" />
               ),
             }}
           />
-          <Tab.Screen
-            name="StudyClassRooms"
-            component={StudyClassRooms}
-            options={{
-              tabBarIcon: () => (
-                <Icon size={30} color="blue" source="account" />
-              ),
-            }}
-          />
-          <Tab.Screen
-            name="Students"
-            component={Students}
-            options={{
-              tabBarIcon: () => (
-                <Icon size={30} color="blue" source="account" />
-              ),
-            }}
-          />
-          <Tab.Screen
-            name="ListStudentScores"
-            component={ListStudentScores}
-            options={{
-              tabBarIcon: () => (
-                <Icon size={30} color="blue" source="account" />
-              ),
-            }}
-          />
-          <Tab.Screen
-            name="Topics"
-            component={Topics}
-            options={{
-              tabBarIcon: () => <Icon size={30} color="blue" source="topic" />,
-            }}
-          />
-          <Tab.Screen
-            name="Topics"
-            component={Topics}
-            options={{
-              tabBarIcon: () => <Icon size={30} color="blue" source="topic" />,
-            }}
-          />
-          <Tab.Screen
-            name="ScoreDetails"
-            component={ScoreDetails}
-            options={{
-              tabBarIcon: () => <Icon size={30} color="blue" source="topic" />,
-            }}
-          />
-        </>
       )}
     </Tab.Navigator>
   );

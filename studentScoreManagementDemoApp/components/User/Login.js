@@ -46,15 +46,15 @@ const Login = ({ route }) => {
     try {
       console.info(user);
       let res = await APIs.post(endpoints["login"], {
-        // ...user,
-        username: "DHThanh",
-        password: "123",
-        client_id: "3jFUdqJsKwnhj1X5wf5WihTyp2g7mfdWp6V3mhl5",
+        ...user,
+        // username: "DHThanh",
+        // password: "111",
+        client_id: "uisXGeCrZ5rxJV96OCx6bpk2LOI8dkGqrcHfQupo",
         client_secret:
-          "3FJlILnIxptAwsnoQxSUcltQzwLhV87sEXbVRkrsMlJbM3aZjNy90o6VqNtGwNzK9y09NQBqIlVGn8fi3Cnq7ZnRDXNo8f7NsyQQTyVTfJpzbMEePYsSV97NMXBDZZnt",
+          "McTliaChLn8aan1owmpkyFhlghBPm37td9yEPxqouiGJFeyjsH19n8LnVixDGByQurlHY2PIxGfrDg5M3WnMFllx58FYRvce6pbf9uAevjFDjLilixqQkdFUwNvlG2RD",
         grant_type: "password",
       });
-      // console.info(res.data);
+      console.info(res.data);
 
       await AsyncStorage.setItem("token", res.data.access_token);
 
@@ -108,7 +108,7 @@ const Login = ({ route }) => {
                 />
               </View>
             ))}
-            <View
+            {/* <View
               style={{
                 ...Styles.log_items,
                 width: "100%",
@@ -126,7 +126,7 @@ const Login = ({ route }) => {
                 <Picker.Item label="Giáo vụ" value="admin" />
                 <Picker.Item label="Giảng viên" value="teacher" />
               </Picker>
-            </View>
+            </View> */}
 
             <Button mode="contained" onPress={login}>
               ĐĂNG NHẬP

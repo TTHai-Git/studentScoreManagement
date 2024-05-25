@@ -4,8 +4,7 @@ export default StyleSheet.create({
   container: {
     backgroundColor: "#80b3ff",
     flex: 1,
-    padding: 10,
-    marginTop: 50,
+    padding: 10
   },
   centerContainer: {
     alignItems: "center",

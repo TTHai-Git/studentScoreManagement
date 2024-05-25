@@ -1,13 +1,5 @@
 import { useEffect, useState } from "react";
-import {
-  ActivityIndicator,
-  Pressable,
-  RefreshControl,
-  ScrollView,
-  Text,
-  TouchableOpacity,
-  View,
-} from "react-native";
+import { ActivityIndicator, Pressable, RefreshControl, ScrollView, Text, TouchableOpacity, View } from "react-native";
 import { authApi, endpoints } from "../../configs/APIs";
 import MyStyle from "../../styles/MyStyle";
 import { Button, Searchbar } from "react-native-paper";
@@ -156,10 +148,10 @@ const ListStudentScores = ({ navigaiton, route }) => {
         })}
         {loading && page > 1 && <ActivityIndicator />}
       </ScrollView>
-      <Button onPress={lockScoreOfStudyClassRoom}>Khóa điểm</Button>
-      <Button>Lưu nháp</Button>
-      <Button onPress={exportScoresCSV}>Xuất file điểm CSV</Button>
-      <Button onPress={exportScoresPDF}>Xuất file điểm PDF</Button>
+        <Button onPress={lockScoreOfStudyClassRoom}>Khóa điểm</Button>
+        <Button>Lưu nháp</Button>
+        <Button onPress={exportScoresCSV}>Xuất file điểm CSV</Button>
+        <Button onPress={exportScoresPDF}>Xuất file điểm PDF</Button>
       <Pressable
         onPress={() => {
           navigation.navigate("Topics", {
