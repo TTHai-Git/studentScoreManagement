@@ -188,13 +188,20 @@ class StudentsOfStudyClassRoom(serializers.ModelSerializer):
     student_name = serializers.SerializerMethodField()
     student_code = serializers.CharField(source='student.code')
     student_email = serializers.CharField(source='student.email')
+    student_avatar = serializers.CharField(source='student.avatar')
 
     def get_student_name(self, obj):
         return obj.student.last_name + ' ' + obj.student.first_name;
 
     class Meta:
         model = Study
-        fields = ['id', 'student_code', 'student_name', 'student_email']
+        fields = ['id', 'student_code', 'student_name', 'student_email', 'student_avatar']
+
+
+class StudyOfStudentSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Study
+        fields = '__all__'
 
 
 class StudySerializer(serializers.ModelSerializer):
@@ -202,13 +209,14 @@ class StudySerializer(serializers.ModelSerializer):
     student_name = serializers.SerializerMethodField()
     student_code = serializers.CharField(source='student.code')
     student_email = serializers.CharField(source='student.email')
+    student_avatar = serializers.CharField(source='student.avatar')
 
     def get_student_name(self, obj):
         return obj.student.last_name + ' ' + obj.student.first_name;
 
     class Meta:
         model = Study
-        fields = ['id', 'student_id', 'student_code', 'student_name', 'student_email']
+        fields = ['id', 'student_id', 'student_code', 'student_name', 'student_email', 'student_avatar']
 
 
 class ScoreColumnSerializer(serializers.ModelSerializer):

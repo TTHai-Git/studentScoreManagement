@@ -7,10 +7,9 @@ import {
   Text,
   RefreshControl,
   ActivityIndicator,
-  Pressable,
 } from "react-native";
 import MyStyle from "../../styles/MyStyle";
-import { Searchbar } from "react-native-paper";
+import { Avatar, Searchbar } from "react-native-paper";
 
 const ListStudents = ({ navigation, route }) => {
   const studyclassroom_id = route.params?.studyclassroom_id;
@@ -18,14 +17,16 @@ const ListStudents = ({ navigation, route }) => {
 
   const [students, setStudents] = useState([]);
   const [loading, setLoading] = useState(false);
+  const [refreshing, setRefreshing] = useState(false);
 
   const [kw, setKw] = useState("");
   const [page, setPage] = useState(1);
 
-  const loadStudents = async () => {
+  const loadStudents = async (reset = false) => {
+    if (reset) {
+      setPage(1);
+    }
     if (page > 0) {
-      // console.log(token);
-      // console.log(studyclassroom_id);
       try {
         setLoading(true);
         let url = `${endpoints["students"](studyclassroom_id)}?page=${page}`;
@@ -36,16 +37,17 @@ const ListStudents = ({ navigation, route }) => {
         }
 
         let res = await authApi(token).get(url);
-        if (page === 1) setStudents(res.data.results);
-        else if (page > 1)
-          setStudents((current) => {
-            return [...current, ...res.data.results];
-          });
+        if (page === 1) {
+          setStudents(res.data.results);
+        } else {
+          setStudents((current) => [...current, ...res.data.results]);
+        }
         if (res.data.next === null) setPage(0);
       } catch (ex) {
         console.error(ex);
       } finally {
         setLoading(false);
+        setRefreshing(false);
       }
     }
   };
@@ -63,50 +65,49 @@ const ListStudents = ({ navigation, route }) => {
   };
 
   const loadMore = ({ nativeEvent }) => {
-    if (loading === false && isCloseToBottom(nativeEvent)) {
-      setPage(page + 1);
+    if (!loading && isCloseToBottom(nativeEvent)) {
+      setPage((prevPage) => prevPage + 1);
     }
   };
 
-  const search = (value, callback) => {
-    setPage(1);
-    callback(value);
+  const onRefresh = () => {
+    setRefreshing(true);
+    loadStudents(true);
   };
+
+  const search = (value) => {
+    setPage(1);
+    setKw(value);
+  };
+
   useEffect(() => {
     loadStudents();
   }, [kw, page]);
+
   return (
     <View style={[MyStyle.container, MyStyle.centerContainer]}>
-      <ScrollView onScroll={loadMore}>
-        <Searchbar
-          onChangeText={(t) => search(t, setKw)}
-          value={kw}
-          placeholder="Tìm theo từ khóa ..."
-        ></Searchbar>
-
-        <RefreshControl onRefresh={() => loadStudents} />
-        {loading && <ActivityIndicator />}
-        {students.map((c) => {
-          return (
-            <TouchableOpacity key={c.id}>
-              <Text>{c.student_code}</Text>
-              <Text>{c.student_name}</Text>
-              <Text>{c.student_email}</Text>
-            </TouchableOpacity>
-          );
-        })}
+      <Searchbar
+        onChangeText={search}
+        value={kw}
+        placeholder="Tìm theo từ khóa ..."
+      />
+      <ScrollView
+        onScroll={loadMore}
+        refreshControl={
+          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
+        }
+      >
+        {loading && page === 1 && <ActivityIndicator />}
+        {students.map((c) => (
+          <TouchableOpacity key={c.id}>
+            <Avatar.Image size={50} source={{ uri: c.student_avatar }} />
+            <Text>{c.student_code}</Text>
+            <Text>{c.student_name}</Text>
+            <Text>{c.student_email}</Text>
+          </TouchableOpacity>
+        ))}
         {loading && page > 1 && <ActivityIndicator />}
       </ScrollView>
-      <Pressable
-        onPress={() => {
-          navigation.navigate("ListStudentScores", {
-            token: token,
-            studyclassroom_id: studyclassroom_id,
-          });
-        }}
-      >
-        <Text>Sang Bang Diem</Text>
-      </Pressable>
     </View>
   );
 };

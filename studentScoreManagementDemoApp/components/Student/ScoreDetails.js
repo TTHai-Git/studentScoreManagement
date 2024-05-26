@@ -1,7 +1,6 @@
 import { useEffect, useState } from "react";
 import {
   ActivityIndicator,
-  Pressable,
   RefreshControl,
   ScrollView,
   Text,
@@ -49,7 +48,7 @@ const ScoreDetails = ({ navigaiton, route }) => {
 
   useEffect(() => {
     loadStudies();
-  }, []);
+  }, [kw, page]);
 
   const isCloseToBottom = ({
     layoutMeasurement,
@@ -76,14 +75,13 @@ const ScoreDetails = ({ navigaiton, route }) => {
 
   return (
     <View style={[MyStyle.container, MyStyle.centerContainer]}>
+      <Searchbar
+        onChangeText={(t) => search(t, setKw)}
+        value={kw}
+        placeholder="Tìm theo kiếm môn học ..."
+      ></Searchbar>
       <ScrollView onScroll={loadMore}>
-        <Searchbar
-          onChangeText={(t) => search(t, setKw)}
-          value={kw}
-          placeholder="Tìm theo kiếm môn học ..."
-        ></Searchbar>
-
-        <RefreshControl onRefresh={() => loadStudents} />
+        <RefreshControl onRefresh={() => loadStudies} />
         {loading && <ActivityIndicator />}
         {studies.map((c) => {
           return (
@@ -223,4 +221,3 @@ export default ScoreDetails;
 // };
 
 // export default Student;
-

@@ -52,8 +52,11 @@ const Home = ({ navigation, route }) => {
             style={MyStyle.button_user}
             mode="contained"
             onPress={() =>
-            navigation.navigate("StudyClassRooms", { token: token })
-          }
+              navigation.navigate("StudyClassRooms", {
+                token: token,
+                user: user,
+              })
+            }
           >
             Xem danh sách lớp học
           </Button>
@@ -80,7 +83,7 @@ const Home = ({ navigation, route }) => {
           style={MyStyle.button_user}
           mode="contained"
           onPress={() =>
-            navigation.navigate("StudyClassRooms", { token: token })
+            navigation.navigate("StudyClassRooms", { token: token, user: user })
           }
         >
           Xem danh sách lớp học
@@ -106,10 +109,7 @@ const Home = ({ navigation, route }) => {
     <View style={[MyStyle.container, MyStyle.centerContainer]}>
       <View style={Styles.avatar}>
         {user.avatar && (
-          <Avatar.Image
-          size={250}
-          source={{ uri:user.avatar.uri }}
-        />
+          <Avatar.Image size={250} source={{ uri: user.avatar }} />
         )}
         <Button style={Styles.avatar_button} mode="contained" onPress={picker}>
           <Icon name="camera" size={20} color="#000" />
@@ -123,13 +123,13 @@ const Home = ({ navigation, route }) => {
       </View>
       <View style={Styles.log_items}>
         {button_user}
-        <Button
+        {/* <Button
           style={MyStyle.button_user}
           mode="contained"
           onPress={() => navigation.navigate("Chat")}
         >
           Chat
-        </Button>
+        </Button> */}
         <Button
           style={MyStyle.button_user}
           mode="contained"

@@ -56,8 +56,8 @@ class TopicViewSet(viewsets.ViewSet, generics.ListAPIView):
     def get_permissions(self):
         if self.action == 'add_comment':
             return [permissions.IsAuthenticated(), perms.CanCommentOnPost()]
-        if self.action == 'lock_topic':
-            return [permissions.IsAuthenticated(), perms.CanLockOrUnlockTopic()]
+        if self.action == 'lock_or_unlock_topic':
+            return [permissions.IsAuthenticated(), perms.CanOrUnLockTopic()]
         else:
             return [permissions.AllowAny()]
 
@@ -85,12 +85,10 @@ class TopicViewSet(viewsets.ViewSet, generics.ListAPIView):
                 if content:
                     comment = Comment.objects.create(content=content, user=user, topic=topic)
                 else:
-                    return Response({"message": "không được bỏ trống nội dung comment!!!"},
-                                    status=status.HTTP_400_BAD_REQUEST)
+                    return Response({"message": "không được bỏ trống nội dung comment!!!"})
             else:
                 return Response({"message": f'Topic {topic.title} '
-                                            f'đã bị khóa!!! Bạn không thể comment vào topic này được nữa!!!'},
-                                status=status.HTTP_400_BAD_REQUEST)
+                                            f'đã bị khóa!!! Bạn không thể comment vào topic này được nữa!!!'})
         except Exception as ex:
             return Response({"message": str(ex)}
                             , status=status.HTTP_500_INTERNAL_SERVER_ERROR)
@@ -136,17 +134,13 @@ class StudyClassRoomViewSet(viewsets.ViewSet, viewsets.generics.ListAPIView):
     @action(methods=['get'], url_path='students', detail=True)
     def get_students_studyclassroom(self, request, pk):
         teacher = Teacher.objects.get(id=request.user.id)
-
         kw = request.query_params.get('kw')
-        # first_name = request.query_params.get('first_name')
-        # last_name = request.query_params.get('last_name')
-
         studyclassroom = self.get_object()
         try:
             if studyclassroom.teacher == teacher:
                 studies = Study.objects.filter(studyclassroom=studyclassroom)
                 if kw:
-                    student = Student.objects.annotate(search_name=Concat('last_name', Value(' '), 'first_name'))\
+                    student = Student.objects.annotate(search_name=Concat('last_name', Value(' '), 'first_name')) \
                         .filter(
                         Q(code__contains=kw) |
                         Q(search_name__icontains=kw))
@@ -178,11 +172,17 @@ class StudyClassRoomViewSet(viewsets.ViewSet, viewsets.generics.ListAPIView):
                                 status=status.HTTP_401_UNAUTHORIZED)
 
             kw = request.query_params.get('kw')
-            student = Student.objects.all()
+            studies = Study.objects.filter(studyclassroom=studyclassroom)
+            student_ids = studies.values_list('student_id', flat=True)
+            students = Student.objects.filter(id__in=student_ids)
+
+            # students = Student.objects.all()
             if kw:
-                student = student.objects.anotate(search_name=Concat('last_name', Value(''), 'first_name'))\
-                    .filter(Q(code__contains=kw) | Q(search_name__icontains=kw))
-            studies = Study.objects.filter(studyclassroom=studyclassroom, student__in=student).order_by(
+                students = students.annotate(search_name=Concat('last_name', Value(' '), 'first_name')) \
+                    .filter(
+                    Q(code__contains=kw) |
+                    Q(search_name__icontains=kw))
+            studies = Study.objects.filter(studyclassroom=studyclassroom, student__in=students).order_by(
                 'studyclassroom_id')
             scoredetails = ScoreDetails.objects.filter(study__in=studies).order_by('id')
             paginator = pagination.ScoreDetailsPaginator()
@@ -277,7 +277,7 @@ class StudyClassRoomViewSet(viewsets.ViewSet, viewsets.generics.ListAPIView):
                         subject = f'THÔNG BÁO ĐIỂM - ' \
                                   f'Lớp học: {studyclassroom.name} - Môn học: {studyclassroom.subject.name} - ' \
                                   f'Thầy: {teacher.last_name} {teacher.first_name}'
-                        message = ' Đã khóa điểm, sinh vien vui lòng vào trang web để kiểm tra điểm của mình'
+                        message = ' Đã khóa điểm, sinh viên vui lòng vào trang web để kiểm tra điểm của mình'
                         email_from = settings.EMAIL_HOST_USER
                         recipient_list = [result['student_email']]
 
@@ -437,21 +437,17 @@ class StudyClassRoomViewSet(viewsets.ViewSet, viewsets.generics.ListAPIView):
             return Response({"message": "Không tìm thấy giáo viên tương ứng với tài khoản này.", },
                             status=status.HTTP_404_NOT_FOUND)
 
-    @action(methods=['get'], url_path='get-topics', detail=True)
+    @action(methods=['get'], url_path='topics', detail=True)
     def get_topics(self, request, pk):
         try:
-            teacher = Teacher.objects.get(id=request.user.id)
             studyclassroom = self.get_object()
-            if studyclassroom.teacher == teacher:
-                topics = studyclassroom.topic_set.select_related('studyclassroom')
-                paginator = pagination.TopicPaginator()
-                page = paginator.paginate_queryset(topics, request)
-                serializer = serializers.TopicSerializer(page, many=True)
+            topics = studyclassroom.topic_set.select_related('studyclassroom')
+            paginator = pagination.TopicPaginator()
+            page = paginator.paginate_queryset(topics, request)
+            serializer = serializers.TopicSerializer(page, many=True)
+            return paginator.get_paginated_response(serializer.data)
         except Exception as ex:
             return Response({"message": str(ex)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
-        finally:
-            return paginator.get_paginated_response(serializer.data) if page else Response(
-                {"message": "Không tìm thấy topic nào!!!"}, status=status.HTTP_404_NOT_FOUND)
 
 
 class StudentViewSet(viewsets.ViewSet, generics.ListAPIView, generics.CreateAPIView):
@@ -484,3 +480,15 @@ class StudentViewSet(viewsets.ViewSet, generics.ListAPIView, generics.CreateAPIV
                 {"message": "Không tìm thấy kết quả học tập nào!!!"}, status=status.HTTP_404_NOT_FOUND)
         except Exception as ex:
             return Response({"message": str(ex)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+    @action(methods=['get'], url_path='studyclassrooms', detail=True)
+    def get_study_class_rooms(self, request, pk):
+        student = self.get_object()
+        studies = Study.objects.filter(student=student)
+        studyclassroom_ids = studies.values_list('studyclassroom', flat=True)
+        studyclassrooms = StudyClassRoom.objects.filter(id__in=studyclassroom_ids)
+        paginator = pagination.StudyClassRoomPaginator()
+        page = paginator.paginate_queryset(studyclassrooms, request)
+        serializer = serializers.StudyClassRoomSerializer(page, many=True)
+        return paginator.get_paginated_response(serializer.data) if page else Response(
+            {"message": "Không tìm thấy lớp học nào!!!"})

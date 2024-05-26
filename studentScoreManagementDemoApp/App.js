@@ -15,6 +15,7 @@ import ScoreDetails from "./components/Student/ScoreDetails";
 import Chat from "./components/General/Chat";
 import { createStackNavigator } from "@react-navigation/stack";
 import ListStudents from "./components/Teacher/ListStudents";
+import Comments from "./components/General/Comments";
 
 const Tab = createBottomTabNavigator();
 const Stack = createStackNavigator();
@@ -22,22 +23,51 @@ const Stack = createStackNavigator();
 const MyStack = () => {
   return (
     <Stack.Navigator>
-      <Stack.Screen name="Home" options={{title: "Trang chủ"}} component={Home}/>
-      <Stack.Screen name="Chat" component={Chat}/>
+      <Stack.Screen
+        name="Home"
+        options={{ title: "Trang chủ" }}
+        component={Home}
+      />
+      <Stack.Screen name="Chat" component={Chat} />
 
       {/* Giao diện chung của sinh viên và giảng viên */}
-      <Stack.Screen name="StudyClassRooms" options={{title: "Danh sách lớp học"}} component={StudyClassRooms}/>
-      <Stack.Screen name="Topics" options={{title: "Diễn đàn"}} component={Topics}/>
+      <Stack.Screen
+        name="StudyClassRooms"
+        options={{ title: "Danh sách lớp học" }}
+        component={StudyClassRooms}
+      />
+      <Stack.Screen
+        name="Topics"
+        options={{ title: "Diễn đàn" }}
+        component={Topics}
+      />
+      <Stack.Screen
+        name="Comments"
+        options={{ title: "Bình luận" }}
+        component={Comments}
+      />
 
       {/* Giao diện của sinh viên */}
-      <Stack.Screen name="ScoreDetails" options={{title: "Điểm các môn học"}} component={ScoreDetails}/>
+      <Stack.Screen
+        name="ScoreDetails"
+        options={{ title: "Điểm các môn học" }}
+        component={ScoreDetails}
+      />
 
       {/* Giao diện của giảng viên */}
-      <Stack.Screen name="ListStudents" options={{title: "Danh sách sinh viên"}} component={ListStudents}/>
-      <Stack.Screen name="ListStudentScores" options={{title: "Quản lý điểm sinh viên"}} component={ListStudentScores}/>
+      <Stack.Screen
+        name="ListStudents"
+        options={{ title: "Danh sách sinh viên" }}
+        component={ListStudents}
+      />
+      <Stack.Screen
+        name="ListStudentScores"
+        options={{ title: "Quản lý điểm sinh viên" }}
+        component={ListStudentScores}
+      />
     </Stack.Navigator>
   );
-}
+};
 
 const MyTab = () => {
   const user = useContext(MyUserContext);
@@ -68,15 +98,13 @@ const MyTab = () => {
         </>
       ) : (
         <Tab.Screen
-            name="MyStack"
-            component={MyStack}
-            options={{
-              title: "Trang chủ",
-              tabBarIcon: () => (
-                <Icon size={30} color="blue" source="home" />
-              ),
-            }}
-          />
+          name="MyStack"
+          component={MyStack}
+          options={{
+            title: "Trang chủ",
+            tabBarIcon: () => <Icon size={30} color="blue" source="home" />,
+          }}
+        />
       )}
     </Tab.Navigator>
   );

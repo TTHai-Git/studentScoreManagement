@@ -6,6 +6,8 @@ export const endpoints = {
   teachers: "/teachers/",
 
   studyclassrooms: "/studyclassrooms/",
+  studyclassroomsofstudent: (student_id) =>
+    `/students/${student_id}/studyclassrooms`,
 
   students: (studyclassroom_id) =>
     `/studyclassrooms/${studyclassroom_id}/students/`,
@@ -23,12 +25,12 @@ export const endpoints = {
   "export-pdf-scores": (studyclassroom_id) =>
     `/studyclassrooms/${studyclassroom_id}/students/export-pdf-scores/`,
 
-  "get-topics": (studyclassroom_id) => {
-    `/studyclassrooms/${studyclassroom_id}/get-topics`;
-  },
+  "get-topics": (studyclassroom_id) =>
+    `/studyclassrooms/${studyclassroom_id}/topics`,
 
   comments: (topic_id) => `/topics/${topic_id}/comments/`,
-  "add-topic": (studyclassroom_id) => `/studyclassrooms/${studyclassroom_id}/`,
+  "add-topic": (studyclassroom_id) =>
+    `/studyclassrooms/${studyclassroom_id}/add-topic/`,
   "add-comment": (topic_id) => `/topics/${topic_id}/add-comment/`,
   "lock-or-unlock-topic": (topic_id) =>
     `/topics/${topic_id}/lock_or_unlock_topic/`,

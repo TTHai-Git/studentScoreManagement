@@ -19,7 +19,7 @@ class isTeacherOfStudyClassRoom(permissions.IsAuthenticated):
         return False
 
 
-class CanLockTopic(permissions.IsAuthenticated):
+class CanOrUnLockTopic(permissions.IsAuthenticated):
     def has_object_permission(self, request, view, obj):
         if request.user.is_authenticated:
             if obj.studyclassroom.teacher.id == request.user.id:
