@@ -1,6 +1,6 @@
 import { createBottomTabNavigator } from "@react-navigation/bottom-tabs";
 import { NavigationContainer } from "@react-navigation/native";
-import React, { Profiler, useContext, useReducer } from "react";
+import React, { useContext, useReducer } from "react";
 import { Icon } from "react-native-paper";
 import { MyDispatchContext, MyUserContext } from "./configs/Contexts";
 import { MyUserReducer } from "./configs/Reducers";
@@ -8,7 +8,6 @@ import Register from "./components/User/Register";
 import Login from "./components/User/Login";
 import Home from "./components/User/Home";
 import StudyClassRooms from "./components/General/Studyclassrooms";
-import Students from "./components/Teacher/ListStudents";
 import ListStudentScores from "./components/Teacher/ListStudentScores";
 import Topics from "./components/General/Topics";
 import ScoreDetails from "./components/Student/ScoreDetails";
