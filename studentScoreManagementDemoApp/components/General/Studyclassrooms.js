@@ -84,44 +84,15 @@ const StudyClassRooms = ({ navigation, route }) => {
 
   return (
     <Provider>
-      {/* <View style={MyStyle.container}>
-          <ScrollView>
-            {studyClassRooms.map((c) => {
-              return (
-                <View>
-                  <Portal>
-                    <Modal visible={visible} onDismiss={hideModal} contentContainerStyle={Styles.modal}>
-                      <View>
-                          <Button style={MyStyle.button_user} key={c.id} mode="contained" onPress={() => goListStudents(c.id)}> Xem danh sách sinh viên </Button>
-                          <Button style={MyStyle.button_user} key={c.id} mode="contained" onPress={() => goListStudentScores(c.id)}> Quản lý điểm </Button>
-                          <Button style={MyStyle.button_user} key={c.id} mode="contained" onPress={() => goTopic(c.id)}> Diễn đàn </Button>
-                      </View>
-                    </Modal>
-                  </Portal>
-
-                  <ScrollView>
-                    <TouchableOpacity onPress={showModal}>
-                      <View style={Styles.class}>
-                        <Text style={Styles.text_class}>Lớp: </Text>
-                        <Text style={Styles.text_class}>Môn: </Text>
-                    </View>
-                    </TouchableOpacity>
-                  </ScrollView>
-                </View>
-              );      
-            })}
-           </ScrollView>
-        </View> */}
 
       <View style={MyStyle.container}>
-        <ScrollView>
           <View>
             {studyClassRooms.map((c) => {})}
             <Portal>
               <Modal
                 visible={visible}
                 onDismiss={hideModal}
-                contentContainerStyle={Styles.modal}
+                contentContainerStyle={MyStyle.modal}
               >
                 <View>
                   {user.role === "teacher" ? (
@@ -168,24 +139,26 @@ const StudyClassRooms = ({ navigation, route }) => {
             </Portal>
 
             <ScrollView>
-              {studyClassRooms.map((c) => {
-                return (
-                  <TouchableOpacity
-                    key={c.id}
-                    onPress={() => [showModal(), setsStudyClassroom_id(c.id)]}
-                  >
-                    <View style={Styles.class}>
-                      <Text style={Styles.text_class}>Lớp: {c.name} </Text>
-                      <Text style={Styles.text_class}>
-                        Môn: {c.subject_name}{" "}
-                      </Text>
-                    </View>
-                  </TouchableOpacity>
-                );
-              })}
+                  {studyClassRooms.map((c) => {
+                    return (
+                      <TouchableOpacity
+                        key={c.id}
+                        onPress={() => [
+                          showModal(),
+                          setsStudyClassroom_id(c.id),
+                        ]}
+                      >
+                        <View style={Styles.class}>
+                          <Text style={Styles.text_class}>Lớp: {c.name} </Text>
+                          <Text style={Styles.text_class}>
+                            Môn: {c.subject_name}{" "}
+                          </Text>
+                        </View>
+                      </TouchableOpacity>
+                    );
+                  })}
             </ScrollView>
           </View>
-        </ScrollView>
       </View>
     </Provider>
   );

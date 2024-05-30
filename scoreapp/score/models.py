@@ -126,11 +126,12 @@ class StudyClassRoom(BaseModel):
 
 
 class Topic(BaseModel):
-    title = models.CharField(max_length=100, unique=True)
+    title = models.CharField(max_length=100)
     studyclassroom = models.ForeignKey(StudyClassRoom, on_delete=models.CASCADE)
 
     def __str__(self):
-        return f'{self.id} - {self.title}'
+        return f'{self.id} - {self.title} - {self.studyclassroom.subject.name} - {self.studyclassroom.teacher.last_name}' \
+               f' - {self.studyclassroom.teacher.first_name}'
 
 
 class Interaction(BaseModel):

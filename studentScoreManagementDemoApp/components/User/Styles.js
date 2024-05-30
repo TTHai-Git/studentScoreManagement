@@ -4,10 +4,6 @@ export default StyleSheet.create({
   log_items: {
     width: "90%",
   },
-  input: {
-    backgroundColor: "#fff",
-    marginBottom: 10,
-  },
   button: {
     justifyContent: "space-around",
     alignItems: "center",

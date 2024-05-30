@@ -10,6 +10,7 @@ import {
 } from "react-native";
 import MyStyle from "../../styles/MyStyle";
 import { Avatar, Searchbar } from "react-native-paper";
+import { Table, TableWrapper, Row, Rows, Col } from "react-native-table-component";
 
 const ListStudents = ({ navigation, route }) => {
   const studyclassroom_id = route.params?.studyclassroom_id;
@@ -22,6 +23,9 @@ const ListStudents = ({ navigation, route }) => {
   const [kw, setKw] = useState("");
   const [page, setPage] = useState(1);
 
+  const tableHead = ["MSSV", "Họ và tên", "Email"];
+  const widthArr = [60, 200, 300];
+
   const loadStudents = async (reset = false) => {
     if (reset) {
       setPage(1);
@@ -31,9 +35,7 @@ const ListStudents = ({ navigation, route }) => {
         setLoading(true);
         let url = `${endpoints["students"](studyclassroom_id)}?page=${page}`;
         if (kw) {
-          url = `${endpoints["students"](
-            studyclassroom_id
-          )}?kw=${kw}&page=${page}`;
+          url = `${endpoints["students"](studyclassroom_id)}?kw=${kw}&page=${page}`;
         }
 
         let res = await authApi(token).get(url);
@@ -89,8 +91,9 @@ const ListStudents = ({ navigation, route }) => {
       <Searchbar
         onChangeText={search}
         value={kw}
-        placeholder="Tìm theo từ khóa ..."
+        placeholder="Tìm theo từ khóa"
       />
+
       <ScrollView
         onScroll={loadMore}
         refreshControl={
@@ -98,16 +101,41 @@ const ListStudents = ({ navigation, route }) => {
         }
       >
         {loading && page === 1 && <ActivityIndicator />}
-        {students.map((c) => (
-          <TouchableOpacity key={c.id}>
-            <Avatar.Image size={50} source={{ uri: c.student_avatar }} />
-            <Text>{c.student_code}</Text>
-            <Text>{c.student_name}</Text>
-            <Text>{c.student_email}</Text>
-          </TouchableOpacity>
-        ))}
+
+          <ScrollView horizontal={true}>
+            <View style={MyStyle.table}>
+              <Table borderStyle={{ borderWidth: 1, borderColor: "#000" }}>
+                <Row
+                  data={tableHead}
+                  style={MyStyle.head}
+                  textStyle={{ ...MyStyle.text, fontWeight: "bold" }}
+                  widthArr={widthArr}
+                />
+                {Array.isArray(students) && students.length > 0 ? (
+                  students.map((c) => (
+                    <Row
+                      key={c.id}
+                      data={[c.student_code, c.student_name, c.student_email]}
+                      style={MyStyle.body}
+                      textStyle={MyStyle.text}
+                      widthArr={widthArr}
+                    />
+                  ))
+                ) : (
+                  <Row
+                    data={['No data', 'No data', 'No data']}
+                    style={MyStyle.body}
+                    textStyle={MyStyle.text}
+                    widthArr={widthArr}
+                  />
+                )}
+              </Table>
+            </View>
+          </ScrollView>
+
         {loading && page > 1 && <ActivityIndicator />}
       </ScrollView>
+
     </View>
   );
 };

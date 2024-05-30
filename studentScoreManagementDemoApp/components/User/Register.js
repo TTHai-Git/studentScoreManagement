@@ -21,28 +21,22 @@ const Register = () => {
     email: "2151050112hai@ou.edu.vn",
   });
   const [err, setErr] = React.useState(false);
-  const [showPassword, setShowPassword] = React.useState(false);
-  const [showConfirmPassword, setShowConfirmPassword] = React.useState(false);
 
   const fields = [
     {
       label: "Tên",
-      icon: "text",
       name: "first_name",
     },
     {
       label: "Họ và tên lót",
-      icon: "text",
       name: "last_name",
     },
     {
       label: "Email",
-      icon: "email",
       name: "email",
     },
     {
       label: "Tên đăng nhập",
-      icon: "account",
       name: "username",
     },
     {
@@ -61,6 +55,10 @@ const Register = () => {
   const nav = useNavigation();
   const [loading, setLoading] = React.useState(false);
 
+  const eyeSecurity = () => {
+    sec
+  };
+
   const picker = async () => {
     const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
     if (status !== "granted") {
@@ -68,7 +66,7 @@ const Register = () => {
     } else {
       let res = await ImagePicker.launchImageLibraryAsync();
       if (!res.canceled) {
-        updateState("avatar", res.assets[0]);
+        updateState("avatar", res.assets[0].fileName);
       }
     }
   };
@@ -138,27 +136,15 @@ const Register = () => {
                 style={{ width: "100%", position: "relative" }}
               >
                 <TextInput
-                  secureTextEntry={
-                    c.secureTextEntry &&
-                    (c.name === "password"
-                      ? !showPassword
-                      : !showConfirmPassword)
-                  }
+                  secureTextEntry={ c.secureTextEntry }
                   value={user[c.name]}
                   icon={c.icon}
                   onChangeText={(t) => updateState(c.name, t)}
-                  style={Styles.input}
+                  style={MyStyle.input}
                   label={c.label}
                   right={
                     <TextInput.Icon
                       icon={c.icon}
-                      onPress={() => {
-                        if (c.name === "password") {
-                          setShowPassword(!showPassword);
-                        } else if (c.name === "confirm") {
-                          setShowConfirmPassword(!showConfirmPassword);
-                        }
-                      }}
                     />
                   }
                 />
@@ -171,7 +157,7 @@ const Register = () => {
 
             <Button
               style={{
-                ...Styles.input,
+                ...MyStyle.input,
                 height: 40,
                 marginTop: -26,
                 borderRadius: 5,

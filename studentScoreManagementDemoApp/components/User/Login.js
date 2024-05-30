@@ -27,6 +27,7 @@ const Login = ({ route }) => {
     {
       label: "Mật khẩu",
       name: "password",
+      icon: "eye",
       secureTextEntry: true,
     },
   ];
@@ -46,19 +47,21 @@ const Login = ({ route }) => {
     try {
       console.info(user);
       let res = await APIs.post(endpoints["login"], {
-        // ...user,
+        ...user,
+        // username: "",
+        // password: "",
 
         // test user role teacher
-        username: "DHThanh",
-        password: "123",
+        // username: "DHThanh",
+        // password: "123",
 
         // test user role student
         // username: "Demo",
         // password: "123",
 
-        client_id: "3jFUdqJsKwnhj1X5wf5WihTyp2g7mfdWp6V3mhl5",
+        client_id: "uisXGeCrZ5rxJV96OCx6bpk2LOI8dkGqrcHfQupo",
         client_secret:
-          "3FJlILnIxptAwsnoQxSUcltQzwLhV87sEXbVRkrsMlJbM3aZjNy90o6VqNtGwNzK9y09NQBqIlVGn8fi3Cnq7ZnRDXNo8f7NsyQQTyVTfJpzbMEePYsSV97NMXBDZZnt",
+          "McTliaChLn8aan1owmpkyFhlghBPm37td9yEPxqouiGJFeyjsH19n8LnVixDGByQurlHY2PIxGfrDg5M3WnMFllx58FYRvce6pbf9uAevjFDjLilixqQkdFUwNvlG2RD",
         grant_type: "password",
       });
       console.info(res.data);
@@ -109,9 +112,14 @@ const Login = ({ route }) => {
                   secureTextEntry={c.secureTextEntry}
                   value={user[c.name]}
                   onChangeText={(t) => updateSate(c.name, t)}
-                  style={Styles.input}
+                  style={MyStyle.input}
                   key={c.name}
                   label={c.label}
+                  right={
+                    <TextInput.Icon
+                      icon={c.icon}
+                    />
+                  }
                 />
               </View>
             ))}

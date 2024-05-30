@@ -15,6 +15,7 @@ import Chat from "./components/General/Chat";
 import { createStackNavigator } from "@react-navigation/stack";
 import ListStudents from "./components/Teacher/ListStudents";
 import Comments from "./components/General/Comments";
+import Admin from "./components/Admin/Admin";
 
 const Tab = createBottomTabNavigator();
 const Stack = createStackNavigator();
@@ -27,7 +28,6 @@ const MyStack = () => {
         options={{ title: "Trang chủ" }}
         component={Home}
       />
-      <Stack.Screen name="Chat" component={Chat} />
 
       {/* Giao diện chung của sinh viên và giảng viên */}
       <Stack.Screen
@@ -64,6 +64,13 @@ const MyStack = () => {
         options={{ title: "Quản lý điểm sinh viên" }}
         component={ListStudentScores}
       />
+
+      {/* Giao diện của admin */}
+      <Stack.Screen
+        name="Admin"
+        options={{ title: "Đăng ký tài khoản giảng viên" }}
+        component={Admin}
+      />
     </Stack.Navigator>
   );
 };
@@ -96,14 +103,24 @@ const MyTab = () => {
           />
         </>
       ) : (
-        <Tab.Screen
-          name="MyStack"
-          component={MyStack}
-          options={{
-            title: "Trang chủ",
-            tabBarIcon: () => <Icon size={30} color="blue" source="home" />,
-          }}
-        />
+        <>
+          <Tab.Screen
+            name="MyStack"
+            component={MyStack}
+            options={{
+              title: "Trang chủ",
+              tabBarIcon: () => <Icon size={30} color="blue" source="home" />,
+            }}
+          />
+          <Tab.Screen 
+            name="Chat" 
+            component={Chat} 
+            options={{
+              title: "Chat",
+              tabBarIcon: () => <Icon size={30} color="blue" source="chat" />,
+            }}
+          />
+        </>
       )}
     </Tab.Navigator>
   );

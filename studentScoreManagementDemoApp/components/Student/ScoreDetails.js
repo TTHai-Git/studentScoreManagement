@@ -10,6 +10,7 @@ import {
 import { authApi, endpoints } from "../../configs/APIs";
 import MyStyle from "../../styles/MyStyle";
 import { Searchbar } from "react-native-paper";
+import { Table, TableWrapper, Row, Rows, Col } from "react-native-table-component";
 
 const ScoreDetails = ({ navigaiton, route }) => {
   const token = route.params?.token;
@@ -20,6 +21,34 @@ const ScoreDetails = ({ navigaiton, route }) => {
   const [kw, setKw] = useState("");
 
   const [page, setPage] = useState(1);
+
+  const tableHead = ["STT", "Tên môn học", "Nhóm lớp", "Điểm GK", "Điểm CK"];
+  const widthArr = [40, 400, 100, 100, 100];
+
+  const groupedSubjects = studies.reduce((subject, curr) => {
+    const subjectName = curr.subject_name;
+
+    const existingSubject = subject.find(c => c.subject_name === subjectName);
+
+    if (existingSubject) {
+      if (curr.scorecolumn_type === "Điểm GK") {
+        existingSubject.score_mid = curr.score;
+      } else if (curr.scorecolumn_type === "Điểm CK") {
+        existingSubject.score_end = curr.score;
+      }
+    } else {
+      subject.push({
+        subject_name: subjectName,
+        group_name: curr.group_name,
+        semester_name: curr.semester_name,
+        semester_year: curr.semester_year,
+        score_mid: curr.scorecolumn_type === "Điểm GK" ? curr.score : "",
+        score_end: curr.scorecolumn_type === "Điểm CK" ? curr.score : "",
+      });
+    }
+
+    return subject;
+  }, []);
 
   const loadStudies = async () => {
     if (page > 0) {
@@ -78,146 +107,48 @@ const ScoreDetails = ({ navigaiton, route }) => {
       <Searchbar
         onChangeText={(t) => search(t, setKw)}
         value={kw}
-        placeholder="Tìm theo kiếm môn học ..."
+        placeholder="Tìm theo kiếm môn học"
       ></Searchbar>
+
       <ScrollView onScroll={loadMore}>
         <RefreshControl onRefresh={() => loadStudies} />
-        {loading && <ActivityIndicator />}
-        {studies.map((c) => {
-          return (
-            <TouchableOpacity key={c.id}>
-              <Text>Nhóm lớp: {c.group_name}</Text>
-              <Text>Tên môn học: {c.subject_name}</Text>
-              <Text>Học kỳ: {c.semester_name}</Text>
-              <Text>Năm học: {c.semester_year}</Text>
-              <Text>Loại Cột Điểm: {c.scorecolumn_type}</Text>
-              <Text>Trọng số: {c.scorecolumn_percent}</Text>
-              <Text>Điểm: {c.score}</Text>
-            </TouchableOpacity>
-          );
-        })}
+        {loading && page === 1 && <ActivityIndicator />}
+
+          <ScrollView horizontal={true}>
+              <View style={MyStyle.table}>
+                <Table borderStyle={{ borderWidth: 1, borderColor: "#000" }}>
+                  <Row
+                    data={tableHead}
+                    style={MyStyle.head}
+                    textStyle={{ ...MyStyle.text, fontWeight: "bold" }}
+                    widthArr={widthArr}
+                  />
+                  {groupedSubjects.length > 0 ? (
+                    groupedSubjects.map((c, index) => (
+                      <Row
+                        key={index}
+                        data={[index + 1, c.subject_name, c.group_name, c.score_mid, c.score_end]}
+                        style={MyStyle.body}
+                        textStyle={MyStyle.text}
+                        widthArr={widthArr}
+                      />
+                    ))
+                  ) : (
+                    <Row
+                      data={['', '', '', '', '']}
+                      style={MyStyle.body}
+                      textStyle={MyStyle.text}
+                      widthArr={widthArr}
+                    />
+                  )}
+                </Table>
+              </View>
+          </ScrollView>
+
         {loading && page > 1 && <ActivityIndicator />}
+
       </ScrollView>
     </View>
   );
 };
 export default ScoreDetails;
-
-// import { ScrollView, View } from "react-native";
-// import MyStyle from "../../styles/MyStyle";
-// import {
-//   Table,
-//   TableWrapper,
-//   Row,
-//   Rows,
-//   Col,
-// } from "react-native-table-component";
-// import { Text } from "react-native-paper";
-// import Styles from "../Student/Styles";
-// import React from "react";
-
-// const Student = () => {
-//   const tableHead = ["STT", "Mã MH", "Tên MH", "Điểm GK", "Điểm CK"];
-//   const tableData = [
-//     [
-//       "1",
-//       "DEDU0103",
-//       "Giáo dục quốc phòng và an ninh: Quân sự chung",
-//       "4 10 10",
-//       "5 10 10",
-//     ],
-//     [
-//       "1",
-//       "DEDU0103",
-//       "Giáo dục quốc phòng và an ninh: Quân sự chung",
-//       "4 10 10",
-//       "5 10 10",
-//     ],
-//     [
-//       "1",
-//       "DEDU0103",
-//       "Giáo dục quốc phòng và an ninh: Quân sự chung",
-//       "4 10 10",
-//       "5 10 10",
-//     ],
-//   ];
-//   const widthArr = [40, 100, 500, 100, 100]; // Đặt chiều rộng cho mỗi cột
-
-//   return (
-//     <View style={MyStyle.container}>
-//       {/* Cho phép kéo dọc tổng */}
-//       <ScrollView>
-//         {/* Cho phép kéo ngang từng học kỳ */}
-//         <ScrollView horizontal={true}>
-//           <View style={Styles.table}>
-//             <Text style={Styles.semesterText} variant="headlineSmall">
-//               Học kỳ ...
-//             </Text>
-//             <Table borderStyle={{ borderWidth: 1, borderColor: "#000" }}>
-//               <Row
-//                 data={tableHead}
-//                 style={Styles.head}
-//                 textStyle={{ ...Styles.text, fontWeight: "bold" }}
-//                 widthArr={widthArr}
-//               />
-//               <Rows
-//                 data={tableData}
-//                 style={Styles.body}
-//                 textStyle={Styles.text}
-//                 widthArr={widthArr}
-//               />
-//             </Table>
-//           </View>
-//         </ScrollView>
-
-//         {/* Cho phép kéo ngang từng học kỳ */}
-//         <ScrollView horizontal={true}>
-//           <View style={Styles.table}>
-//             <Text style={Styles.semesterText} variant="headlineSmall">
-//               Học kỳ ...
-//             </Text>
-//             <Table borderStyle={{ borderWidth: 1, borderColor: "#000" }}>
-//               <Row
-//                 data={tableHead}
-//                 style={Styles.head}
-//                 textStyle={{ ...Styles.text, fontWeight: "bold" }}
-//                 widthArr={widthArr}
-//               />
-//               <Rows
-//                 data={tableData}
-//                 style={Styles.body}
-//                 textStyle={Styles.text}
-//                 widthArr={widthArr}
-//               />
-//             </Table>
-//           </View>
-//         </ScrollView>
-
-//         {/* Cho phép kéo ngang từng học kỳ */}
-//         <ScrollView horizontal={true}>
-//           <View style={Styles.table}>
-//             <Text style={Styles.semesterText} variant="headlineSmall">
-//               Học kỳ ...
-//             </Text>
-//             <Table borderStyle={{ borderWidth: 1, borderColor: "#000" }}>
-//               <Row
-//                 data={tableHead}
-//                 style={Styles.head}
-//                 textStyle={{ ...Styles.text, fontWeight: "bold" }}
-//                 widthArr={widthArr}
-//               />
-//               <Rows
-//                 data={tableData}
-//                 style={Styles.body}
-//                 textStyle={Styles.text}
-//                 widthArr={widthArr}
-//               />
-//             </Table>
-//           </View>
-//         </ScrollView>
-//       </ScrollView>
-//     </View>
-//   );
-// };
-
-// export default Student;

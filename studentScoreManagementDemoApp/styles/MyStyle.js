@@ -23,7 +23,33 @@ export default StyleSheet.create({
   },
   button_user: {
     backgroundColor: "#ff7733",
-    marginBottom: 10,
+    margin: 5,
     color: "#ff7733",
+  },
+  table: {
+    marginTop: 40
+  },
+  head: {
+    height: 40,
+    backgroundColor: '#ff9966',
+  },
+  body: {
+    backgroundColor: '#fff'
+  },
+  text: {
+    margin: 6,
+    textAlign: 'center',
+  },
+  semesterText: {
+    marginBottom: 5
+  }, 
+  modal: {
+    backgroundColor: "#fff",
+    padding: 10,
+    margin: 10
+  }, 
+  input: {
+    backgroundColor: "#fff",
+    marginBottom: 10,
   },
 });

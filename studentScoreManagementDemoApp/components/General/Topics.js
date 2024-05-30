@@ -10,7 +10,8 @@ import {
 } from "react-native";
 import { authApi, endpoints } from "../../configs/APIs";
 import MyStyle from "../../styles/MyStyle";
-import { Button, TextInput } from "react-native-paper";
+import { Button, Modal, Portal, Provider, TextInput } from "react-native-paper";
+import Styles from "../General/Styles";
 
 const Topics = ({ navigation, route }) => {
   const studyclassroom_id = route.params?.studyclassroom_id;
@@ -79,7 +80,7 @@ const Topics = ({ navigation, route }) => {
     }
   };
 
-  const AddTopic = async () => {
+  const addTopic = async () => {
     try {
       let url = `${endpoints["add-topic"](studyclassroom_id)}`;
       let res = await authApi(token).post(url, {
@@ -88,6 +89,7 @@ const Topics = ({ navigation, route }) => {
       console.log(res.data.message);
       Alert.alert(res.data.message);
       // Reload topics to include the new topic
+      setTitle("")
       setPage(1);
     } catch (ex) {
       console.log(ex);
@@ -102,60 +104,71 @@ const Topics = ({ navigation, route }) => {
   };
 
   return (
-    <View style={[MyStyle.container, MyStyle.centerContainer]}>
-      <ScrollView
-        onScroll={loadMore}
-        refreshControl={
-          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
-        }
-      >
-        {loading && page === 1 && <ActivityIndicator />}
-        {topics.map((c) => (
-          <TouchableOpacity
-            key={c.id}
-            onPress={() =>
-              navigation.navigate("Comments", {
-                token: token,
-                topic_id: c.id,
-              })
-            }
-          >
-            <Text>Tiêu đề: {c.title}</Text>
-            <Text>Ngày tạo: {c.created_date}</Text>
-            {c.active ? (
-              <>
-                <Text>Tình trạng: Đang mở khóa</Text>
-                {user.role === "teacher" && (
-                  <Button onPress={() => LockOrUnlockTopic(c.id)}>
-                    Khóa diễn đàn
-                  </Button>
+    <Provider>
+      <View style={[MyStyle.container, MyStyle.centerContainer]}>
+        <ScrollView style={{width: "100%", padding: 10}}
+          onScroll={loadMore}
+          refreshControl={
+            <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
+          }
+        >
+          {loading && page === 1 && <ActivityIndicator />}
+          {topics.map((c) => (
+            <TouchableOpacity
+              key={c.id}
+              onPress={() =>
+                navigation.navigate("Comments", {
+                  token: token,
+                  topic_id: c.id,
+                })
+              }
+            >
+              <View style={Styles.topic}>
+                <Text>Tiêu đề: {c.title}</Text>
+                <Text>Ngày tạo: {c.created_date}</Text>
+                {c.active ? (
+                  <>
+                    <Text>Tình trạng: Đang mở khóa</Text>
+                    {user.role === "teacher" && (
+                      <View style={{alignItems: "flex-end"}}>
+                        <Button style={[MyStyle.button_user, Styles.button_topic]} mode="contained" onPress={() => LockOrUnlockTopic(c.id)}>
+                          Khóa diễn đàn
+                        </Button>
+                      </View>
+                    )}
+                  </>
+                ) : (
+                  <>
+                    <Text>Tình trạng: Đang khóa</Text>
+                    {user.role === "teacher" && (
+                      <View style={{alignItems: "flex-end"}}>
+                        <Button style={[MyStyle.button_user, Styles.button_topic]} mode="contained" onPress={() => LockOrUnlockTopic(c.id)}>
+                          Mở khóa diễn đàn
+                        </Button>
+                      </View>
+                    )}
+                  </>
                 )}
-              </>
-            ) : (
-              <>
-                <Text>Tình trạng: Đang khóa</Text>
-                {user.role === "teacher" && (
-                  <Button onPress={() => LockOrUnlockTopic(c.id)}>
-                    Mở khóa diễn đàn
-                  </Button>
-                )}
-              </>
-            )}
-          </TouchableOpacity>
-        ))}
-        {loading && page > 1 && <ActivityIndicator />}
-      </ScrollView>
-      {user.role === "teacher" && (
-        <>
-          <TextInput
-            placeholder="Nhập tên diễn đàn cần tạo..."
-            value={title}
-            onChangeText={(t) => setTitle(t)}
-          />
-          <Button onPress={AddTopic}>Tạo mới một diễn đàn</Button>
-        </>
-      )}
-    </View>
+              </View>
+            </TouchableOpacity>
+          ))}
+          {loading && page > 1 && <ActivityIndicator />}
+        </ScrollView>
+        {user.role === "teacher" && (
+          <>
+              <View style={Styles.addTopic_Comment}>
+                <TextInput
+                  placeholder="Nhập tên diễn đàn"
+                  value={title}
+                  onChangeText={(t) => setTitle(t)}
+                  style={MyStyle.input}
+                />
+                <Button style={MyStyle.button_user} mode="contained" onPress={addTopic}> Thêm diễn đàn </Button>
+              </View>
+          </>
+        )}
+      </View>
+    </Provider>
   );
 };
 
