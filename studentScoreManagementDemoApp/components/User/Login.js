@@ -52,16 +52,19 @@ const Login = ({ route }) => {
         // password: "",
 
         // test user role teacher
-        // username: "DHThanh",
-        // password: "123",
+        username: "DHThanh",
+        password: "123",
 
         // test user role student
         // username: "Demo",
         // password: "123",
 
-        client_id: "uisXGeCrZ5rxJV96OCx6bpk2LOI8dkGqrcHfQupo",
+        // username: "st10",
+        // password: "123",
+
+        client_id: "3jFUdqJsKwnhj1X5wf5WihTyp2g7mfdWp6V3mhl5",
         client_secret:
-          "McTliaChLn8aan1owmpkyFhlghBPm37td9yEPxqouiGJFeyjsH19n8LnVixDGByQurlHY2PIxGfrDg5M3WnMFllx58FYRvce6pbf9uAevjFDjLilixqQkdFUwNvlG2RD",
+          "3FJlILnIxptAwsnoQxSUcltQzwLhV87sEXbVRkrsMlJbM3aZjNy90o6VqNtGwNzK9y09NQBqIlVGn8fi3Cnq7ZnRDXNo8f7NsyQQTyVTfJpzbMEePYsSV97NMXBDZZnt",
         grant_type: "password",
       });
       console.info(res.data);
@@ -115,11 +118,7 @@ const Login = ({ route }) => {
                   style={MyStyle.input}
                   key={c.name}
                   label={c.label}
-                  right={
-                    <TextInput.Icon
-                      icon={c.icon}
-                    />
-                  }
+                  right={<TextInput.Icon icon={c.icon} />}
                 />
               </View>
             ))}

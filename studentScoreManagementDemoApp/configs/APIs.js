@@ -6,6 +6,8 @@ export const endpoints = {
   teachers: "/teachers/",
 
   studyclassrooms: "/studyclassrooms/",
+  "check-locked-scored-studyclassroom": (studyclassroom_id) =>
+    `/studyclassrooms/${studyclassroom_id}/`,
   studyclassroomsofstudent: (student_id) =>
     `/students/${student_id}/studyclassrooms`,
 
@@ -14,6 +16,8 @@ export const endpoints = {
 
   scores: (studyclassroom_id) =>
     `/studyclassrooms/${studyclassroom_id}/students/scores/`,
+  "get-score-columns": (studyclassroom_id) =>
+    `/studyclassrooms/${studyclassroom_id}/scorecollumns`,
   "add-scores": (studyclassroom_id) =>
     `/studyclassrooms/${studyclassroom_id}/students/add-scores/`,
   "update-scores": (studyclassroom_id) =>

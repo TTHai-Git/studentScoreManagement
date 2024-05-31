@@ -112,7 +112,7 @@ class TopicViewSet(viewsets.ViewSet, generics.ListAPIView):
         return Response(serializers.CommentSerializer(comments, many=True).data, status=status.HTTP_200_OK)
 
 
-class StudyClassRoomViewSet(viewsets.ViewSet, viewsets.generics.ListAPIView):
+class StudyClassRoomViewSet(viewsets.ViewSet, viewsets.generics.ListAPIView, viewsets.generics.RetrieveAPIView):
     queryset = StudyClassRoom.objects.filter(active=True)
     serializer_class = serializers.StudyClassRoomSerializer
     pagination_class = pagination.StudyClassRoomPaginator
@@ -125,7 +125,7 @@ class StudyClassRoomViewSet(viewsets.ViewSet, viewsets.generics.ListAPIView):
         return queryset
 
     def get_permissions(self):
-        if self.action in ['get_students_studyclassroom', 'get_students_scores_studyclassroom',
+        if self.action in ['get_students_studyclassroom', 'get_score_collumns', 'get_students_scores_studyclassroom',
                            'add_score_students_studyclassroom', 'update_score_students_studyclassroom',
                            'locked_score_of_studyclassroom', 'export_csv_scores_students_studyclassroom', 'add_topic']:
             return [permissions.IsAuthenticated(), perms.isTeacherOfStudyClassRoom()]
@@ -161,6 +161,17 @@ class StudyClassRoomViewSet(viewsets.ViewSet, viewsets.generics.ListAPIView):
                 return Response({"message": "Không tìm thấy sinh viên!!!"}, status=status.HTTP_404_NOT_FOUND)
             return Response({"message": str(ex)})
 
+    @action(methods=['get'], url_path='scorecollumns', detail=True)
+    def get_score_collumns(self, request, pk):
+        try:
+            teacher = Teacher.objects.get(id=request.user.id)
+            studyclassroom = self.get_object()
+            if studyclassroom.teacher == teacher:
+                scorecolumns = ScoreColumn.objects.filter(studyclassroom=studyclassroom)
+            return Response(serializers.ScoreColumnSerializer(scorecolumns, many=True).data, status=status.HTTP_200_OK)
+        except Exception as ex:
+            return Response({"message": str(ex)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
     @action(methods=['get'], url_path='students/scores', detail=True)
     def get_students_scores_studyclassroom(self, request, pk):
         try:
@@ -176,27 +187,34 @@ class StudyClassRoomViewSet(viewsets.ViewSet, viewsets.generics.ListAPIView):
             student_ids = studies.values_list('student_id', flat=True)
             students = Student.objects.filter(id__in=student_ids)
 
-            # students = Student.objects.all()
             if kw:
                 students = students.annotate(search_name=Concat('last_name', Value(' '), 'first_name')) \
                     .filter(
                     Q(code__contains=kw) |
                     Q(search_name__icontains=kw))
+
+            # Filter studies based on the filtered students
             studies = Study.objects.filter(studyclassroom=studyclassroom, student__in=students).order_by(
                 'studyclassroom_id')
-            scoredetails = ScoreDetails.objects.filter(study__in=studies).order_by('id')
-            paginator = pagination.ScoreDetailsPaginator()
-            page = paginator.paginate_queryset(scoredetails, request)
-            if page is not None:
-                serializer = serializers.ScoreDetailsSerializer(page, many=True)
-                return paginator.get_paginated_response(serializer.data)
 
-            return Response(serializers.ScoreDetailsSerializer(scoredetails, many=True).data, status=status.HTTP_200_OK)
+            # Get the ScoreDetails for these studies
+            scoredetails_with_scores = ScoreDetails.objects.filter(study__in=studies).order_by('id')
 
-        except Student.DoesNotExist:
-            return Response({"message": "Không tìm thấy sinh viên!!!"}, status=status.HTTP_404_NOT_FOUND)
-        except Exception as ex:
-            return Response({"message": str(ex)}, status=status.HTTP_400_BAD_REQUEST)
+            # Get the studies that do not have corresponding entries in ScoreDetails
+            scoredetail_study_ids = scoredetails_with_scores.values_list('study_id', flat=True)
+            studies_without_scores = studies.exclude(id__in=scoredetail_study_ids)
+
+            # Serialize both lists
+            scoredetails_with_scores_serializer = serializers.ScoreDetailsSerializer(scoredetails_with_scores,
+                                                                                     many=True)
+            studies_without_scores_serializer = serializers.StudySerializer(studies_without_scores, many=True)
+
+            return Response({
+                'scoredetails_with_scores': scoredetails_with_scores_serializer.data,
+                'studies_without_scores': studies_without_scores_serializer.data
+            }, status=status.HTTP_200_OK)
+        except Exception as e:
+            return Response({"message": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
     @action(methods=['post'], url_path='students/add-scores', detail=True)
     def add_score_students_studyclassroom(self, request, pk):
@@ -210,10 +228,13 @@ class StudyClassRoomViewSet(viewsets.ViewSet, viewsets.generics.ListAPIView):
 
             if studyclassroom.teacher == teacher:
                 student = Student.objects.get(id=student_id)
+                # kiểm tra học sinh có đăng ký lớp học đó không á
                 study = Study.objects.get(student=student, studyclassroom=studyclassroom)
 
+                # Lấy cột điểm của lớp học đó (GK hoặc CK)
                 scorecolumn = ScoreColumn.objects.get(id=scorecolumn_id, studyclassroom=studyclassroom)
 
+                # Thêm điểm xuống db
                 scoredetails = ScoreDetails.objects.create(study=study, scorecolumn=scorecolumn, score=score)
 
                 # return Response(serializers.ScoreDetailsSerializer(scoredetails).data, status=status.HTTP_201_CREATED)
@@ -472,12 +493,11 @@ class StudentViewSet(viewsets.ViewSet, generics.ListAPIView, generics.CreateAPIV
 
             scoredetails = ScoreDetails.objects.filter(study__in=studies).order_by('-id')
 
-            paginator = pagination.ScoreDetailsPaginator()
-            page = paginator.paginate_queryset(scoredetails, request)
-
-            serializer = serializers.StudyResultOfStudent(page, many=True)
-            return paginator.get_paginated_response(serializer.data) if page else Response(
-                {"message": "Không tìm thấy kết quả học tập nào!!!"}, status=status.HTTP_404_NOT_FOUND)
+            # paginator = pagination.ScoreDetailsPaginator()
+            # page = paginator.paginate_queryset(scoredetails, request)
+            # serializer = serializers.StudyResultOfStudent(page, many=True)
+            # return paginator.get_paginated_response(serializer.data)
+            return Response(serializers.StudyResultOfStudent(scoredetails, many=True).data, status=status.HTTP_200_OK)
         except Exception as ex:
             return Response({"message": str(ex)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
@@ -490,5 +510,4 @@ class StudentViewSet(viewsets.ViewSet, generics.ListAPIView, generics.CreateAPIV
         paginator = pagination.StudyClassRoomPaginator()
         page = paginator.paginate_queryset(studyclassrooms, request)
         serializer = serializers.StudyClassRoomSerializer(page, many=True)
-        return paginator.get_paginated_response(serializer.data) if page else Response(
-            {"message": "Không tìm thấy lớp học nào!!!"})
+        return paginator.get_paginated_response(serializer.data)

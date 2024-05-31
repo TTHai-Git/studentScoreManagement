@@ -12,7 +12,6 @@ import {
   Button,
   List,
   Modal,
-  PaperProvider,
   Portal,
   Provider,
 } from "react-native-paper";
@@ -22,35 +21,61 @@ import Styles from "../General/Styles";
 const StudyClassRooms = ({ navigation, route }) => {
   let token = route.params?.token;
   let user = route.params?.user;
+
   const [loading, setLoading] = useState(false);
   const [studyClassRooms, setStudyClassRooms] = useState([]);
+  const [studyclassroom_id, setStudyClassroom_id] = useState(null);
+  const [visible, setVisible] = useState(false);
+  const [page, setPage] = useState(1);
 
-  const [studyclassroom_id, setsStudyClassroom_id] = useState(null);
-
-  const [visible, setVisible] = React.useState(false);
-
-  let showModal = () => setVisible(true);
+  const showModal = () => setVisible(true);
   const hideModal = () => setVisible(false);
 
   const loadStudyClassRooms = async () => {
-    setLoading(true);
-    console.log(user);
-    console.log(token);
-    try {
-      let url = "";
-      if (user.role === "teacher") {
-        url = `${endpoints["studyclassrooms"]}`;
-      } else {
-        url = `${endpoints["studyclassroomsofstudent"](user.id)}`;
+    if (page > 0) {
+      try {
+        setLoading(true);
+        let url = "";
+        if (user.role === "teacher") {
+          url = `${endpoints["studyclassrooms"]}?page=${page}`;
+        } else {
+          url = `${endpoints["studyclassroomsofstudent"](
+            user.id
+          )}?page=${page}`;
+        }
+        let res = await authApi(token).get(url);
+        console.log(res.data);
+        if (page === 1) {
+          setStudyClassRooms(res.data.results);
+        } else {
+          setStudyClassRooms((current) => [...current, ...res.data.results]);
+        }
+        if (res.data.next === null) {
+          setPage(0);
+        }
+      } catch (ex) {
+        console.error(ex);
+      } finally {
+        setLoading(false);
       }
-      let res = await authApi(token).get(url);
-      console.log(res.data.results);
-      setStudyClassRooms(res.data.results);
-      // console.log(studyClassRooms);
-    } catch (ex) {
-      console.error(ex);
-    } finally {
-      setLoading(false);
+    }
+  };
+
+  const isCloseToBottom = ({
+    layoutMeasurement,
+    contentOffset,
+    contentSize,
+  }) => {
+    const paddingToBottom = 20;
+    return (
+      layoutMeasurement.height + contentOffset.y >=
+      contentSize.height - paddingToBottom
+    );
+  };
+
+  const loadMore = ({ nativeEvent }) => {
+    if (!loading && isCloseToBottom(nativeEvent)) {
+      setPage((prevPage) => prevPage + 1);
     }
   };
 
@@ -80,85 +105,86 @@ const StudyClassRooms = ({ navigation, route }) => {
 
   useEffect(() => {
     loadStudyClassRooms();
-  }, []);
+  }, [page]);
 
   return (
     <Provider>
-
       <View style={MyStyle.container}>
-          <View>
-            {studyClassRooms.map((c) => {})}
-            <Portal>
-              <Modal
-                visible={visible}
-                onDismiss={hideModal}
-                contentContainerStyle={MyStyle.modal}
-              >
-                <View>
-                  {user.role === "teacher" ? (
-                    <>
-                      <Button
-                        style={MyStyle.button_user}
-                        mode="contained"
-                        onPress={goListStudents}
-                      >
-                        {" "}
-                        Xem danh sách sinh viên{" "}
-                      </Button>
-                      <Button
-                        style={MyStyle.button_user}
-                        mode="contained"
-                        onPress={goListStudentScores}
-                      >
-                        {" "}
-                        Quản lý điểm{" "}
-                      </Button>
-                      <Button
-                        style={MyStyle.button_user}
-                        mode="contained"
-                        onPress={goTopics}
-                      >
-                        {" "}
-                        Diễn đàn{" "}
-                      </Button>
-                    </>
-                  ) : (
-                    <>
-                      <Button
-                        style={MyStyle.button_user}
-                        mode="contained"
-                        onPress={goTopics}
-                      >
-                        {" "}
-                        Diễn đàn{" "}
-                      </Button>
-                    </>
-                  )}
-                </View>
-              </Modal>
-            </Portal>
-
-            <ScrollView>
-                  {studyClassRooms.map((c) => {
-                    return (
-                      <TouchableOpacity
-                        key={c.id}
-                        onPress={() => [
-                          showModal(),
-                          setsStudyClassroom_id(c.id),
-                        ]}
-                      >
-                        <View style={Styles.class}>
-                          <Text style={Styles.text_class}>Lớp: {c.name} </Text>
-                          <Text style={Styles.text_class}>
-                            Môn: {c.subject_name}{" "}
-                          </Text>
-                        </View>
-                      </TouchableOpacity>
-                    );
-                  })}
+        <View>
+          <Portal>
+            <Modal
+              visible={visible}
+              onDismiss={hideModal}
+              contentContainerStyle={MyStyle.modal}
+            >
+              <View>
+                {user.role === "teacher" ? (
+                  <>
+                    <Button
+                      style={MyStyle.button_user}
+                      mode="contained"
+                      onPress={goListStudents}
+                    >
+                      Xem danh sách sinh viên
+                    </Button>
+                    <Button
+                      style={MyStyle.button_user}
+                      mode="contained"
+                      onPress={goListStudentScores}
+                    >
+                      Quản lý điểm
+                    </Button>
+                    <Button
+                      style={MyStyle.button_user}
+                      mode="contained"
+                      onPress={goTopics}
+                    >
+                      Diễn đàn
+                    </Button>
+                  </>
+                ) : (
+                  <Button
+                    style={MyStyle.button_user}
+                    mode="contained"
+                    onPress={goTopics}
+                  >
+                    Diễn đàn
+                  </Button>
+                )}
+              </View>
+            </Modal>
+          </Portal>
+          {studyClassRooms.length > 0 ? (
+            <ScrollView
+              onScroll={loadMore}
+              scrollEventThrottle={400}
+              refreshControl={
+                <RefreshControl
+                  refreshing={loading}
+                  onRefresh={loadStudyClassRooms}
+                />
+              }
+            >
+              {studyClassRooms.map((c) => (
+                <TouchableOpacity
+                  key={c.id}
+                  onPress={() => {
+                    showModal();
+                    setStudyClassroom_id(c.id);
+                  }}
+                >
+                  <View style={Styles.class}>
+                    <Text style={Styles.text_class}>Lớp: {c.name}</Text>
+                    <Text style={Styles.text_class}>Môn: {c.subject_name}</Text>
+                  </View>
+                </TouchableOpacity>
+              ))}
+              {loading && page > 1 && <ActivityIndicator />}
             </ScrollView>
-          </View>
+          ) : (
+            <Text>Không tìm thấy lớp học nào!!!</Text>
+          )}
+        </View>
       </View>
     </Provider>
   );
