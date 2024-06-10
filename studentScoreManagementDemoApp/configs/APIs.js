@@ -3,6 +3,7 @@ import axios from "axios";
 const BASE_URL = "http://127.0.0.1:8000";
 
 export const endpoints = {
+  "upload-avatar": (user_id) => `/users/${user_id}/upload-avatar/`,
   teachers: "/teachers/",
 
   studyclassrooms: "/studyclassrooms/",

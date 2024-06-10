@@ -1,42 +1,77 @@
-import React, { useContext } from "react";
-import { View, Text, Alert } from "react-native";
+import React, { useContext, useState } from "react";
+import { View, Text, Alert, Image } from "react-native";
 import { Button, Avatar } from "react-native-paper";
 import Icon from "react-native-vector-icons/FontAwesome";
 import * as ImagePicker from "expo-image-picker";
 import MyStyle from "../../styles/MyStyle";
 import { MyDispatchContext, MyUserContext } from "../../configs/Contexts";
 import Styles from "./Styles";
+import APIs, { authApi, endpoints } from "../../configs/APIs";
 
 const Home = ({ navigation, route }) => {
   const user = useContext(MyUserContext);
   const dispatch = useContext(MyDispatchContext);
   const token = route.params?.token;
-
-  const picker = async () => {
-    const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
-    if (status !== "granted") {
-      Alert.alert("iStudentScoreManagement", "Permissions Denied!");
-    } else {
-      let res = await ImagePicker.launchImageLibraryAsync({
-        mediaTypes: ImagePicker.MediaTypeOptions.Images,
-        allowsEditing: true,
-        aspect: [4, 3],
-        quality: 1,
-      });
-      if (!res.canceled) {
-        updateState("avatar", res.assets[0]);
-      }
-    }
-  };
+  const [loading, setLoading] = useState(false);
+  const [selectedImage, setSelectedImage] = useState(null);
 
   const updateState = (field, value) => {
     dispatch({ type: "updateUser", payload: { field, value } });
   };
 
+  const picker = async () => {
+    const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
+    if (status !== "granted") {
+      Alert.alert("iStudentScoreManagement", "Permissions Denied!");
+      return;
+    }
+
+    let result = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ImagePicker.MediaTypeOptions.Images,
+      allowsEditing: true,
+      aspect: [4, 3],
+      quality: 1,
+    });
+
+    if (!result.cancelled) {
+      const selectedAsset = result.assets[0];
+      setSelectedImage(selectedAsset.uri);
+
+      const formData = new FormData();
+      formData.append("id", user.id);
+      formData.append("avatar", {
+        uri: selectedAsset.uri,
+        name: "userProfile.jpg",
+        type: "image/jpeg",
+      });
+
+      try {
+        setLoading(true);
+        const url = endpoints["upload-avatar"](user.id);
+        const res = await authApi(token).patch(url, formData, {
+          headers: {
+            "Content-Type": "multipart/form-data",
+          },
+        });
+
+        if (res.status === 200) {
+          Alert.alert(res.data.message);
+          updateState("avatar", selectedAsset.uri);
+        } else {
+          Alert.alert("Upload Avatar thất bại!!!");
+        }
+      } catch (ex) {
+        console.error(ex);
+        Alert.alert("Có lỗi xảy ra. Vui lòng thử lại!");
+      } finally {
+        setLoading(false);
+      }
+    }
+  };
+
   let info_detail;
   let button_user;
 
-  // Giao diện theo từng user
   switch (user.role) {
     case "student":
       info_detail = (
@@ -103,17 +138,36 @@ const Home = ({ navigation, route }) => {
         </Button>
       );
       break;
+
+    default:
+      info_detail = null;
+      button_user = null;
   }
 
   return (
     <View style={[MyStyle.container, MyStyle.centerContainer]}>
       <View style={Styles.avatar}>
-        {user.avatar && (
-          <Avatar.Image size={250} source={{ uri: user.avatar }} />
+        {selectedImage === null ? (
+          <>
+            {user.avatar && (
+              <Avatar.Image size={250} source={{ uri: user.avatar }} />
+            )}
+          </>
+        ) : (
+          <>
+            <Avatar.Image size={250} source={{ uri: selectedImage }} />
+          </>
         )}
         <Button style={Styles.avatar_button} mode="contained" onPress={picker}>
           <Icon name="camera" size={20} color="#000" />
         </Button>
+
+        {/* {selectedImage && (
+          <Image
+            source={{ uri: selectedImage }}
+            style={{ width: 200, height: 200 }}
+          />
+        )} */}
       </View>
       <View style={Styles.info}>
         <Text style={Styles.text_name}>
@@ -123,13 +177,6 @@ const Home = ({ navigation, route }) => {
       </View>
       <View style={Styles.log_items}>
         {button_user}
-        {/* <Button
-          style={MyStyle.button_user}
-          mode="contained"
-          onPress={() => navigation.navigate("Chat")}
-        >
-          Chat
-        </Button> */}
         <Button
           style={MyStyle.button_user}
           mode="contained"

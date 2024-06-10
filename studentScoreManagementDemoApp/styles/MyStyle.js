@@ -4,7 +4,7 @@ export default StyleSheet.create({
   container: {
     backgroundColor: "#80b3ff",
     flex: 1,
-    padding: 10
+    padding: 10,
   },
   centerContainer: {
     alignItems: "center",
@@ -27,27 +27,27 @@ export default StyleSheet.create({
     color: "#ff7733",
   },
   table: {
-    marginTop: 40
+    marginTop: 40,
   },
   head: {
     height: 40,
-    backgroundColor: '#ff9966',
+    backgroundColor: "#ff9966",
   },
   body: {
-    backgroundColor: '#fff'
+    backgroundColor: "#fff",
   },
   text: {
     margin: 6,
-    textAlign: 'center',
+    textAlign: "center",
   },
   semesterText: {
-    marginBottom: 5
-  }, 
+    marginBottom: 5,
+  },
   modal: {
     backgroundColor: "#fff",
     padding: 10,
-    margin: 10
-  }, 
+    margin: 10,
+  },
   input: {
     backgroundColor: "#fff",
     marginBottom: 10,

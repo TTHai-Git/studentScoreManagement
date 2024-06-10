@@ -1,7 +1,10 @@
 import csv
 import os
+
+import cloudinary
 from django.core.mail import send_mail
 from django.db.models.functions import Concat
+from django.shortcuts import get_object_or_404
 from rest_framework import viewsets, permissions, status, parsers, generics
 from rest_framework.decorators import action
 from rest_framework.response import Response
@@ -26,7 +29,7 @@ class UserViewSet(viewsets.ViewSet, generics.CreateAPIView):
     parser_classes = [parsers.MultiPartParser]
 
     def get_permissions(self):
-        if self.action.__eq__('current_user'):
+        if self.action in ['current_user', 'upload_avatar']:
             return [permissions.IsAuthenticated()]
 
         return [permissions.AllowAny()]
@@ -39,6 +42,20 @@ class UserViewSet(viewsets.ViewSet, generics.CreateAPIView):
                 setattr(user, k, v)
             user.save()
         return Response(serializers.UserSerializer(user).data)
+
+    @action(methods=['patch'], url_path='upload-avatar', url_name='upload-avatar', detail=True)
+    def upload_avatar(self, request, pk=None):
+        avatar_file = request.data.get('avatar', None)
+
+        try:
+            user = self.get_object()
+            new_avatar = cloudinary.uploader.upload(avatar_file)
+            user.avatar = new_avatar['secure_url']
+            user.save()
+        except User.DoesNotExist:
+            return Response({'message': 'User not found'}, status=status.HTTP_404_NOT_FOUND)
+
+        return Response({'message': 'UPLOAD AVATAR THÀNH CÔNG'}, status=status.HTTP_200_OK)
 
 
 class TeacherViewSet(viewsets.ViewSet, generics.ListAPIView, generics.CreateAPIView):

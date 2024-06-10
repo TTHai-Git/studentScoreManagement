@@ -1,13 +1,13 @@
 import {
   View,
-  Text,
   KeyboardAvoidingView,
   Platform,
   ScrollView,
+  Alert,
 } from "react-native";
-import { Button, TextInput } from "react-native-paper";
+import { Button, HelperText, TextInput } from "react-native-paper";
 import MyStyle from "../../styles/MyStyle";
-import React, { useContext } from "react";
+import React, { useContext, useState } from "react";
 import APIs, { authApi, endpoints } from "../../configs/APIs";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useNavigation } from "@react-navigation/native";
@@ -15,8 +15,12 @@ import { MyDispatchContext } from "../../configs/Contexts";
 import Styles from "../User/Styles";
 
 const Login = ({ route }) => {
-  const [user, setUser] = React.useState({});
-  const [passwordVisible, setPasswordVisible] = React.useState(true);
+  const [user, setUser] = useState({ username: "", password: "" });
+  const [passwordVisible, setPasswordVisible] = useState(true);
+  const [errors, setErrors] = useState({
+    username: "",
+    password: "",
+  });
 
   const fields = [
     {
@@ -27,66 +31,68 @@ const Login = ({ route }) => {
       label: "Mật khẩu",
       name: "password",
       icon: passwordVisible ? "eye-off" : "eye",
-      name: "password",
       secureTextEntry: passwordVisible,
     },
   ];
 
-  const [loading, setLoading] = React.useState(false);
+  const [loading, setLoading] = useState(false);
   const nav = useNavigation();
   const dispatch = useContext(MyDispatchContext);
 
-  const updateSate = (field, value) => {
-    setUser((current) => {
-      return { ...current, [field]: value };
-    });
+  const updateState = (field, value) => {
+    setUser((current) => ({ ...current, [field]: value }));
+    setErrors((current) => ({ ...current, [field]: "" }));
+  };
+
+  const validateInputs = () => {
+    let valid = true;
+    let newErrors = { username: "", password: "" };
+
+    if (!user.username) {
+      newErrors.username = "Username không được để trống";
+      valid = false;
+    }
+
+    if (!user.password) {
+      newErrors.password = "Password không được để trống";
+      valid = false;
+    }
+
+    setErrors(newErrors);
+    return valid;
   };
 
   const login = async () => {
+    if (!validateInputs()) {
+      return;
+    }
+
     setLoading(true);
+
     try {
-      console.info(user);
-      let res = await APIs.post(endpoints["login"], {
+      const res = await APIs.post(endpoints["login"], {
         ...user,
-        // username: "",
-        // password: "",
-
-        // test user role teacher
-        username: "DHThanh",
-        password: "123",
-
-        // test user role student
-        // username: "Demo",
-        // password: "123",
-
-        // username: "st10",
-        // password: "123",
-
         client_id: "3jFUdqJsKwnhj1X5wf5WihTyp2g7mfdWp6V3mhl5",
         client_secret:
           "3FJlILnIxptAwsnoQxSUcltQzwLhV87sEXbVRkrsMlJbM3aZjNy90o6VqNtGwNzK9y09NQBqIlVGn8fi3Cnq7ZnRDXNo8f7NsyQQTyVTfJpzbMEePYsSV97NMXBDZZnt",
         grant_type: "password",
       });
-      console.info(res.data);
 
       await AsyncStorage.setItem("token", res.data.access_token);
 
-      console.log(res.data.access_token);
       setTimeout(async () => {
-        let user = await authApi(res.data.access_token).get(
+        const userRes = await authApi(res.data.access_token).get(
           endpoints["current-user"]
         );
-        console.info(user.data);
-
         dispatch({
           type: "login",
-          payload: user.data,
+          payload: userRes.data,
         });
 
         nav.navigate("Home", { token: res.data.access_token });
       }, 100);
     } catch (ex) {
-      console.error(ex);
+      Alert.alert("Đăng Nhập Thất Bại", "Sai username hoặc password");
     } finally {
       setLoading(false);
     }
@@ -114,27 +120,33 @@ const Login = ({ route }) => {
                 <TextInput
                   secureTextEntry={c.secureTextEntry}
                   value={user[c.name]}
-                  onChangeText={(t) => updateSate(c.name, t)}
-                  style={MyStyle.input}
-                  key={c.name}
+                  onChangeText={(t) => updateState(c.name, t)}
+                  style={[
+                    MyStyle.input,
+                    errors[c.name] ? { borderColor: "red" } : {},
+                  ]}
                   label={c.label}
                   right={
                     c.name === "password" && (
                       <TextInput.Icon
                         icon={c.icon}
-                        onPress={() =>
-                          c.name === "password"
-                            ? setPasswordVisible(!passwordVisible)
-                            : setPasswordVisible(passwordVisible)
-                        }
+                        onPress={() => setPasswordVisible(!passwordVisible)}
                       />
                     )
                   }
                 />
+                <HelperText type="error" visible={!!errors[c.name]}>
+                  {errors[c.name]}
+                </HelperText>
               </View>
             ))}
 
-            <Button mode="contained" onPress={login}>
+            <Button
+              icon="account"
+              mode="contained"
+              onPress={login}
+              loading={loading}
+            >
               ĐĂNG NHẬP
             </Button>
           </View>

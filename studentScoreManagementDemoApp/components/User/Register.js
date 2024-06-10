@@ -18,12 +18,22 @@ import Styles from "../User/Styles";
 const Register = () => {
   const [user, setUser] = React.useState({
     role: "student",
-    // email: "2151050112hai@ou.edu.vn",
+    first_name: "",
+    last_name: "",
+    email: "",
+    username: "",
+    password: "",
+    confirm: "",
+    avatar: "",
   });
   const [errors, setErrors] = React.useState({
-    password: false,
-    avatar: false,
-    email: false,
+    first_name: "",
+    last_name: "",
+    email: "",
+    username: "",
+    password: "",
+    confirm: "",
+    avatar: "",
   });
 
   const [passwordVisible, setPasswordVisible] = React.useState(true);
@@ -31,32 +41,20 @@ const Register = () => {
     React.useState(true);
 
   const fields = [
-    {
-      label: "Tên",
-      name: "first_name",
-    },
-    {
-      label: "Họ và tên lót",
-      name: "last_name",
-    },
-    {
-      label: "Email",
-      name: "email",
-    },
-    {
-      label: "Tên đăng nhập",
-      name: "username",
-    },
+    { label: "Tên", name: "first_name" },
+    { label: "Họ và tên lót", name: "last_name" },
+    { label: "Email", name: "email" },
+    { label: "Tên đăng nhập", name: "username" },
     {
       label: "Mật khẩu",
-      icon: passwordVisible ? "eye-off" : "eye",
       name: "password",
+      icon: passwordVisible ? "eye-off" : "eye",
       secureTextEntry: passwordVisible,
     },
     {
       label: "Xác nhận mật khẩu",
-      icon: confirmPasswordVisible ? "eye-off" : "eye",
       name: "confirm",
+      icon: confirmPasswordVisible ? "eye-off" : "eye",
       secureTextEntry: confirmPasswordVisible,
     },
   ];
@@ -68,7 +66,7 @@ const Register = () => {
     const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
     if (status !== "granted") {
       Alert.alert("iCourseApp", "Permissions Denied!");
-      setErrors((prev) => ({ ...prev, avatar: true }));
+      setErrors((prev) => ({ ...prev, avatar: "Permissions Denied!" }));
     } else {
       let res = await ImagePicker.launchImageLibraryAsync({
         mediaTypes: ImagePicker.MediaTypeOptions.Images,
@@ -78,77 +76,83 @@ const Register = () => {
       });
       if (!res.canceled) {
         updateState("avatar", res.assets[0].uri);
-        setErrors((prev) => ({ ...prev, avatar: false }));
+        setErrors((prev) => ({ ...prev, avatar: "" }));
       }
     }
   };
 
   const updateState = (field, value) => {
-    setUser((current) => {
-      return { ...current, [field]: value };
-    });
+    setUser((current) => ({ ...current, [field]: value }));
+    setErrors((current) => ({ ...current, [field]: "" }));
+  };
+
+  const validateInputs = () => {
+    let valid = true;
+    let newErrors = {
+      first_name: "",
+      last_name: "",
+      email: "",
+      username: "",
+      password: "",
+      confirm: "",
+      avatar: "",
+    };
+
+    if (!user.first_name) newErrors.first_name = "Tên không được để trống";
+    if (!user.last_name)
+      newErrors.last_name = "Họ và tên lót không được để trống";
+    if (!user.email || !user.email.endsWith("@ou.edu.vn"))
+      newErrors.email =
+        'Sai định dạng email! Vui lòng sử dụng email trường cấp ("example@ou.edu.vn") hoặc không được bỏ trống email';
+    if (!user.username)
+      newErrors.username = "Tên đăng nhập không được để trống";
+    if (!user.password) newErrors.password = "Mật khẩu không được để trống";
+    if (user.password !== user.confirm)
+      newErrors.confirm = "Mật khẩu không khớp";
+    if (!user.avatar) newErrors.avatar = "Vui lòng cập nhật ảnh đại diện";
+
+    setErrors(newErrors);
+    valid = Object.values(newErrors).every((error) => error === "");
+
+    return valid;
   };
 
   const register = async () => {
-    let hasError = false;
-    let errorState = {
-      password: false,
-      avatar: false,
-      email: false,
-    };
+    if (!validateInputs()) return;
 
-    if (!user.avatar) {
-      errorState.avatar = true;
-      hasError = true;
-    }
-
-    if (!user.email || !user.email.endsWith("@ou.edu.vn")) {
-      errorState.email = true;
-      hasError = true;
-    }
-
-    if (user.password !== user.confirm) {
-      errorState.password = true;
-      hasError = true;
-    }
-
-    setErrors(errorState);
-
-    if (!hasError) {
-      let form = new FormData();
-      for (let key in user) {
-        if (key !== "confirm") {
-          if (key === "avatar" && user.avatar) {
-            form.append(key, {
-              uri: user.avatar,
-              name: user.avatar.split("/").pop(),
-              type: "image/jpeg",
-            });
-          } else {
-            form.append(key, user[key]);
-          }
-        }
-      }
-      console.log(user);
-      setLoading(true);
-      try {
-        let res = await APIs.post(endpoints["register"], form, {
-          headers: {
-            "Content-Type": "multipart/form-data",
-          },
-        });
-        if (res.status === 201) {
-          Alert.alert("Đăng Ký Thành Công!!!");
-          nav.navigate("Login");
+    let form = new FormData();
+    for (let key in user) {
+      if (key !== "confirm") {
+        if (key === "avatar" && user.avatar) {
+          form.append(key, {
+            uri: user.avatar,
+            name: user.avatar.split("/").pop(),
+            type: "image/jpeg",
+          });
         } else {
-          Alert.alert("Đăng Ký Thất Bại!!!");
+          form.append(key, user[key]);
         }
-      } catch (ex) {
-        console.error(ex);
-        Alert.alert("Có lỗi xảy ra. Vui lòng thử lại!");
-      } finally {
-        setLoading(false);
       }
+    }
+
+    setLoading(true);
+    try {
+      let res = await APIs.post(endpoints["register"], form, {
+        headers: {
+          "Content-Type": "multipart/form-data",
+        },
+      });
+
+      if (res.status === 201) {
+        Alert.alert("Đăng ký thành công!!!");
+        nav.navigate("Login");
+      } else {
+        Alert.alert("Đăng ký thất bại!!!");
+      }
+    } catch (ex) {
+      Alert.alert("Có lỗi xảy ra. Vui lòng thử lại!");
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -171,65 +175,33 @@ const Register = () => {
                 key={c.name}
                 style={{ width: "100%", position: "relative" }}
               >
-                {c.name === "email" ? (
-                  <>
-                    <TextInput
-                      secureTextEntry={c.secureTextEntry}
-                      value={user[c.name]}
-                      onChangeText={(t) => updateState(c.name, t)}
-                      style={MyStyle.input}
-                      label={c.label}
-                      right={
-                        (c.name === "password" || c.name === "confirm") && (
-                          <TextInput.Icon
-                            icon={c.icon}
-                            onPress={() =>
-                              c.name === "password"
-                                ? setPasswordVisible(!passwordVisible)
-                                : setConfirmPasswordVisible(
-                                    !confirmPasswordVisible
-                                  )
-                            }
-                          />
-                        )
-                      }
-                    />
-                    <HelperText type="error" visible={errors.email}>
-                      Sai định dạng email! Vui lòng sử dụng email trường cấp
-                      ("example@ou.edu.vn") hoặc không được bỏ trống email !!!
-                    </HelperText>
-                  </>
-                ) : (
-                  <>
-                    <TextInput
-                      secureTextEntry={c.secureTextEntry}
-                      value={user[c.name]}
-                      onChangeText={(t) => updateState(c.name, t)}
-                      style={MyStyle.input}
-                      label={c.label}
-                      right={
-                        (c.name === "password" || c.name === "confirm") && (
-                          <TextInput.Icon
-                            icon={c.icon}
-                            onPress={() =>
-                              c.name === "password"
-                                ? setPasswordVisible(!passwordVisible)
-                                : setConfirmPasswordVisible(
-                                    !confirmPasswordVisible
-                                  )
-                            }
-                          />
-                        )
-                      }
-                    />
-                  </>
-                )}
+                <TextInput
+                  secureTextEntry={c.secureTextEntry}
+                  value={user[c.name]}
+                  onChangeText={(t) => updateState(c.name, t)}
+                  style={[
+                    MyStyle.input,
+                    errors[c.name] ? { borderColor: "red" } : {},
+                  ]}
+                  label={c.label}
+                  right={
+                    (c.name === "password" || c.name === "confirm") && (
+                      <TextInput.Icon
+                        icon={c.icon}
+                        onPress={() =>
+                          c.name === "password"
+                            ? setPasswordVisible(!passwordVisible)
+                            : setConfirmPasswordVisible(!confirmPasswordVisible)
+                        }
+                      />
+                    )
+                  }
+                />
+                <HelperText type="error" visible={!!errors[c.name]}>
+                  {errors[c.name]}
+                </HelperText>
               </View>
             ))}
-            <HelperText type="error" visible={errors.password}>
-              Mật khẩu không khớp hoặc không được bỏ trống mật khẩu!!!
-            </HelperText>
-
             <Button
               style={{
                 ...MyStyle.input,
@@ -243,14 +215,15 @@ const Register = () => {
                 Chọn ảnh đại diện
               </Text>
             </Button>
-
             {user?.avatar && (
-              <Image source={{ uri: user.avatar }} style={Styles.avatar} />
+              <Image
+                source={{ uri: user.avatar }}
+                style={{ width: 100, height: 100 }}
+              />
             )}
-            <HelperText type="error" visible={errors.avatar}>
-              Vui lòng cập nhật ảnh đại diện!!!
+            <HelperText type="error" visible={!!errors.avatar}>
+              {errors.avatar}
             </HelperText>
-
             <Button
               icon="account"
               loading={loading}
