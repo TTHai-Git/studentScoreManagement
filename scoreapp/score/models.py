@@ -41,8 +41,8 @@ class User(AbstractUser):
 
     dob = models.DateField(max_length=8, auto_now_add=True)
     address = models.CharField(max_length=254, null=True)
-    avatar = CloudinaryField(null=True)
-    email = models.EmailField(max_length=254, validators=[validate_ou_mail])
+    avatar = CloudinaryField(null=False, default=None)
+    email = models.EmailField(max_length=254, validators=[validate_ou_mail], null=False)
     role = models.ForeignKey(Role, on_delete=models.CASCADE, null=True, blank=True)
 
     def __str__(self):

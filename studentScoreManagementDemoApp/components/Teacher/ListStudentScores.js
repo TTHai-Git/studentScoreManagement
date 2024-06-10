@@ -1,4 +1,4 @@
-import { useEffect, useState, useCallback } from "react";
+import React, { useEffect, useState, useCallback } from "react";
 import { Alert, ScrollView, View, ActivityIndicator } from "react-native";
 import { authApi, endpoints } from "../../configs/APIs";
 import MyStyle from "../../styles/MyStyle";
@@ -23,11 +23,14 @@ const ListStudentScores = ({ navigation, route }) => {
 
   const loadScoreColumns = useCallback(async () => {
     try {
+      setLoading(true);
       let url = `${endpoints["get-score-columns"](studyclassroom_id)}`;
       let res = await authApi(token).get(url);
       setScoreColumns(res.data);
     } catch (ex) {
       console.error(ex);
+    } finally {
+      setLoading(false);
     }
   }, [studyclassroom_id, token]);
 
@@ -125,34 +128,35 @@ const ListStudentScores = ({ navigation, route }) => {
     setKw(value);
   };
 
+  const transformScores = (scoreData) => {
+    const studentScores = {};
+
+    scoreData.forEach((column) => {
+      column.scoredetails.forEach((detail) => {
+        if (!studentScores[detail.student_id]) {
+          studentScores[detail.student_id] = {
+            student_id: detail.student_id,
+            student_name: detail.student_name,
+            scores: {},
+          };
+        }
+        studentScores[detail.student_id].scores[
+          `score_${column.scorecolumn_id}`
+        ] = detail.score;
+      });
+    });
+    console.log(Object.values(studentScores));
+    return Object.values(studentScores);
+  };
+
+  const transformedScores = transformScores(scores);
+
   const tableHead = [
     "MSSV",
     "Họ và tên",
     ...scoreColumns.map((col) => `Điểm ${col.type}`),
   ];
-  const widthArr = [99, 99, ...scoreColumns.map(() => 99)];
-
-  const groupedScores = scores.reduce((student, curr) => {
-    const studentId = curr.study.student_id;
-    const existingStudent = student.find((c) => c.student_id === studentId);
-
-    if (existingStudent) {
-      existingStudent[`score_${curr.scorecolumn_id}`] = curr.score;
-    } else {
-      const newStudent = {
-        student_id: studentId,
-        student_code: curr.study.student_code,
-        student_name: curr.study.student_name,
-      };
-      scoreColumns.forEach((col) => {
-        newStudent[`score_${col.id}`] =
-          col.id === curr.scorecolumn_id ? curr.score : "";
-      });
-      student.push(newStudent);
-    }
-
-    return student;
-  }, []);
+  const widthArr = [99, 200, ...scoreColumns.map(() => 99)];
 
   return (
     <Provider>
@@ -174,14 +178,16 @@ const ListStudentScores = ({ navigation, route }) => {
                   textStyle={{ ...MyStyle.text, fontWeight: "bold" }}
                   widthArr={widthArr}
                 />
-                {groupedScores.length > 0 ? (
-                  groupedScores.map((c, index) => (
+                {transformedScores.length > 0 ? (
+                  transformedScores.map((student, index) => (
                     <Row
                       key={index}
                       data={[
-                        c.student_code,
-                        c.student_name,
-                        ...scoreColumns.map((col) => c[`score_${col.id}`]),
+                        student.student_id,
+                        student.student_name,
+                        ...scoreColumns.map(
+                          (col) => student.scores[`score_${col.id}`] || ""
+                        ),
                       ]}
                       style={MyStyle.body}
                       textStyle={MyStyle.text}

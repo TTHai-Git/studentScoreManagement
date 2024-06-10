@@ -229,11 +229,24 @@ class ScoreDetailsSerializer(serializers.ModelSerializer):
     scorecolumn_id = serializers.IntegerField(source='scorecolumn.id')
     scorecolumn_type = serializers.CharField(source='scorecolumn.type')
     scorecolumn_percent = serializers.IntegerField(source='scorecolumn.percent')
-    status = serializers.CharField(source='study.studyclassroom.islock')
+
 
     class Meta:
         model = ScoreDetails
-        fields = ['id', 'study', 'scorecolumn_id','scorecolumn_type', 'scorecolumn_percent', 'score', 'status']
+        fields = ['id', 'study', 'scorecolumn_id','scorecolumn_type', 'scorecolumn_percent', 'score']
+
+
+class ScoreDetailsSerializerMU(serializers.Serializer):
+    student_id = serializers.IntegerField()
+    student_name = serializers.CharField()
+    score = serializers.FloatField()
+
+
+class ScoresSerializer(serializers.Serializer):
+    scorecolumn_id = serializers.IntegerField()
+    scorecolumn_type = serializers.CharField()
+    scorecolumn_percent = serializers.IntegerField()
+    scoredetails = ScoreDetailsSerializerMU(many=True)
 
 
 class StudyResultOfStudent(serializers.ModelSerializer):

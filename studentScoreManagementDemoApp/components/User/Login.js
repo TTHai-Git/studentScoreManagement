@@ -13,11 +13,10 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useNavigation } from "@react-navigation/native";
 import { MyDispatchContext } from "../../configs/Contexts";
 import Styles from "../User/Styles";
-import { Picker } from "@react-native-picker/picker";
 
 const Login = ({ route }) => {
   const [user, setUser] = React.useState({});
-  const [selectedValue, setSelectedValue] = React.useState("student");
+  const [passwordVisible, setPasswordVisible] = React.useState(true);
 
   const fields = [
     {
@@ -27,8 +26,9 @@ const Login = ({ route }) => {
     {
       label: "Mật khẩu",
       name: "password",
-      icon: "eye",
-      secureTextEntry: true,
+      icon: passwordVisible ? "eye-off" : "eye",
+      name: "password",
+      secureTextEntry: passwordVisible,
     },
   ];
 
@@ -118,29 +118,21 @@ const Login = ({ route }) => {
                   style={MyStyle.input}
                   key={c.name}
                   label={c.label}
-                  right={<TextInput.Icon icon={c.icon} />}
+                  right={
+                    c.name === "password" && (
+                      <TextInput.Icon
+                        icon={c.icon}
+                        onPress={() =>
+                          c.name === "password"
+                            ? setPasswordVisible(!passwordVisible)
+                            : setPasswordVisible(passwordVisible)
+                        }
+                      />
+                    )
+                  }
                 />
               </View>
             ))}
-            {/* <View
-              style={{
-                ...Styles.log_items,
-                width: "100%",
-                position: "relative",
-              }}
-            >
-              <Picker
-                style={Styles.input}
-                selectedValue={selectedValue}
-                onValueChange={(itemValue, itemIndex) =>
-                  setSelectedValue(itemValue)
-                }
-              >
-                <Picker.Item label="Sinh viên" value="student" />
-                <Picker.Item label="Giáo vụ" value="admin" />
-                <Picker.Item label="Giảng viên" value="teacher" />
-              </Picker>
-            </View> */}
 
             <Button mode="contained" onPress={login}>
               ĐĂNG NHẬP

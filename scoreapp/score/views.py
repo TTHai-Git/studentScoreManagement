@@ -178,6 +178,7 @@ class StudyClassRoomViewSet(viewsets.ViewSet, viewsets.generics.ListAPIView, vie
             teacher = Teacher.objects.get(id=request.user.id)
             studyclassroom = self.get_object()
 
+
             if studyclassroom.teacher != teacher:
                 return Response({"message": "Bạn không có quyền xem bảng điểm của lớp học này."},
                                 status=status.HTTP_401_UNAUTHORIZED)
@@ -197,21 +198,34 @@ class StudyClassRoomViewSet(viewsets.ViewSet, viewsets.generics.ListAPIView, vie
             studies = Study.objects.filter(studyclassroom=studyclassroom, student__in=students).order_by(
                 'studyclassroom_id')
 
-            # Get the ScoreDetails for these studies
-            scoredetails_with_scores = ScoreDetails.objects.filter(study__in=studies).order_by('id')
+            scoreData = []
 
-            # Get the studies that do not have corresponding entries in ScoreDetails
-            scoredetail_study_ids = scoredetails_with_scores.values_list('study_id', flat=True)
-            studies_without_scores = studies.exclude(id__in=scoredetail_study_ids)
+            columns = ScoreColumn.objects.filter(studyclassroom=studyclassroom)
+            for col in columns:
+                scoredetails = []
+                for study in studies:
+                    try:
+                        sd = ScoreDetails.objects.get(study=study, scorecolumn=col)
+                    except Exception:
+                        sd = ScoreDetails(None, study=study, scorecolumn=col)
+                    muData = {
+                        'student_id': study.student.id,
+                        'student_name': study.student.last_name + ' ' + study.student.first_name,
+                        'score': sd.score
+                    }
+                    mu = serializers.ScoreDetailsSerializerMU(muData).data
+                    scoredetails.append(mu)
 
-            # Serialize both lists
-            scoredetails_with_scores_serializer = serializers.ScoreDetailsSerializer(scoredetails_with_scores,
-                                                                                     many=True)
-            studies_without_scores_serializer = serializers.StudySerializer(studies_without_scores, many=True)
+                scoreData.append({
+                    'scorecolumn_id': col.id,
+                    'scorecolumn_type': col.type,
+                    'scorecolumn_percent': col.percent,
+                    'scoredetails': scoredetails
+                })
+            dataJson = serializers.ScoresSerializer(scoreData, many=True)
 
             return Response({
-                'scoredetails_with_scores': scoredetails_with_scores_serializer.data,
-                'studies_without_scores': studies_without_scores_serializer.data
+                'scoredetails_with_scores': dataJson.data
             }, status=status.HTTP_200_OK)
         except Exception as e:
             return Response({"message": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
