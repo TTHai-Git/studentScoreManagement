@@ -12,27 +12,20 @@ class RoleSerializer(serializers.ModelSerializer):
 class UserSerializer(serializers.ModelSerializer):
     class Meta:
         model = User
-        fields = ['id', 'first_name', 'last_name', 'username', 'password', 'email', 'avatar', 'role']
+        fields = ['id', 'code', 'first_name', 'last_name', 'username', 'password', 'email', 'avatar', 'role']
         extra_kwargs = {
             'password': {
                 'write_only': True
             }
         }
 
-    def to_representation(self, instance):
-        rep = super().to_representation(instance)
-        rep['avatar'] = instance.avatar.url
-        return rep
-
-
-class TeacherSerializer(serializers.ModelSerializer):
     def create(self, validated_data, request=None):
         data = validated_data.copy()
         avatar_file = request.data.get('avatar', None) if request else None
         if avatar_file:
             new_avatar = cloudinary.uploader.upload(avatar_file)
             data['avatar'] = new_avatar['secure_url']
-        user = Teacher(**data)
+        user = User(**data)
         user.set_password(data["password"])
         user.save()
         return user
@@ -49,6 +42,21 @@ class TeacherSerializer(serializers.ModelSerializer):
         instance.save()
         return instance
 
+    def to_representation(self, instance):
+        rep = super().to_representation(instance)
+        rep['avatar'] = instance.avatar.url
+        return rep
+
+
+class MembersOfChatRoomSerializer(serializers.Serializer):
+    code = serializers.CharField()
+    name = serializers.CharField()
+    username = serializers.CharField()
+    avatar = serializers.CharField()
+    role = serializers.CharField()
+
+
+class TeacherSerializer(serializers.ModelSerializer):
     class Meta:
         model = Teacher
         fields = ['id', 'code', 'first_name', 'last_name', 'username', 'password', 'email', 'avatar', 'role']
@@ -65,29 +73,6 @@ class TeacherSerializer(serializers.ModelSerializer):
 
 
 class StudentSerializer(serializers.ModelSerializer):
-    def create(self, validated_data, request=None):
-        data = validated_data.copy()
-        avatar_file = request.data.get('avatar', None) if request else None
-        if avatar_file:
-            new_avatar = cloudinary.uploader.upload(avatar_file)
-            data['avatar'] = new_avatar['secure_url']
-        user = Student(**data)
-        user.set_password(data["password"])
-        user.save()
-        return user
-
-    def update(self, instance, validated_data):
-        for attr, value in validated_data.items():
-            if attr == 'password':
-                instance.set_password(value)
-            elif attr == 'avatar':
-                new_avatar = cloudinary.uploader.upload(value)
-                instance.avatar = new_avatar['secure_url']
-            else:
-                setattr(instance, attr, value)
-        instance.save()
-        return instance
-
     class Meta:
         model = Student
         fields = ['id', 'code', 'first_name', 'last_name', 'username', 'password', 'email', 'avatar', 'role']
@@ -145,15 +130,17 @@ class StudentClassRoom(serializers.ModelSerializer):
 class StudyClassRoomSerializer(serializers.ModelSerializer):
     subject_name = serializers.CharField(source='subject.name')
     teacher_name = serializers.SerializerMethodField()
-    semester = SemesterSerializer()
-    group = GroupSerializer()
+    semester_name = serializers.CharField(source='semester.name')
+    semester_year = serializers.CharField(source='semester.year')
+    group_name = serializers.CharField(source='group.name')
 
     def get_teacher_name(self, obj):
         return obj.teacher.last_name + ' ' + obj.teacher.first_name
 
     class Meta:
         model = StudyClassRoom
-        fields = ['id', 'name', 'subject_name', 'teacher_name', 'group', 'semester', 'islock']
+        fields = ['id', 'name', 'subject_name', 'teacher_name', 'group_name', 'semester_name', 'semester_year',
+                  'islock']
 
 
 class TopicSerializer(serializers.ModelSerializer):
@@ -226,7 +213,7 @@ class ScoreColumnSerializer(serializers.ModelSerializer):
         fields = ['id', 'type', 'percent']
 
 
-class ScoreDetailsSerializer(serializers.ModelSerializer):
+class ScoreDetailSerializer(serializers.ModelSerializer):
     study = StudySerializer()
     scorecolumn_id = serializers.IntegerField(source='scorecolumn.id')
     scorecolumn_type = serializers.CharField(source='scorecolumn.type')
@@ -237,27 +224,36 @@ class ScoreDetailsSerializer(serializers.ModelSerializer):
         fields = ['id', 'study', 'scorecolumn_id', 'scorecolumn_type', 'scorecolumn_percent', 'score']
 
 
-class ScoreDetailsSerializerMU(serializers.Serializer):
-    student_id = serializers.IntegerField()
-    student_name = serializers.CharField()
+class SDSerializer(serializers.Serializer):
+    col_id = serializers.IntegerField()
+    col_type = serializers.CharField()
+    score = serializers.FloatField()
+
+class StudyResultSerializer(serializers.Serializer):
+    subject_name = serializers.CharField()
+    semester_name = serializers.CharField()
+    semester_year = serializers.CharField()
+    scoredetails = SDSerializer(many=True)
+
+
+class ScoreSerializer(serializers.Serializer):
+    col_id = serializers.IntegerField()
     score = serializers.FloatField()
 
 
+class ScoreDetailsSerializer(serializers.Serializer):
+    student_id = serializers.IntegerField()
+    student_code = serializers.CharField()
+    student_name = serializers.CharField()
+    scores = ScoreSerializer(many=True)
+
+
 class ScoresSerializer(serializers.Serializer):
-    scorecolumn_id = serializers.IntegerField()
-    scorecolumn_type = serializers.CharField()
-    scorecolumn_percent = serializers.IntegerField()
-    scoredetails = ScoreDetailsSerializerMU(many=True)
+    score_cols = ScoreColumnSerializer(many=True)
+    score_details = ScoreDetailsSerializer(many=True)
 
 
-class StudyResultOfStudent(serializers.ModelSerializer):
-    group_name = serializers.CharField(source='study.studyclassroom.group.name')
-    teacher_name = serializers.SerializerMethodField()
-    subject_name = serializers.CharField(source='study.studyclassroom.subject.name')
-    semester_name = serializers.CharField(source='study.studyclassroom.semester.name')
-    semester_year = serializers.CharField(source='study.studyclassroom.semester.year')
-    scorecolumn_type = serializers.CharField(source='scorecolumn.type')
-    scorecolumn_percent = serializers.IntegerField(source='scorecolumn.percent')
+
 
     def get_teacher_name(self, obj):
         return obj.study.studyclassroom.teacher.last_name + ' ' + obj.study.studyclassroom.teacher.first_name
@@ -266,3 +262,9 @@ class StudyResultOfStudent(serializers.ModelSerializer):
         model = ScoreDetails
         fields = ['id', 'group_name', 'subject_name', 'teacher_name', 'semester_name', 'semester_year',
                   'scorecolumn_type', 'scorecolumn_percent', 'score']
+
+
+class studyclassroominfo(serializers.Serializer):
+    subject_name = serializers.CharField()
+    semester_name = serializers.CharField()
+    semester_year = serializers.CharField()

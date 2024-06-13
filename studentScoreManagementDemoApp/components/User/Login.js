@@ -15,7 +15,7 @@ import { MyDispatchContext } from "../../configs/Contexts";
 import Styles from "../User/Styles";
 
 const Login = ({ route }) => {
-  const [user, setUser] = useState({ username: "", password: "" });
+  const [user, setUser] = useState({ username: "DHThanh", password: "123" });
   const [passwordVisible, setPasswordVisible] = useState(true);
   const [errors, setErrors] = useState({
     username: "",

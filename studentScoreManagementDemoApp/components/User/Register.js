@@ -142,10 +142,10 @@ const Register = () => {
           "Content-Type": "multipart/form-data",
         },
       });
-
+      console.log(res.data);
       if (res.status === 201) {
         Alert.alert("Đăng ký thành công!!!");
-        nav.navigate("Login");
+        nav.navigate("Login", { userregister: res.data });
       } else {
         Alert.alert("Đăng ký thất bại!!!");
       }

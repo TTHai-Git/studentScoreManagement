@@ -39,6 +39,7 @@ class User(AbstractUser):
         else:
             raise ValidationError("Phải dùng tài khoản mail trường @ou.edu.svn!!!")
 
+    code = models.CharField(max_length=10, unique=True, default=None, null=True)
     dob = models.DateField(max_length=8, auto_now_add=True)
     address = models.CharField(max_length=254, null=True)
     avatar = CloudinaryField(null=False, default=None)
@@ -73,7 +74,7 @@ class StudentClassRoom(BaseModel):
 
 
 class Student(User):
-    code = models.CharField(max_length=10, unique=True, default=None, null=True)
+
     studentclassroom = models.ForeignKey(StudentClassRoom, on_delete=models.CASCADE, null=True, default=None)
 
     def __str__(self):
@@ -85,8 +86,6 @@ class Student(User):
 
 
 class Teacher(User):
-    code = models.CharField(max_length=10, unique=True, default=None, null=True)
-
     def __str__(self):
         return f'{self.id} - {self.code} - {self.last_name} {self.first_name} - {self.username}'
 
@@ -172,7 +171,7 @@ class Study(BaseModel):
 
 
 class ScoreDetails(BaseModel):
-    score = models.FloatField(default=0.0, validators=[MinValueValidator(0), MaxValueValidator(10)])
+    score = models.FloatField(null=True, validators=[MinValueValidator(0.0), MaxValueValidator(10.0)])
     study = models.ForeignKey(Study, on_delete=models.RESTRICT)
     scorecolumn = models.ForeignKey(ScoreColumn, on_delete=models.RESTRICT)
 

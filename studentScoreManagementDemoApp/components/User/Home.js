@@ -109,6 +109,7 @@ const Home = ({ navigation, route }) => {
     case "teacher":
       info_detail = (
         <>
+          <Text style={Styles.text_detail}>MGV: {user.code}</Text>
           <Text style={Styles.text_detail}>Email: {user.email}</Text>
         </>
       );
@@ -161,13 +162,6 @@ const Home = ({ navigation, route }) => {
         <Button style={Styles.avatar_button} mode="contained" onPress={picker}>
           <Icon name="camera" size={20} color="#000" />
         </Button>
-
-        {/* {selectedImage && (
-          <Image
-            source={{ uri: selectedImage }}
-            style={{ width: 200, height: 200 }}
-          />
-        )} */}
       </View>
       <View style={Styles.info}>
         <Text style={Styles.text_name}>

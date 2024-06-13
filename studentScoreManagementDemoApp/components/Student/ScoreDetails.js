@@ -13,35 +13,10 @@ const ScoreDetails = ({ navigation, route }) => {
   const [studies, setStudies] = useState([]);
   const [kw, setKw] = useState("");
 
-  const tableHead = ["STT", "Tên môn học", "Nhóm lớp", "Điểm GK", "Điểm CK"];
-  const widthArr = [40, 400, 100, 100, 100];
+  const [scoreTypes, setScoreTypes] = useState([]);
+  const [widthArr, setWidthArr] = useState([40, 400, 100]);
 
-  const groupedSubjects = studies.reduce((subject, curr) => {
-    const subjectName = curr.subject_name;
-
-    const existingSubject = subject.find((c) => c.subject_name === subjectName);
-
-    if (existingSubject) {
-      if (curr.scorecolumn_type === "Giữa Kỳ") {
-        existingSubject.score_mid = curr.score;
-      } else if (curr.scorecolumn_type === "Cuối Kỳ") {
-        existingSubject.score_end = curr.score;
-      }
-    } else {
-      subject.push({
-        subject_name: subjectName,
-        group_name: curr.group_name,
-        semester_name: curr.semester_name,
-        semester_year: curr.semester_year,
-        score_mid: curr.scorecolumn_type === "Giữa Kỳ" ? curr.score : "",
-        score_end: curr.scorecolumn_type === "Cuối Kỳ" ? curr.score : "",
-      });
-    }
-
-    return subject;
-  }, []);
-
-  const loadStudies = async () => {
+  const loadStudyResult = async () => {
     try {
       setLoading(true);
       let url = `${endpoints["studies"](user.id)}`;
@@ -49,26 +24,68 @@ const ScoreDetails = ({ navigation, route }) => {
         url = `${endpoints["studies"](user.id)}?kw=${kw}`;
       }
       let res = await authApi(token).get(url);
-      console.log(res.data);
-      setStudies(res.data);
+
+      setStudies(res.data.studyresult);
+
+      // Extract unique score types
+      const types = new Set();
+      res.data.studyresult.forEach((study) => {
+        study.scoredetails?.forEach((detail) => {
+          types.add(detail.col_type);
+        });
+      });
+
+      const scoreTypesArray = Array.from(types);
+      setScoreTypes(scoreTypesArray);
+
+      // Adjust widthArr dynamically
+      setWidthArr([
+        40,
+        100,
+        100,
+        100,
+        ...Array(scoreTypesArray.length).fill(100),
+      ]);
     } catch (ex) {
-      console.error(ex);
+      // console.error(ex);
     } finally {
       setLoading(false);
     }
   };
 
   useEffect(() => {
-    loadStudies();
+    loadStudyResult();
   }, [kw]);
 
   const search = (value, callback) => {
-    setPage(1);
+    setKw(value);
     callback(value);
   };
 
+  const tableHead = ["STT", "Tên môn học", "Học kỳ", "Năm học", ...scoreTypes];
+
+  const groupedSubjects = studies.map((curr) => {
+    const scores = {};
+
+    curr.scoredetails?.forEach((scoreDetail) => {
+      scores[scoreDetail.col_type] = scoreDetail.score;
+    });
+
+    return {
+      subject_name: curr.subject_name,
+      semester_name: curr.semester_name,
+      semester_year: curr.semester_year,
+      scores,
+    };
+  });
+
   return (
     <View style={[MyStyle.container, MyStyle.centerContainer]}>
+      <Searchbar
+        onChangeText={(t) => search(t, setKw)}
+        value={kw}
+        placeholder="Tìm theo kiếm môn học"
+      />
       {studies.length === 0 && !loading ? (
         <Text>
           Không có kết quả học tập nào hoặc giảng viên chưa khóa điểm nên sinh
@@ -76,12 +93,6 @@ const ScoreDetails = ({ navigation, route }) => {
         </Text>
       ) : (
         <>
-          <Searchbar
-            onChangeText={(t) => search(t, setKw)}
-            value={kw}
-            placeholder="Tìm theo kiếm môn học"
-          />
-
           <ScrollView horizontal={true}>
             <View style={MyStyle.table}>
               <Table borderStyle={{ borderWidth: 1, borderColor: "#000" }}>
@@ -96,11 +107,11 @@ const ScoreDetails = ({ navigation, route }) => {
                     <Row
                       key={index}
                       data={[
-                        index,
+                        index + 1, // Increment by 1 for 1-based indexing
                         c.subject_name,
-                        c.group_name,
-                        c.score_mid,
-                        c.score_end,
+                        c.semester_name,
+                        c.semester_year,
+                        ...scoreTypes.map((type) => c.scores[type] || ""),
                       ]}
                       style={MyStyle.body}
                       textStyle={MyStyle.text}
@@ -109,7 +120,7 @@ const ScoreDetails = ({ navigation, route }) => {
                   ))
                 ) : (
                   <Row
-                    data={["", "", "", "", ""]}
+                    data={["", "", "", ...Array(scoreTypes.length).fill("")]}
                     style={MyStyle.body}
                     textStyle={MyStyle.text}
                     widthArr={widthArr}

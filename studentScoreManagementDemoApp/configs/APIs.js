@@ -3,8 +3,10 @@ import axios from "axios";
 const BASE_URL = "http://127.0.0.1:8000";
 
 export const endpoints = {
+  login: "/o/token/",
+  "current-user": "/users/current-user/",
+  register: "/users/",
   "upload-avatar": (user_id) => `/users/${user_id}/upload-avatar/`,
-  teachers: "/teachers/",
 
   studyclassrooms: "/studyclassrooms/",
   "check-locked-scored-studyclassroom": (studyclassroom_id) =>
@@ -12,17 +14,16 @@ export const endpoints = {
   studyclassroomsofstudent: (student_id) =>
     `/students/${student_id}/studyclassrooms`,
 
+  "member-of-chatroom": (studyclassroom_id) =>
+    `/studyclassrooms/${studyclassroom_id}/chat-room/`,
+
   students: (studyclassroom_id) =>
     `/studyclassrooms/${studyclassroom_id}/students/`,
 
   scores: (studyclassroom_id) =>
     `/studyclassrooms/${studyclassroom_id}/students/scores/`,
-  "get-score-columns": (studyclassroom_id) =>
-    `/studyclassrooms/${studyclassroom_id}/scorecollumns`,
-  "add-scores": (studyclassroom_id) =>
-    `/studyclassrooms/${studyclassroom_id}/students/add-scores/`,
-  "update-scores": (studyclassroom_id) =>
-    `/studyclassrooms/${studyclassroom_id}/students/update-scores/`,
+  "save-scores": (studyclassroom_id) =>
+    `/studyclassrooms/${studyclassroom_id}/save-scores/`,
   "locked-score-of-studyclassroom": (studyclassroom_id) =>
     `/studyclassrooms/${studyclassroom_id}/locked-score-of-studyclassroom/`,
   "export-csv-scores": (studyclassroom_id) =>
@@ -41,11 +42,6 @@ export const endpoints = {
     `/topics/${topic_id}/lock_or_unlock_topic/`,
 
   studies: (student_id) => `/students/${student_id}/studies/`,
-
-  login: "/o/token/",
-  "current-user": "/users/current-user/",
-
-  register: "/students/",
 };
 
 export const authApi = (accessToken) =>

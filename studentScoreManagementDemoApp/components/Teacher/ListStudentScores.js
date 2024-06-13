@@ -1,10 +1,24 @@
 import React, { useEffect, useState, useCallback } from "react";
-import { Alert, ScrollView, View, ActivityIndicator } from "react-native";
-import { authApi, endpoints } from "../../configs/APIs";
+import {
+  Alert,
+  ScrollView,
+  View,
+  ActivityIndicator,
+  TextInput,
+  StyleSheet,
+} from "react-native";
+import APIs, { authApi, endpoints } from "../../configs/APIs";
 import MyStyle from "../../styles/MyStyle";
-import { Button, Modal, Portal, Provider, Searchbar } from "react-native-paper";
-import { Table, Row } from "react-native-table-component";
+import {
+  Button,
+  DataTable,
+  Modal,
+  Portal,
+  Provider,
+  Searchbar,
+} from "react-native-paper";
 import Styles from "../Teacher/Styles";
+import { Row, Table } from "react-native-table-component";
 
 const ListStudentScores = ({ navigation, route }) => {
   const token = route.params?.token;
@@ -17,26 +31,10 @@ const ListStudentScores = ({ navigation, route }) => {
   const [visible, setVisible] = useState(false);
   const [lockStatus, setLockStatus] = useState(false);
   const [isHandlingLockScore, setIsHandlingLockScore] = useState(false);
+  const [index, setIndex] = useState(1);
 
   const showModal = () => setVisible(true);
   const hideModal = () => setVisible(false);
-
-  const loadScoreColumns = useCallback(async () => {
-    try {
-      setLoading(true);
-      let url = `${endpoints["get-score-columns"](studyclassroom_id)}`;
-      let res = await authApi(token).get(url);
-      setScoreColumns(res.data);
-    } catch (ex) {
-      console.error(ex);
-    } finally {
-      setLoading(false);
-    }
-  }, [studyclassroom_id, token]);
-
-  useEffect(() => {
-    loadScoreColumns();
-  }, [loadScoreColumns]);
 
   const loadScoresOfStudyClassRoom = useCallback(async () => {
     try {
@@ -46,7 +44,8 @@ const ListStudentScores = ({ navigation, route }) => {
         url += `?kw=${kw}`;
       }
       let res = await authApi(token).get(url);
-      setScores(res.data.scoredetails_with_scores);
+      setScores(res.data.scoredetails_with_scores.score_details);
+      setScoreColumns(res.data.scoredetails_with_scores.score_cols);
     } catch (ex) {
       console.error(ex);
     } finally {
@@ -74,19 +73,20 @@ const ListStudentScores = ({ navigation, route }) => {
     getLockedScoreStatus();
   }, [getLockedScoreStatus]);
 
-  const addScores = async (student_id, scorecolumn_id, score) => {
-    try {
-      let url = `${endpoints["add-scores"](studyclassroom_id)}`;
-      let res = await authApi(token).post(url, {
-        student_id: student_id,
-        scorecolumn_id: scorecolumn_id,
-        score: score,
-      });
-      Alert.alert(res.data.message);
-    } catch (ex) {
-      console.error(ex);
-    }
-  };
+  // const addScores = async (student_id, scorecolumn_id, score) => {
+  //   try {
+  //     let url = `${endpoints["add-scores"](studyclassroom_id)}`;
+  //     let res = await authApi(token).post(url, {
+  //       student_id: student_id,
+  //       scorecolumn_id: scorecolumn_id,
+  //       score: score,
+  //     });
+  //     Alert.alert(res.data.message);
+  //     loadScoresOfStudyClassRoom(); // Refresh scores after adding new score
+  //   } catch (ex) {
+  //     console.error(ex);
+  //   }
+  // };
 
   const lockScoreOfStudyClassRoom = async () => {
     try {
@@ -128,35 +128,57 @@ const ListStudentScores = ({ navigation, route }) => {
     setKw(value);
   };
 
-  const transformScores = (scoreData) => {
-    const studentScores = {};
-
-    scoreData.forEach((column) => {
-      column.scoredetails.forEach((detail) => {
-        if (!studentScores[detail.student_id]) {
-          studentScores[detail.student_id] = {
-            student_id: detail.student_id,
-            student_name: detail.student_name,
-            scores: {},
-          };
-        }
-        studentScores[detail.student_id].scores[
-          `score_${column.scorecolumn_id}`
-        ] = detail.score;
-      });
-    });
-    console.log(Object.values(studentScores));
-    return Object.values(studentScores);
-  };
-
-  const transformedScores = transformScores(scores);
-
   const tableHead = [
+    "ID",
+    "STT",
     "MSSV",
     "Họ và tên",
-    ...scoreColumns.map((col) => `Điểm ${col.type}`),
+    ...scoreColumns.map((col) => `${col.type}`),
   ];
-  const widthArr = [99, 200, ...scoreColumns.map(() => 99)];
+  const widthArr = [30, 40, 100, 100, ...scoreColumns.map(() => 120)];
+
+  const handleChangeScore = (student_id, col_id, value) => {
+    const newScores = scores.map((score) => {
+      if (score.student_id === student_id) {
+        const updatedScores = score.scores.map((s) => {
+          if (s.col_id === col_id) {
+            return { ...s, score: value };
+          }
+          return s;
+        });
+        return { ...score, scores: updatedScores };
+      }
+      return score;
+    });
+    setScores(newScores);
+  };
+
+  const handleSaveScore = async () => {
+    setLoading(true);
+    try {
+      let url = `${endpoints["save-scores"](studyclassroom_id)}`;
+      let res = await authApi(token).post(url, { scores: scores });
+      console.log(res.data);
+      Alert.alert(res.data.message);
+    } catch (ex) {
+      console.log(ex);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const styles = StyleSheet.create({
+    container: {
+      backgroundColor: "gray",
+      padding: 15,
+    },
+    tableHeader: {
+      backgroundColor: "#DCDCDC",
+    },
+    cell: {
+      padding: 5,
+    },
+  });
 
   return (
     <Provider>
@@ -171,6 +193,44 @@ const ListStudentScores = ({ navigation, route }) => {
             {loading ? (
               <ActivityIndicator size="large" color="#0000ff" />
             ) : (
+              // <DataTable style={styles.container}>
+              //   <DataTable.Header style={styles.tableHeader}>
+              //     <DataTable.Title>Id</DataTable.Title>
+              //     <DataTable.Title>Tên</DataTable.Title>
+              //     {scoreColumns.map((col) => (
+              //       <DataTable.Title key={col.id}>{col.type}</DataTable.Title>
+              //     ))}
+              //   </DataTable.Header>
+
+              //   {scores.length > 0 &&
+              //     scores.map((score, index) => (
+              //       <DataTable.Row key={index}>
+              //         <DataTable.Cell>{score.student_id}</DataTable.Cell>
+              //         <DataTable.Cell>{score.student_name}</DataTable.Cell>
+              //         {scoreColumns.map((col) => {
+              //           const scoreValue = score.scores.find(
+              //             (s) => s.col_id === col.id
+              //           )?.score;
+              //           return (
+              //             <DataTable.Cell key={col.id} style={styles.cell}>
+              //               <TextInput
+              //                 value={scoreValue ? scoreValue.toString() : ""}
+              //                 style={{ fontSize: 20 }}
+              //                 onChangeText={(value) =>
+              //                   handleChangeScore(
+              //                     score.student_id,
+              //                     col.id,
+              //                     value
+              //                   )
+              //                 }
+              //                 keyboardType="numeric"
+              //               />
+              //             </DataTable.Cell>
+              //           );
+              //         })}
+              //       </DataTable.Row>
+              //     ))}
+              // </DataTable>
               <Table borderStyle={{ borderWidth: 1, borderColor: "#000" }}>
                 <Row
                   data={tableHead}
@@ -178,16 +238,35 @@ const ListStudentScores = ({ navigation, route }) => {
                   textStyle={{ ...MyStyle.text, fontWeight: "bold" }}
                   widthArr={widthArr}
                 />
-                {transformedScores.length > 0 ? (
-                  transformedScores.map((student, index) => (
+                {scores.length > 0 ? (
+                  scores.map((score, index) => (
                     <Row
                       key={index}
                       data={[
-                        student.student_id,
-                        student.student_name,
-                        ...scoreColumns.map(
-                          (col) => student.scores[`score_${col.id}`] || ""
-                        ),
+                        score.student_id,
+                        (index = index + 1),
+                        score.student_code,
+                        score.student_name,
+                        ...scoreColumns.map((col) => {
+                          s = score.scores.filter((e) => e.col_id == col.id)[0]
+                            .score;
+
+                          return (
+                            <TextInput
+                              key={index}
+                              value={s ? s.toString() : ""}
+                              style={{ fontSize: 20, textAlign: "center" }}
+                              onChangeText={(value) =>
+                                handleChangeScore(
+                                  score.student_id,
+                                  col.id,
+                                  value
+                                )
+                              }
+                              keyboardType="numeric"
+                            />
+                          );
+                        }),
                       ]}
                       style={MyStyle.body}
                       textStyle={MyStyle.text}
@@ -242,9 +321,7 @@ const ListStudentScores = ({ navigation, route }) => {
           <Button
             style={MyStyle.button_user}
             mode="contained"
-            onPress={() => {
-              console.log("Lưu nháp");
-            }}
+            onPress={handleSaveScore}
           >
             Lưu nháp
           </Button>

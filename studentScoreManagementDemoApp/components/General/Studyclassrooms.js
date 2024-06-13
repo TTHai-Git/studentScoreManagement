@@ -54,7 +54,7 @@ const StudyClassRooms = ({ navigation, route }) => {
           setPage(0);
         }
       } catch (ex) {
-        console.error(ex);
+        // console.error(ex);
       } finally {
         setLoading(false);
       }
@@ -81,6 +81,14 @@ const StudyClassRooms = ({ navigation, route }) => {
 
   const goTopics = () => {
     navigation.navigate("Topics", {
+      studyclassroom_id: studyclassroom_id,
+      token: token,
+      user: user,
+    });
+  };
+
+  const goChatRoom = () => {
+    navigation.navigate("Chat", {
       studyclassroom_id: studyclassroom_id,
       token: token,
       user: user,
@@ -141,15 +149,31 @@ const StudyClassRooms = ({ navigation, route }) => {
                     >
                       Diễn đàn
                     </Button>
+                    <Button
+                      style={MyStyle.button_user}
+                      mode="contained"
+                      onPress={goChatRoom}
+                    >
+                      Phòng Chat
+                    </Button>
                   </>
                 ) : (
-                  <Button
-                    style={MyStyle.button_user}
-                    mode="contained"
-                    onPress={goTopics}
-                  >
-                    Diễn đàn
-                  </Button>
+                  <>
+                    <Button
+                      style={MyStyle.button_user}
+                      mode="contained"
+                      onPress={goTopics}
+                    >
+                      Diễn đàn
+                    </Button>
+                    <Button
+                      style={MyStyle.button_user}
+                      mode="contained"
+                      onPress={goChatRoom}
+                    >
+                      Phòng Chat
+                    </Button>
+                  </>
                 )}
               </View>
             </Modal>
@@ -176,6 +200,10 @@ const StudyClassRooms = ({ navigation, route }) => {
                   <View style={Styles.class}>
                     <Text style={Styles.text_class}>Lớp: {c.name}</Text>
                     <Text style={Styles.text_class}>Môn: {c.subject_name}</Text>
+                    <Text style={Styles.text_class}>Nhóm: {c.group_name}</Text>
+                    <Text style={Styles.text_class}>
+                      Học kỳ_Năm Học: {c.semester_name}_{c.semester_year}{" "}
+                    </Text>
                   </View>
                 </TouchableOpacity>
               ))}
