@@ -1,4 +1,4 @@
-import React, { useContext, useState } from "react";
+import React, { useContext, useEffect, useState } from "react";
 import { View, Text, Alert, Image } from "react-native";
 import { Button, Avatar } from "react-native-paper";
 import Icon from "react-native-vector-icons/FontAwesome";
@@ -11,7 +11,8 @@ import APIs, { authApi, endpoints } from "../../configs/APIs";
 const Home = ({ navigation, route }) => {
   const user = useContext(MyUserContext);
   const dispatch = useContext(MyDispatchContext);
-  const token = route.params?.token;
+  const token = route.params?.token || "";
+
   const [loading, setLoading] = useState(false);
   const [selectedImage, setSelectedImage] = useState(null);
 
@@ -98,7 +99,7 @@ const Home = ({ navigation, route }) => {
           <Button
             style={MyStyle.button_user}
             mode="contained"
-            onPress={() => navigation.navigate("ScoreDetails", { user: user })}
+            onPress={() => navigation.navigate("ScoreDetails", { user: user, token: token })}
           >
             Xem điểm
           </Button>
@@ -151,12 +152,16 @@ const Home = ({ navigation, route }) => {
         {selectedImage === null ? (
           <>
             {user.avatar && (
-              <Avatar.Image size={250} source={{ uri: user.avatar }} />
+              <View style={{ borderWidth: 4, borderRadius: 150 }}>
+                <Avatar.Image size={250} source={{ uri: user.avatar }} />
+              </View>
             )}
           </>
         ) : (
           <>
-            <Avatar.Image size={250} source={{ uri: selectedImage }} />
+            <View style={{ borderWidth: 4, borderRadius: 150 }}>
+                <Avatar.Image size={250} source={{ uri: selectedImage }} />
+              </View>
           </>
         )}
         <Button style={Styles.avatar_button} mode="contained" onPress={picker}>

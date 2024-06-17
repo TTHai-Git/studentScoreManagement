@@ -1,8 +1,8 @@
 import { createBottomTabNavigator } from "@react-navigation/bottom-tabs";
 import { NavigationContainer } from "@react-navigation/native";
-import React, { useContext, useReducer } from "react";
+import React, { useContext, useEffect, useReducer } from "react";
 import { Icon } from "react-native-paper";
-import { MyDispatchContext, MyUserContext } from "./configs/Contexts";
+import { AuthenticatedUserContext, MyDispatchContext, MyUserContext } from "./configs/Contexts";
 import { MyUserReducer } from "./configs/Reducers";
 import Register from "./components/User/Register";
 import Login from "./components/User/Login";
@@ -11,11 +11,14 @@ import StudyClassRooms from "./components/General/Studyclassrooms";
 import ListStudentScores from "./components/Teacher/ListStudentScores";
 import Topics from "./components/General/Topics";
 import ScoreDetails from "./components/Student/ScoreDetails";
-import Chat from "./components/General/Chat";
 import { createStackNavigator } from "@react-navigation/stack";
 import ListStudents from "./components/Teacher/ListStudents";
 import Comments from "./components/General/Comments";
 import Admin from "./components/Admin/Admin";
+import { auth } from "./configs/Firebase";
+import ChatList from "./components/General/ChatList";
+import ChatRoom from "./components/General/ChatRoom";
+import { onAuthStateChanged } from "firebase/auth";
 
 const Tab = createBottomTabNavigator();
 const Stack = createStackNavigator();
@@ -75,6 +78,23 @@ const MyStack = () => {
   );
 };
 
+const MyChatStack = () => {
+  return (
+    <Stack.Navigator>
+      <Stack.Screen
+        name="ChatList"
+        options={{ title: "Danh sách Chat"}}
+        component={ChatList}
+      />
+      <Stack.Screen
+        name="ChatRoom"
+        options={{ title: "Phòng Chat"}}
+        component={ChatRoom}
+      />
+    </Stack.Navigator>
+  );
+}
+
 const MyTab = () => {
   const user = useContext(MyUserContext);
 
@@ -113,8 +133,8 @@ const MyTab = () => {
             }}
           />
           <Tab.Screen 
-            name="Chat" 
-            component={Chat} 
+            name="MyChatStack" 
+            component={MyChatStack} 
             options={{
               title: "Chat",
               tabBarIcon: () => <Icon size={30} color="blue" source="chat" />,
@@ -128,6 +148,18 @@ const MyTab = () => {
 
 export default function App() {
   const [user, dispatch] = useReducer(MyUserReducer, null);
+
+  useEffect(() => {
+    const unsubscribe = onAuthStateChanged(auth, (user) => {
+      if (user) {
+        dispatch({ type: 'login', payload: user });
+      } else {
+        dispatch({ type: 'logout' });
+      }
+    });
+
+    return () => unsubscribe();
+  }, []);
 
   return (
     <NavigationContainer>

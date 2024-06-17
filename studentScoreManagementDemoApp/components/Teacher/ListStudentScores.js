@@ -129,13 +129,13 @@ const ListStudentScores = ({ navigation, route }) => {
   };
 
   const tableHead = [
-    "ID",
     "STT",
+    "ID",
     "MSSV",
     "Họ và tên",
     ...scoreColumns.map((col) => `${col.type}`),
   ];
-  const widthArr = [30, 40, 100, 100, ...scoreColumns.map(() => 120)];
+  const widthArr = [40, 40, 100, 200, ...scoreColumns.map(() => 120)];
 
   const handleChangeScore = (student_id, col_id, value) => {
     const newScores = scores.map((score) => {
@@ -241,10 +241,10 @@ const ListStudentScores = ({ navigation, route }) => {
                 {scores.length > 0 ? (
                   scores.map((score, index) => (
                     <Row
-                      key={index}
+                      key={index + 1}
                       data={[
+                        index + 1,
                         score.student_id,
-                        (index = index + 1),
                         score.student_code,
                         score.student_name,
                         ...scoreColumns.map((col) => {
@@ -255,7 +255,7 @@ const ListStudentScores = ({ navigation, route }) => {
                             <TextInput
                               key={index}
                               value={s ? s.toString() : ""}
-                              style={{ fontSize: 20, textAlign: "center" }}
+                              style={{ fontSize: 15, textAlign: "center" }}
                               onChangeText={(value) =>
                                 handleChangeScore(
                                   score.student_id,

@@ -41,7 +41,7 @@ const ScoreDetails = ({ navigation, route }) => {
       // Adjust widthArr dynamically
       setWidthArr([
         40,
-        100,
+        400,
         100,
         100,
         ...Array(scoreTypesArray.length).fill(100),
@@ -105,7 +105,7 @@ const ScoreDetails = ({ navigation, route }) => {
                 {groupedSubjects.length > 0 ? (
                   groupedSubjects.map((c, index) => (
                     <Row
-                      key={index}
+                      key={index + 1}
                       data={[
                         index + 1, // Increment by 1 for 1-based indexing
                         c.subject_name,

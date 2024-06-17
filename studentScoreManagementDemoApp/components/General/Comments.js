@@ -92,7 +92,7 @@ const Comments = ({ navigation, route }) => {
 
   return (
     <View style={[MyStyle.container, MyStyle.centerContainer]}>
-      <ScrollView
+      <ScrollView 
         onScroll={loadMore}
         refreshControl={
           <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />

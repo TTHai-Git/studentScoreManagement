@@ -2,7 +2,7 @@ import { StyleSheet } from "react-native";
 
 export default StyleSheet.create({
   container: {
-    backgroundColor: "#80b3ff",
+    backgroundColor: "#99ebff",
     flex: 1,
     padding: 10,
   },
@@ -50,6 +50,6 @@ export default StyleSheet.create({
   },
   input: {
     backgroundColor: "#fff",
-    marginBottom: 10,
+    borderWidth: 2
   },
 });

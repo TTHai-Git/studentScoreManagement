@@ -622,8 +622,8 @@ class StudentViewSet(viewsets.ViewSet, generics.ListAPIView):
     pagination_class = pagination.StudentPaginator
     parser_classes = [parsers.MultiPartParser]
 
-    def get_permissions(self, request):
-        if request.action in ['get_study_class_rooms', 'get_details_study']:
+    def get_permissions(self):
+        if self.action in ['get_study_class_rooms', 'get_details_study']:
             return [permissions.IsAuthenticated()]
 
         return [permissions.AllowAny()]

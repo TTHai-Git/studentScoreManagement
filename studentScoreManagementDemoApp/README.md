@@ -51,3 +51,9 @@ Fix lỗi không cùng phiên bản Expo
 
 Chú ý: cái adb nó chạy ip khác ở port khác => Mình phải chuyển ip + port backend từ local qua ip của thằng adb => Để thằng android nó connect được
 (Ông thầy bỏ lên pyanywhere để ip public, cho lúc nào cũng connect vô được mà kh cần reverse á ) -> "start": "adb reverse tcp:8000 tcp:8000 && expo start --dev-client", (MAP PORT)
+
+Firebase
+
+1. npm install firebase
+2. npm install react-native-gifted-chat
+3. npm install dotenv

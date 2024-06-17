@@ -7,6 +7,8 @@ export default StyleSheet.create({
     padding: 10,
     marginTop: 10,
     justifyContent: "center",
+    borderWidth: 2,
+    borderRadius: 10,
   },
   text_class: {
     fontSize: 18,
@@ -17,7 +19,9 @@ export default StyleSheet.create({
     width: "100%",
     marginBottom: 10,
     padding: 10,
-    backgroundColor: "#fff"
+    backgroundColor: "#fff",
+    borderWidth: 2,
+    borderRadius: 10,
   },
   button_topic: {
     width: 200
