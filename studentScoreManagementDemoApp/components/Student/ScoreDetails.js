@@ -41,7 +41,7 @@ const ScoreDetails = ({ navigation, route }) => {
       // Adjust widthArr dynamically
       setWidthArr([
         40,
-        400,
+        100,
         100,
         100,
         ...Array(scoreTypesArray.length).fill(100),

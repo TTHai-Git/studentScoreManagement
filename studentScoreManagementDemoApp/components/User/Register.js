@@ -1,4 +1,4 @@
-import { useState } from "react"; 
+import { useState } from "react";
 import {
   View,
   Text,
@@ -25,10 +25,10 @@ const Register = () => {
     role: "student",
     first_name: "",
     last_name: "",
-    email: "",
+    email: "@ou.edu.vn",
     username: "",
-    password: "",
-    confirm: "",
+    password: "1234567890",
+    confirm: "1234567890",
     avatar: "",
   });
   const [errors, setErrors] = useState({
@@ -151,8 +151,12 @@ const Register = () => {
       if (res.status === 201) {
         // Đăng ký thành công, tiến hành đăng ký với Firebase
         try {
-          if (user.email !== '' && user.password !== '') {
-            const userCredentital = await createUserWithEmailAndPassword(auth, user.email, user.password);
+          if (user.email !== "" && user.password !== "") {
+            const userCredentital = await createUserWithEmailAndPassword(
+              auth,
+              user.email,
+              user.password
+            );
             const userFire = userCredentital.user;
 
             await setDoc(doc(database, "users", userFire.uid), {
@@ -161,15 +165,17 @@ const Register = () => {
               avatar: user.avatar,
               name: `${user.last_name} ${user.first_name}`,
               role: user.role,
-            })
+            });
           }
 
           // Hiển thị thông báo thành công và điều hướng sau khi Firebase đăng ký thành công
           Alert.alert("Đăng ký thành công!!!");
-        nav.navigate("Login", { userregister: res.data });
+          nav.navigate("Login");
         } catch (error) {
           console.error("Đăng ký Firebase thất bại:", error);
-          Alert.alert("Đăng ký thành công, nhưng không thể đăng ký với Firebase. Vui lòng thử lại!");
+          Alert.alert(
+            "Đăng ký thành công, nhưng không thể đăng ký với Firebase. Vui lòng thử lại!"
+          );
         }
       } else {
         Alert.alert("Đăng ký thất bại!!!");
@@ -234,7 +240,7 @@ const Register = () => {
               }}
               onPress={picker}
             >
-              <Text style={{ color: "#000", fontSize: 15}}>
+              <Text style={{ color: "#000", fontSize: 15 }}>
                 Chọn ảnh đại diện
               </Text>
             </Button>

@@ -17,7 +17,7 @@ import { signInWithEmailAndPassword } from "firebase/auth";
 import { auth } from "../../configs/Firebase";
 
 const Login = ({ route }) => {
-  const [user, setUser] = useState({ username: "", password: "" });
+  const [user, setUser] = useState({ username: "TUI", password: "1234567890" });
   const [passwordVisible, setPasswordVisible] = useState(true);
   const [errors, setErrors] = useState({
     username: "",
@@ -73,10 +73,16 @@ const Login = ({ route }) => {
 
     try {
       const res = await APIs.post(endpoints["login"], {
+        // ...user,
+        // client_id: "69KTFKKaC78YxaSoX0ws8yGEgu58ZXNIBiWuDuvI",
+        // client_secret:
+        //   "JHeq6IIvPTBmCBJ3MAmGkcNbMmZQ4PoqctbCLuxGRSQaYFQDs4tHI7bPKqUf3TMKf7U3YUdP9IGlHCDJABRchql6XfBpHkn1R6pcNYMDyEoS54id9IiXXYyx7O9m4GP7",
+        // grant_type: "password",
+
         ...user,
-        client_id: "69KTFKKaC78YxaSoX0ws8yGEgu58ZXNIBiWuDuvI",
+        client_id: "3jFUdqJsKwnhj1X5wf5WihTyp2g7mfdWp6V3mhl5",
         client_secret:
-          "JHeq6IIvPTBmCBJ3MAmGkcNbMmZQ4PoqctbCLuxGRSQaYFQDs4tHI7bPKqUf3TMKf7U3YUdP9IGlHCDJABRchql6XfBpHkn1R6pcNYMDyEoS54id9IiXXYyx7O9m4GP7",
+          "3FJlILnIxptAwsnoQxSUcltQzwLhV87sEXbVRkrsMlJbM3aZjNy90o6VqNtGwNzK9y09NQBqIlVGn8fi3Cnq7ZnRDXNo8f7NsyQQTyVTfJpzbMEePYsSV97NMXBDZZnt",
         grant_type: "password",
       });
 
@@ -93,10 +99,13 @@ const Login = ({ route }) => {
 
       if (userRes.data.email && user.password) {
         try {
-          await signInWithEmailAndPassword(auth, userRes.data.email, user.password);
+          await signInWithEmailAndPassword(
+            auth,
+            userRes.data.email,
+            user.password
+          );
           console.log("Đăng nhập Firebase thành công");
           // Điều hướng đến trang Home với thông tin người dùng đã được cập nhật
-          nav.navigate("Home", { token: res.data.access_token, user: userRes.data });
         } catch (err) {
           console.error("Đăng nhập Firebase thất bại: ", err);
           Alert.alert("Đăng Nhập Thất Bại", "Đăng nhập Firebase thất bại");
@@ -105,6 +114,10 @@ const Login = ({ route }) => {
         // Nếu không có email hoặc password, thông báo lỗi và không điều hướng đến trang Home
         Alert.alert("Đăng Nhập Thất Bại", "Sai username hoặc password");
       }
+      nav.navigate("Home", {
+        token: res.data.access_token,
+        user: userRes.data,
+      });
     } catch (ex) {
       console.error("Đăng nhập API thất bại: ", ex);
       Alert.alert("Đăng Nhập Thất Bại", "Sai username hoặc password");
