@@ -4,8 +4,7 @@ import {
   Text,
   FlatList,
   TouchableOpacity,
-  ActivityIndicator,
-  ScrollView,
+  ActivityIndicator
 } from "react-native";
 import { useNavigation } from "@react-navigation/native";
 import {
