@@ -121,8 +121,8 @@ DATABASES = {
         'ENGINE': 'django.db.backends.mysql',
         'NAME': 'scoredb',
         'USER': 'root',
-        # 'PASSWORD': '123456a@A',
-        'PASSWORD': 'Admin@123',
+        'PASSWORD': '123456a@A',
+        # 'PASSWORD': 'Admin@123',
         'HOST': ''  # mặc định localhost
     }
 }
