@@ -1,4 +1,4 @@
-import React, { useContext, useEffect, useState } from "react";
+import React, { useContext, useState } from "react";
 import { View, Text, Alert, Image } from "react-native";
 import { Button, Avatar } from "react-native-paper";
 import Icon from "react-native-vector-icons/FontAwesome";
@@ -6,13 +6,13 @@ import * as ImagePicker from "expo-image-picker";
 import MyStyle from "../../styles/MyStyle";
 import { MyDispatchContext, MyUserContext } from "../../configs/Contexts";
 import Styles from "./Styles";
-import APIs, { authApi, endpoints } from "../../configs/APIs";
+import { authApi, endpoints } from "../../configs/APIs";
+import { logOutFireBaseUser } from "../../configs/Reducers";
 
 const Home = ({ navigation, route }) => {
   const user = useContext(MyUserContext);
   const dispatch = useContext(MyDispatchContext);
-  const token = route.params?.token || "";
-
+  const token = route.params?.token;
   const [loading, setLoading] = useState(false);
   const [selectedImage, setSelectedImage] = useState(null);
 
@@ -99,7 +99,9 @@ const Home = ({ navigation, route }) => {
           <Button
             style={MyStyle.button_user}
             mode="contained"
-            onPress={() => navigation.navigate("ScoreDetails", { user: user, token: token })}
+            onPress={() =>
+              navigation.navigate("ScoreDetails", { token: token, user: user })
+            }
           >
             Xem điểm
           </Button>
@@ -128,18 +130,18 @@ const Home = ({ navigation, route }) => {
       );
       break;
 
-    case "admin":
-      info_detail = <Text style={Styles.text_detail}>Email: {user.email}</Text>;
-      button_user = (
-        <Button
-          style={MyStyle.button_user}
-          mode="contained"
-          onPress={() => navigation.navigate("Admin")}
-        >
-          Đăng ký tài khoản
-        </Button>
-      );
-      break;
+    // case "admin":
+    //   info_detail = <Text style={Styles.text_detail}>Email: {user.email}</Text>;
+    //   button_user = (
+    //     <Button
+    //       style={MyStyle.button_user}
+    //       mode="contained"
+    //       onPress={() => navigation.navigate("Admin")}
+    //     >
+    //       Đăng ký tài khoản
+    //     </Button>
+    //   );
+    //   break;
 
     default:
       info_detail = null;
@@ -152,16 +154,12 @@ const Home = ({ navigation, route }) => {
         {selectedImage === null ? (
           <>
             {user.avatar && (
-              <View style={{ borderWidth: 4, borderRadius: 150 }}>
-                <Avatar.Image size={250} source={{ uri: user.avatar }} />
-              </View>
+              <Avatar.Image size={250} source={{ uri: user.avatar }} />
             )}
           </>
         ) : (
           <>
-            <View style={{ borderWidth: 4, borderRadius: 150 }}>
-                <Avatar.Image size={250} source={{ uri: selectedImage }} />
-              </View>
+            <Avatar.Image size={250} source={{ uri: selectedImage }} />
           </>
         )}
         <Button style={Styles.avatar_button} mode="contained" onPress={picker}>
@@ -179,7 +177,7 @@ const Home = ({ navigation, route }) => {
         <Button
           style={MyStyle.button_user}
           mode="contained"
-          onPress={() => dispatch({ type: "logout" })}
+          onPress={() => logOutFireBaseUser(dispatch)}
         >
           Đăng xuất
         </Button>

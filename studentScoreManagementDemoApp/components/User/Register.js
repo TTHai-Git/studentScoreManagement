@@ -1,4 +1,4 @@
-import { useState } from "react"; 
+import { useEffect, useState } from "react";
 import {
   View,
   Text,
@@ -25,10 +25,10 @@ const Register = () => {
     role: "student",
     first_name: "",
     last_name: "",
-    email: "",
+    email: "@ou.edu.vn",
     username: "",
-    password: "",
-    confirm: "",
+    password: "1234567890",
+    confirm: "1234567890",
     avatar: "",
   });
   const [errors, setErrors] = useState({
@@ -42,8 +42,8 @@ const Register = () => {
   });
 
   const [passwordVisible, setPasswordVisible] = useState(true);
-  const [confirmPasswordVisible, setConfirmPasswordVisible] =
-    React.useState(true);
+  const [confirmPasswordVisible, setConfirmPasswordVisible] = useState(true);
+  const [imageUploaded, setImageUploaded] = useState(false);
 
   const fields = [
     { label: "Tên", name: "first_name" },
@@ -66,6 +66,13 @@ const Register = () => {
 
   const nav = useNavigation();
   const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+    if (user?.avatar) {
+      Alert.alert("Thành công", "Upload ảnh thành công!");
+      setImageUploaded(true);
+    }
+  }, [user?.avatar]);
 
   const picker = async () => {
     const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
@@ -151,8 +158,12 @@ const Register = () => {
       if (res.status === 201) {
         // Đăng ký thành công, tiến hành đăng ký với Firebase
         try {
-          if (user.email !== '' && user.password !== '') {
-            const userCredentital = await createUserWithEmailAndPassword(auth, user.email, user.password);
+          if (user.email !== "" && user.password !== "") {
+            const userCredentital = await createUserWithEmailAndPassword(
+              auth,
+              user.email,
+              user.password
+            );
             const userFire = userCredentital.user;
 
             await setDoc(doc(database, "users", userFire.uid), {
@@ -160,16 +171,17 @@ const Register = () => {
               uid: userFire.uid,
               avatar: user.avatar,
               name: `${user.last_name} ${user.first_name}`,
-              role: user.role,
-            })
+            });
           }
 
           // Hiển thị thông báo thành công và điều hướng sau khi Firebase đăng ký thành công
           Alert.alert("Đăng ký thành công!!!");
-        nav.navigate("Login", { userregister: res.data });
+          nav.navigate("Login");
         } catch (error) {
           console.error("Đăng ký Firebase thất bại:", error);
-          Alert.alert("Đăng ký thành công, nhưng không thể đăng ký với Firebase. Vui lòng thử lại!");
+          Alert.alert(
+            "Đăng ký thành công, nhưng không thể đăng ký với Firebase. Vui lòng thử lại!"
+          );
         }
       } else {
         Alert.alert("Đăng ký thất bại!!!");
@@ -234,11 +246,12 @@ const Register = () => {
               }}
               onPress={picker}
             >
-              <Text style={{ color: "#000", fontSize: 15}}>
+              <Text style={{ color: "#000", fontSize: 15 }}>
                 Chọn ảnh đại diện
               </Text>
             </Button>
-            {user?.avatar && (
+
+            {/* {user?.avatar && (
               <Image
                 source={{ uri: user.avatar }}
                 style={{ width: 100, height: 100 }}
@@ -246,8 +259,10 @@ const Register = () => {
             )}
             <HelperText type="error" visible={!!errors.avatar}>
               {errors.avatar}
-            </HelperText>
+            </HelperText> */}
+
             <Button
+              style={{marginTop: 30}}
               icon="account"
               loading={loading}
               mode="contained"

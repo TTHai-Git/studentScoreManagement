@@ -7,13 +7,12 @@ import { getFirestore } from "firebase/firestore";
 
 // Your web app's Firebase configuration
 const firebaseConfig = {
-  apiKey: "AIzaSyCxuGEtm6B_3gc68lRDTtbEy9O0rYsv9Xg",
-  authDomain: "chatappstudentscoremanagement.firebaseapp.com",
-  databaseURL: "https://chatappstudentscoremanagement-default-rtdb.asia-southeast1.firebasedatabase.app",
-  projectId: "chatappstudentscoremanagement",
-  storageBucket: "chatappstudentscoremanagement.appspot.com",
-  messagingSenderId: "579959345986",
-  appId: "1:579959345986:web:4ba28b10023f5dcffb2edb"
+  apiKey: "AIzaSyBviIKu66r5ljr1FNqiUENml4lF0p6RDLo",
+  authDomain: "chatappstudent.firebaseapp.com",
+  projectId: "chatappstudent",
+  storageBucket: "chatappstudent.appspot.com",
+  messagingSenderId: "126587434289",
+  appId: "1:126587434289:web:a904b8143855c5c9922c10"
 };
 
 // Initialize Firebase

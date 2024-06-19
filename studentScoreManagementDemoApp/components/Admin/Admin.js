@@ -1,4 +1,4 @@
-import { useState } from "react"; 
+import { useEffect, useState } from "react"; 
 import {
   View,
   Text,
@@ -42,8 +42,8 @@ const Admin = () => {
   });
 
   const [passwordVisible, setPasswordVisible] = useState(true);
-  const [confirmPasswordVisible, setConfirmPasswordVisible] =
-    React.useState(true);
+  const [confirmPasswordVisible, setConfirmPasswordVisible] = useState(true);
+  const [imageUploaded, setImageUploaded] = useState(false);
 
   const fields = [
     { label: "Tên", name: "first_name" },
@@ -66,6 +66,13 @@ const Admin = () => {
 
   const nav = useNavigation();
   const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+    if (user?.avatar) {
+      Alert.alert("Thành công", "Upload ảnh thành công!");
+      setImageUploaded(true);
+    }
+  }, [user?.avatar]);
 
   const picker = async () => {
     const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
@@ -165,8 +172,7 @@ const Admin = () => {
           }
 
           // Hiển thị thông báo thành công và điều hướng sau khi Firebase đăng ký thành công
-          Alert.alert("Đăng ký thành công!!!");
-        nav.navigate("Login", { userregister: res.data });
+          Alert.alert("Đăng ký giảng viên thành công!!!");
         } catch (error) {
           console.error("Đăng ký Firebase thất bại:", error);
           Alert.alert("Đăng ký thành công, nhưng không thể đăng ký với Firebase. Vui lòng thử lại!");
@@ -238,7 +244,8 @@ const Admin = () => {
                 Chọn ảnh đại diện
               </Text>
             </Button>
-            {user?.avatar && (
+
+            {/* {user?.avatar && (
               <Image
                 source={{ uri: user.avatar }}
                 style={{ width: 100, height: 100 }}
@@ -246,7 +253,8 @@ const Admin = () => {
             )}
             <HelperText type="error" visible={!!errors.avatar}>
               {errors.avatar}
-            </HelperText>
+            </HelperText> */}
+
             <Button
               icon="account"
               loading={loading}

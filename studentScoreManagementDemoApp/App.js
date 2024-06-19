@@ -2,23 +2,26 @@ import { createBottomTabNavigator } from "@react-navigation/bottom-tabs";
 import { NavigationContainer } from "@react-navigation/native";
 import React, { useContext, useEffect, useReducer } from "react";
 import { Icon } from "react-native-paper";
-import { AuthenticatedUserContext, MyDispatchContext, MyUserContext } from "./configs/Contexts";
+import {
+  AuthenticatedUserContext,
+  MyDispatchContext,
+  MyUserContext,
+} from "./configs/Contexts";
 import { MyUserReducer } from "./configs/Reducers";
 import Register from "./components/User/Register";
 import Login from "./components/User/Login";
 import Home from "./components/User/Home";
-import StudyClassRooms from "./components/General/Studyclassrooms";
 import ListStudentScores from "./components/Teacher/ListStudentScores";
 import Topics from "./components/General/Topics";
 import ScoreDetails from "./components/Student/ScoreDetails";
 import { createStackNavigator } from "@react-navigation/stack";
 import ListStudents from "./components/Teacher/ListStudents";
 import Comments from "./components/General/Comments";
-import Admin from "./components/Admin/Admin";
 import { auth } from "./configs/Firebase";
 import ChatList from "./components/General/ChatList";
 import ChatRoom from "./components/General/ChatRoom";
 import { onAuthStateChanged } from "firebase/auth";
+import StudyClassRooms from "./components/General/Studyclassrooms";
 
 const Tab = createBottomTabNavigator();
 const Stack = createStackNavigator();
@@ -31,8 +34,6 @@ const MyStack = () => {
         options={{ title: "Trang chủ" }}
         component={Home}
       />
-
-      {/* Giao diện chung của sinh viên và giảng viên */}
       <Stack.Screen
         name="StudyClassRooms"
         options={{ title: "Danh sách lớp học" }}
@@ -48,15 +49,11 @@ const MyStack = () => {
         options={{ title: "Bình luận" }}
         component={Comments}
       />
-
-      {/* Giao diện của sinh viên */}
       <Stack.Screen
         name="ScoreDetails"
         options={{ title: "Điểm các môn học" }}
         component={ScoreDetails}
       />
-
-      {/* Giao diện của giảng viên */}
       <Stack.Screen
         name="ListStudents"
         options={{ title: "Danh sách sinh viên" }}
@@ -67,13 +64,6 @@ const MyStack = () => {
         options={{ title: "Quản lý điểm sinh viên" }}
         component={ListStudentScores}
       />
-
-      {/* Giao diện của admin */}
-      <Stack.Screen
-        name="Admin"
-        options={{ title: "Đăng ký tài khoản giảng viên" }}
-        component={Admin}
-      />
     </Stack.Navigator>
   );
 };
@@ -83,17 +73,17 @@ const MyChatStack = () => {
     <Stack.Navigator>
       <Stack.Screen
         name="ChatList"
-        options={{ title: "Danh sách Chat"}}
+        options={{ title: "Danh sách Chat" }}
         component={ChatList}
       />
       <Stack.Screen
         name="ChatRoom"
-        options={{ title: "Phòng Chat"}}
+        options={{ title: "Phòng Chat" }}
         component={ChatRoom}
       />
     </Stack.Navigator>
   );
-}
+};
 
 const MyTab = () => {
   const user = useContext(MyUserContext);
@@ -103,21 +93,24 @@ const MyTab = () => {
       {user === null ? (
         <>
           <Tab.Screen
+            key="Login"
             name="Login"
             component={Login}
             options={{
               title: "Đăng nhập",
-              tabBarIcon: () => <Icon size={30} color="blue" source="login" />,
+              tabBarIcon: ({ color, size }) => (
+                <Icon name="login" size={size} color={color} />
+              ),
             }}
           />
-
           <Tab.Screen
+            key="Register"
             name="Register"
             component={Register}
             options={{
               title: "Đăng ký",
-              tabBarIcon: () => (
-                <Icon size={30} color="blue" source="account" />
+              tabBarIcon: ({ color, size }) => (
+                <Icon name="account" size={size} color={color} />
               ),
             }}
           />
@@ -125,19 +118,25 @@ const MyTab = () => {
       ) : (
         <>
           <Tab.Screen
+            key="MyStack"
             name="MyStack"
             component={MyStack}
             options={{
               title: "Trang chủ",
-              tabBarIcon: () => <Icon size={30} color="blue" source="home" />,
+              tabBarIcon: ({ color, size }) => (
+                <Icon name="home" size={size} color={color} />
+              ),
             }}
           />
-          <Tab.Screen 
-            name="MyChatStack" 
-            component={MyChatStack} 
+          <Tab.Screen
+            key="MyChatStack"
+            name="MyChatStack"
+            component={MyChatStack}
             options={{
               title: "Chat",
-              tabBarIcon: () => <Icon size={30} color="blue" source="chat" />,
+              tabBarIcon: ({ color, size }) => (
+                <Icon name="chat" size={size} color={color} />
+              ),
             }}
           />
         </>
@@ -148,18 +147,6 @@ const MyTab = () => {
 
 export default function App() {
   const [user, dispatch] = useReducer(MyUserReducer, null);
-
-  useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, (user) => {
-      if (user) {
-        dispatch({ type: 'login', payload: user });
-      } else {
-        dispatch({ type: 'logout' });
-      }
-    });
-
-    return () => unsubscribe();
-  }, []);
 
   return (
     <NavigationContainer>
