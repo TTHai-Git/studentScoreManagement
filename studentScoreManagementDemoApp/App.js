@@ -22,6 +22,7 @@ import ChatList from "./components/General/ChatList";
 import ChatRoom from "./components/General/ChatRoom";
 import { onAuthStateChanged } from "firebase/auth";
 import StudyClassRooms from "./components/General/Studyclassrooms";
+import Admin from "./components/Admin/Admin";
 
 const Tab = createBottomTabNavigator();
 const Stack = createStackNavigator();
@@ -63,6 +64,11 @@ const MyStack = () => {
         name="ListStudentScores"
         options={{ title: "Quản lý điểm sinh viên" }}
         component={ListStudentScores}
+      />
+      <Stack.Screen
+        name="Admin"
+        options={{ title: "Đăng ký tài khoản giảng viên" }}
+        component={Admin}
       />
     </Stack.Navigator>
   );

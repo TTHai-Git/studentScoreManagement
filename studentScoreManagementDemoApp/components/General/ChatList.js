@@ -1,4 +1,4 @@
-import React, { useContext, useEffect, useState } from "react";
+import React, { useEffect, useState } from "react";
 import {
   View,
   Text,
@@ -28,72 +28,72 @@ const ChatList = () => {
   const currentUser = auth.currentUser;
   const navigation = useNavigation();
 
-  useEffect(() => {
-    const fetchUsers = async () => {
-      try {
-        const userCollection = collection(database, "users");
-        const userSnapshot = await getDocs(userCollection);
-        const userList = userSnapshot.docs.map((doc) => doc.data());
+  const fetchUsers = async () => {
+    try {
+      const userCollection = collection(database, "users");
+      const userSnapshot = await getDocs(userCollection);
+      const userList = userSnapshot.docs.map((doc) => doc.data());
 
-        // Filter out the current user from the userList
-        const filteredUserList = userList.filter(
-          (user) => user.uid !== currentUser.uid && user.role !== "admin"
+      // Filter out the current user from the userList
+      const filteredUserList = userList.filter(
+        (user) => user.uid !== currentUser.uid && user.role !== "admin"
+      );
+
+      const fetchLastMessages = filteredUserList.map(async (user) => {
+        const roomId = [currentUser.uid, user.uid].sort().join("_");
+        const messagesCollection = collection(
+          database,
+          "rooms",
+          roomId,
+          "messages"
         );
+        const lastMessageQuery = query(
+          messagesCollection,
+          orderBy("createdAt", "desc"),
+          limit(1)
+        );
+        const lastMessageSnapshot = await getDocs(lastMessageQuery);
 
-        const fetchLastMessages = filteredUserList.map(async (user) => {
-          const roomId = [currentUser.uid, user.uid].sort().join("_");
-          const messagesCollection = collection(
-            database,
-            "rooms",
-            roomId,
-            "messages"
-          );
-          const lastMessageQuery = query(
-            messagesCollection,
-            orderBy("createdAt", "desc"),
-            limit(1)
-          );
-          const lastMessageSnapshot = await getDocs(lastMessageQuery);
+        if (!lastMessageSnapshot.empty) {
+          const lastMessageData = lastMessageSnapshot.docs[0].data();
+          return {
+            ...user,
+            lastMessage: lastMessageData.text,
+            lastMessageTime: lastMessageData.createdAt.toDate(),
+          };
+        } else {
+          return {
+            ...user,
+            lastMessage: "Chưa có tin nhắn",
+            lastMessageTime: null,
+          };
+        }
+      });
 
-          if (!lastMessageSnapshot.empty) {
-            const lastMessageData = lastMessageSnapshot.docs[0].data();
-            return {
-              ...user,
-              lastMessage: lastMessageData.text,
-              lastMessageTime: lastMessageData.createdAt.toDate(),
-            };
-          } else {
-            return {
-              ...user,
-              lastMessage: "No messages",
-              lastMessageTime: null,
-            };
-          }
-        });
+      const usersWithLastMessages = await Promise.all(fetchLastMessages);
 
-        const usersWithLastMessages = await Promise.all(fetchLastMessages);
+      // Sort users by lastMessageTime in descending order
+      usersWithLastMessages.sort((a, b) => {
+        if (a.lastMessageTime && b.lastMessageTime) {
+          return b.lastMessageTime - a.lastMessageTime;
+        } else if (a.lastMessageTime) {
+          return -1;
+        } else if (b.lastMessageTime) {
+          return 1;
+        } else {
+          return 0;
+        }
+      });
 
-        // Sort users by lastMessageTime in descending order
-        usersWithLastMessages.sort((a, b) => {
-          if (a.lastMessageTime && b.lastMessageTime) {
-            return b.lastMessageTime - a.lastMessageTime;
-          } else if (a.lastMessageTime) {
-            return -1;
-          } else if (b.lastMessageTime) {
-            return 1;
-          } else {
-            return 0;
-          }
-        });
+      setUsers(usersWithLastMessages);
+      setLoading(false); // Set loading to false after data is fetched
+    } catch (error) {
+      console.error("Lỗi khi tải người dùng:", error);
+      setLoading(false); // Set loading to false if there is an error
+    }
+  };
 
-        setUsers(usersWithLastMessages);
-        setLoading(false); // Set loading to false after data is fetched
-      } catch (error) {
-        console.error("Error fetching users:", error);
-        setLoading(false); // Set loading to false if there is an error
-      }
-    };
-
+  useEffect(() => {
     fetchUsers();
   }, [currentUser]);
 
@@ -172,7 +172,7 @@ const ChatList = () => {
       });
       navigation.navigate("ChatRoom", { roomId });
     } catch (error) {
-      console.error("Error creating chat room:", error);
+      console.error("Lỗi khi tạo phòng chat:", error);
     }
   };
 
@@ -211,7 +211,7 @@ const ChatList = () => {
                   <Text>
                     {item.lastMessageTime
                       ? item.lastMessageTime.toLocaleTimeString()
-                      : "No messages"}
+                      : "Chưa có tin nhắn"}
                   </Text>
                 </View>
                 <Text>{item.lastMessage}</Text>

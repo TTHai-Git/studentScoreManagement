@@ -21,7 +21,13 @@ export default {
       projectId: process.env.PROJECT_ID,
       storageBucket: process.env.STORAGE_BUCKET,
       messagingSenderId: process.env.MESSAGE_SENDER_ID,
-      appId: process.env.APP_ID
+      appId: process.env.APP_ID,
+
+      clientIdHoang: process.env.CLIENT_ID_HOANG,
+      clientSecretHoang: process.env.CLIENT_SECRET_HOANG,
+
+      clientIdHai: process.env.CLIENT_ID_HAI,
+      clientSecretHai: process.env.CLIENT_SECRET_HAI
     }
   }
 }

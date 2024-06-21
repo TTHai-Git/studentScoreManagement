@@ -16,6 +16,8 @@ const Home = ({ navigation, route }) => {
   const [loading, setLoading] = useState(false);
   const [selectedImage, setSelectedImage] = useState(null);
 
+  // console.log(user.avatar)
+
   const updateState = (field, value) => {
     dispatch({ type: "updateUser", payload: { field, value } });
   };
@@ -130,18 +132,18 @@ const Home = ({ navigation, route }) => {
       );
       break;
 
-    // case "admin":
-    //   info_detail = <Text style={Styles.text_detail}>Email: {user.email}</Text>;
-    //   button_user = (
-    //     <Button
-    //       style={MyStyle.button_user}
-    //       mode="contained"
-    //       onPress={() => navigation.navigate("Admin")}
-    //     >
-    //       Đăng ký tài khoản
-    //     </Button>
-    //   );
-    //   break;
+    case "admin":
+      info_detail = <Text style={Styles.text_detail}>Email: {user.email}</Text>;
+      button_user = (
+        <Button
+          style={MyStyle.button_user}
+          mode="contained"
+          onPress={() => navigation.navigate("Admin")}
+        >
+          Đăng ký tài khoản
+        </Button>
+      );
+      break;
 
     default:
       info_detail = null;
@@ -153,13 +155,19 @@ const Home = ({ navigation, route }) => {
       <View style={Styles.avatar}>
         {selectedImage === null ? (
           <>
-            {user.avatar && (
-              <Avatar.Image size={250} source={{ uri: user.avatar }} />
-            )}
+            <View style={{borderWidth: 5, borderRadius: 150}}>
+              {user.avatar && (
+                <Avatar.Image size={250} source={{ uri: user.avatar }} />
+              )}
+            </View>
           </>
         ) : (
           <>
-            <Avatar.Image size={250} source={{ uri: selectedImage }} />
+            <View>
+              {user.avatar && (
+                <Avatar.Image size={250} source={{ uri: selectedImage }} />
+              )}
+            </View>
           </>
         )}
         <Button style={Styles.avatar_button} mode="contained" onPress={picker}>

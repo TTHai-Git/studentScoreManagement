@@ -57,3 +57,5 @@ Firebase
 1. npm install firebase
 2. npm install react-native-gifted-chat
 3. npm install dotenv
+4. npx expo install expo-constants
+5. npm install react-native-dotenv

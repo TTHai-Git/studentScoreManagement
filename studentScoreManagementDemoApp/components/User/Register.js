@@ -170,7 +170,8 @@ const Register = () => {
               email: userFire.email,
               uid: userFire.uid,
               avatar: user.avatar,
-              name: `${user.last_name} ${user.first_name}`
+              name: `${user.last_name} ${user.first_name}`,
+              role: user.role
             });
           }
 
