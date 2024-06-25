@@ -414,7 +414,7 @@ class StudyClassRoomViewSet(viewsets.ViewSet, viewsets.generics.ListAPIView, vie
         if not studyclassroom.islock:
             return Response(
                 {'message': f'Xuất bảng điểm lớp {studyclassroom.name} thành file.csv và gửi email thất bại!!! '
-                            f'Bảng điểm của lớp học đã bị khóa'},
+                            f'Bảng điểm của lớp học chưa khóa'},
                 status=status.HTTP_400_BAD_REQUEST)
         else:
             teacher = Teacher.objects.get(id=request.user.id)
@@ -497,7 +497,7 @@ class StudyClassRoomViewSet(viewsets.ViewSet, viewsets.generics.ListAPIView, vie
         if not studyclassroom.islock:
             return Response(
                 {'message': f'Xuất bảng điểm lớp {studyclassroom.name} thành file.pdf và gửi email thất bại!!! '
-                            f'Bảng điểm của lớp học đã bị khóa'},
+                            f'Bảng điểm của lớp học đã chưa khóa'},
                 status=status.HTTP_400_BAD_REQUEST)
         else:
             teacher = Teacher.objects.get(id=request.user.id)
