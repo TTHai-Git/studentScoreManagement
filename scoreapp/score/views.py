@@ -1,10 +1,8 @@
 import csv
 import os
-
 import cloudinary
 from django.core.mail import send_mail, EmailMessage
 from django.db.models.functions import Concat
-from django.shortcuts import get_object_or_404
 from rest_framework import viewsets, permissions, status, parsers, generics
 from rest_framework.decorators import action
 from rest_framework.response import Response
@@ -14,13 +12,12 @@ from reportlab.lib import colors
 from reportlab.lib.pagesizes import letter
 from reportlab.platypus import SimpleDocTemplate, Table, TableStyle
 from django.http import HttpResponse
-
 from scoreapp import settings
 from django.db.models import Q, Value
 
 
 def index(request):
-    return HttpResponse("CourseApp")
+    return HttpResponse("ScoreApp")
 
 
 class UserViewSet(viewsets.ViewSet, generics.CreateAPIView, generics.ListAPIView):
@@ -206,25 +203,29 @@ class StudyClassRoomViewSet(viewsets.ViewSet, viewsets.generics.ListAPIView, vie
 
     @action(methods=['post'], url_path='save-scores', url_name='save-scores', detail=True)
     def save_scores(self, request, pk):
-        try:
-            scores = request.data.get('scores')
-            for studentScore in scores:
-                for score in studentScore["scores"]:
-                    if score["score"]:
-                        study = Study.objects.get(student__id=studentScore["student_id"], studyclassroom__id=pk)
-                        scoredetail, created = ScoreDetails.objects.get_or_create(
-                            study__student__id=studentScore["student_id"],
-                            scorecolumn__id=score["col_id"],
-                            defaults={"study": study,
-                                      "scorecolumn_id": score["col_id"]})
-                        if float(score["score"]) < 0.0 or float(score["score"]) > 10.0:
-                            return Response({"message": "Lưu điểm thất bại!!! Sai định dạng điểm"})
-                        else:
-                            scoredetail.score = float(score["score"])
-                            scoredetail.save()
-            return Response({"message": "Lưu điểm thành công"}, status=status.HTTP_200_OK)
-        except Exception as ex:
-            return Response({"message": str(ex)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+        studyclassroom = self.get_object()
+        if studyclassroom.islock:
+            return Response({"message": "Thao tác điểm lên bảng điểm thất bại!!! Bảng điểm của lớp học đã bị khóa"})
+        else:
+            try:
+                scores = request.data.get('scores')
+                for studentScore in scores:
+                    for score in studentScore["scores"]:
+                        if score["score"]:
+                            study = Study.objects.get(student__id=studentScore["student_id"], studyclassroom__id=pk)
+                            scoredetail, created = ScoreDetails.objects.get_or_create(
+                                study__student__id=studentScore["student_id"],
+                                scorecolumn__id=score["col_id"],
+                                defaults={"study": study,
+                                          "scorecolumn_id": score["col_id"]})
+                            if float(score["score"]) < 0.0 or float(score["score"]) > 10.0:
+                                return Response({"message": "Lưu điểm thất bại!!! Sai định dạng điểm"})
+                            else:
+                                scoredetail.score = float(score["score"])
+                                scoredetail.save()
+                return Response({"message": "Lưu điểm thành công"}, status=status.HTTP_200_OK)
+            except Exception as ex:
+                return Response({"message": str(ex)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
     @action(methods=['get'], url_path='students/scores', detail=True)
     def get_students_scores_studyclassroom(self, request, pk):
@@ -409,178 +410,192 @@ class StudyClassRoomViewSet(viewsets.ViewSet, viewsets.generics.ListAPIView, vie
 
     @action(methods=['get'], url_path='students/export-csv-scores', detail=True)
     def export_csv_scores_students_studyclassroom(self, request, pk):
-        teacher = Teacher.objects.get(id=request.user.id)
         studyclassroom = self.get_object()
-        scorecolumns = ScoreColumn.objects.filter(studyclassroom=studyclassroom)
-        if studyclassroom.teacher.__eq__(teacher):
-            studies = Study.objects.filter(studyclassroom=studyclassroom).order_by('studyclassroom_id')
-            scoredetails = ScoreDetails.objects.filter(study__in=studies).order_by('id')
-
-            # Get distinct score types
-            score_types = scorecolumns.values_list('type', flat=True).distinct()
-
-            # Prepare the header dynamically based on score types
-            header = ['MSSV', 'Họ Và Tên'] + list(score_types)
-            csv_data = [header]
-
-            # Dictionary to store scores for each student
-            student_scores = {}
-
-            for result in scoredetails:
-                student_code = result.study.student.code
-                if student_code not in student_scores:
-                    student_name = f"{result.study.student.last_name} {result.study.student.first_name}"
-                    # Initialize scores with empty strings
-                    student_scores[student_code] = {score_type: '' for score_type in score_types}
-                    student_scores[student_code].update({'Name': student_name, 'Code': student_code})
-
-                # Assign scores to the appropriate columns
-                student_scores[student_code][result.scorecolumn.type] = result.score
-
-            # Populate data with student scores
-            for code, scores in student_scores.items():
-                row = [scores['Code'], scores['Name']] + [scores[score_type] for score_type in score_types]
-                csv_data.append(row)
-
-            # Construct the file name based on studyclassroom name
-            filename = f"{studyclassroom.name} - {studyclassroom.subject.name}_Bảng Điểm Tổng Hợp.csv"
-            file_path = os.path.join('F:\\PythonProject\\studentScoreManagement\\scoreapp\\score\\static\\Score_csv',
-                                     filename)
-
-            # Write the data to a CSV file with UTF-8 encoding
-            with open(file_path, 'w', newline='', encoding='utf-8') as csvfile:
-                csv_writer = csv.writer(csvfile)
-                csv_writer.writerows(csv_data)
-
-            # Retrieve email addresses of students
-            student_emails = studies.values_list('student__email', flat=True).distinct()
-
-            # Send the CSV file to each student via email
-            subject = f"Bảng Điểm Tổng Hợp của lớp {studyclassroom.name} - {studyclassroom.subject.name} " \
-                      f"- {studyclassroom.group.name} "
-            message = f"Kính gửi các sinh viên" \
-                      f"\nĐây là bảng điểm tổng hợp của lớp học. Mọi thắc mắc vui lòng liên hệ về email của thầy:" \
-                      f"\nGiáo viên: {teacher.last_name} {teacher.first_name} \nEmail: {teacher.email}" \
-                      f"\n\nTrân trọng!"
-            from_email = settings.EMAIL_HOST_USER
-
-            for email in student_emails:
-                email_message = EmailMessage(
-                    subject,
-                    message,
-                    from_email,
-                    [email]
-                )
-                email_message.attach_file(file_path)
-                email_message.send()
-
-            # Return a response indicating successful CSV export
+        if not studyclassroom.islock:
             return Response(
-                {'message': f'Xuất bảng điểm lớp {studyclassroom.name} thành file.csv và gửi email thành công',
-                 'file_name': filename},
-                status=status.HTTP_200_OK)
+                {'message': f'Xuất bảng điểm lớp {studyclassroom.name} thành file.csv và gửi email thất bại!!! '
+                            f'Bảng điểm của lớp học đã bị khóa'},
+                status=status.HTTP_400_BAD_REQUEST)
         else:
-            return Response({"message": "Bạn không có quyền xuất bảng điểm của lớp học này."},
-                            status=status.HTTP_401_UNAUTHORIZED)
+            teacher = Teacher.objects.get(id=request.user.id)
+            scorecolumns = ScoreColumn.objects.filter(studyclassroom=studyclassroom)
+            if studyclassroom.teacher.__eq__(teacher):
+                studies = Study.objects.filter(studyclassroom=studyclassroom).order_by('studyclassroom_id')
+                scoredetails = ScoreDetails.objects.filter(study__in=studies).order_by('id')
+
+                # Get distinct score types
+                score_types = scorecolumns.values_list('type', flat=True).distinct()
+
+                # Prepare the header dynamically based on score types
+                header = ['MSSV', 'Họ Và Tên'] + list(score_types)
+                csv_data = [header]
+
+                # Dictionary to store scores for each student
+                student_scores = {}
+
+                for result in scoredetails:
+                    student_code = result.study.student.code
+                    if student_code not in student_scores:
+                        student_name = f"{result.study.student.last_name} {result.study.student.first_name}"
+                        # Initialize scores with empty strings
+                        student_scores[student_code] = {score_type: '' for score_type in score_types}
+                        student_scores[student_code].update({'Name': student_name, 'Code': student_code})
+
+                    # Assign scores to the appropriate columns
+                    student_scores[student_code][result.scorecolumn.type] = result.score
+
+                # Populate data with student scores
+                for code, scores in student_scores.items():
+                    row = [scores['Code'], scores['Name']] + [scores[score_type] for score_type in score_types]
+                    csv_data.append(row)
+
+                # Construct the file name based on studyclassroom name
+                filename = f"{studyclassroom.name} - {studyclassroom.subject.name}_Bảng Điểm Tổng Hợp.csv"
+                file_path = os.path.join(
+                    'F:\\PythonProject\\studentScoreManagement\\scoreapp\\score\\static\\Score_csv',
+                    filename)
+
+                # Write the data to a CSV file with UTF-8 encoding
+                with open(file_path, 'w', newline='', encoding='utf-8') as csvfile:
+                    csv_writer = csv.writer(csvfile)
+                    csv_writer.writerows(csv_data)
+
+                # Retrieve email addresses of students
+                student_emails = studies.values_list('student__email', flat=True).distinct()
+
+                # Send the CSV file to each student via email
+                subject = f"Bảng Điểm Tổng Hợp của lớp {studyclassroom.name} - {studyclassroom.subject.name} " \
+                          f"- {studyclassroom.group.name} "
+                message = f"Kính gửi các sinh viên" \
+                          f"\nĐây là bảng điểm tổng hợp của lớp học. Mọi thắc mắc vui lòng liên hệ về email của thầy:" \
+                          f"\nGiáo viên: {teacher.last_name} {teacher.first_name} \nEmail: {teacher.email}" \
+                          f"\n\nTrân trọng!"
+                from_email = settings.EMAIL_HOST_USER
+
+                for email in student_emails:
+                    email_message = EmailMessage(
+                        subject,
+                        message,
+                        from_email,
+                        [email]
+                    )
+                    email_message.attach_file(file_path)
+                    email_message.send()
+
+                # Return a response indicating successful CSV export
+                return Response(
+                    {'message': f'Xuất bảng điểm lớp {studyclassroom.name} thành file.csv và gửi email thành công',
+                     'file_name': filename},
+                    status=status.HTTP_200_OK)
+            else:
+                return Response({"message": "Bạn không có quyền xuất bảng điểm của lớp học này."},
+                                status=status.HTTP_401_UNAUTHORIZED)
 
     @action(methods=['get'], url_path='students/export-pdf-scores', detail=True)
     def export_pdf_scores_students_studyclassroom(self, request, pk):
-        teacher = Teacher.objects.get(id=request.user.id)
         studyclassroom = self.get_object()
-        scorecolumns = ScoreColumn.objects.filter(studyclassroom=studyclassroom)
-        if studyclassroom.teacher.__eq__(teacher):
-            studies = Study.objects.filter(studyclassroom=studyclassroom).order_by('studyclassroom_id')
-            scoredetails = ScoreDetails.objects.filter(study__in=studies).order_by('id')
-
-            # Get distinct score types
-            score_types = scorecolumns.values_list('type', flat=True).distinct()
-
-            # Prepare the header dynamically based on score types
-            header = ['MSSV', 'Họ Và Tên'] + list(score_types)
-            data = [header]
-
-            # Dictionary to store scores for each student
-            student_scores = {}
-
-            for result in scoredetails:
-                student_code = result.study.student.code
-                if student_code not in student_scores:
-                    student_name = f"{result.study.student.last_name} {result.study.student.first_name}"
-                    # Initialize scores with empty strings
-                    student_scores[student_code] = {score_type: '' for score_type in score_types}
-                    student_scores[student_code].update({'Họ Và Tên': student_name, 'MSSV': student_code})
-
-                # Assign scores to the appropriate columns
-                student_scores[student_code][result.scorecolumn.type] = result.score
-
-            # Populate data with student scores
-            for code, scores in student_scores.items():
-                row = [scores['MSSV'], scores['Họ Và Tên']] + [scores[score_type] for score_type in score_types]
-                data.append(row)
-
-            # Construct the file name based on studyclassroom name
-            filename = f"{studyclassroom.name} - {studyclassroom.subject.name}_Bảng Điểm Tổng Hợp.pdf"
-            file_path = os.path.join('F:\\PythonProject\\studentScoreManagement\\scoreapp\\score\\static\\Score_pdf',
-                                     filename)
-
-            # Generate PDF
-            response = HttpResponse(content_type='application/pdf')
-            response['Content-Disposition'] = f'attachment; filename="{filename}"'
-
-            # Create the PDF document
-            doc = SimpleDocTemplate(response, pagesize=letter)
-            table = Table(data)
-
-            # Add style to table
-            style = TableStyle([
-                ('BACKGROUND', (0, 0), (-1, 0), colors.gray),
-                ('TEXTCOLOR', (0, 0), (-1, 0), colors.whitesmoke),
-                ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
-                ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
-                ('BOTTOMPADDING', (0, 0), (-1, 0), 12),
-                ('BACKGROUND', (0, 1), (-1, -1), colors.beige),
-                ('GRID', (0, 0), (-1, -1), 1, colors.black)
-            ])
-
-            table.setStyle(style)
-
-            # Add table to document
-            doc.build([table])
-
-            # Save the PDF locally
-            with open(file_path, 'wb') as f:
-                f.write(response.content)
-
-            # Retrieve email addresses of students
-            student_emails = studies.values_list('student__email', flat=True).distinct()
-
-            # Send the PDF file to each student via email
-            subject = f"Bảng Điểm Tổng Hợp của lớp {studyclassroom.name} - {studyclassroom.subject.name} " \
-                      f"- {studyclassroom.group.name} "
-            message = f"Kính gửi các sinh viên" \
-                      f"\nĐây là bảng điểm tổng hợp của lớp học. Mọi thắc mắc vui lòng liên hệ về email của thầy:" \
-                      f"\nGiáo viên: {teacher.last_name} {teacher.first_name} \nEmail: {teacher.email}" \
-                      f"\n\nTrân trọng!"
-            from_email = settings.EMAIL_HOST_USER
-
-            for email in student_emails:
-                email_message = EmailMessage(
-                    subject,
-                    message,
-                    from_email,
-                    [email]
-                )
-                email_message.attach_file(file_path)
-                email_message.send()
-
-            # Return a response indicating successful PDF export and email sending
+        if not studyclassroom.islock:
             return Response(
-                {'message': f'Xuất bảng điểm lớp {studyclassroom.name} thành file.pdf và gửi email thành công',
-                 'file_name': filename},
-                status=status.HTTP_200_OK)
+                {'message': f'Xuất bảng điểm lớp {studyclassroom.name} thành file.pdf và gửi email thất bại!!! '
+                            f'Bảng điểm của lớp học đã bị khóa'},
+                status=status.HTTP_400_BAD_REQUEST)
         else:
-            return Response({"message": "Bạn không có quyền xuất bảng điểm của lớp học này."},
-                            status=status.HTTP_401_UNAUTHORIZED)
+            teacher = Teacher.objects.get(id=request.user.id)
+            scorecolumns = ScoreColumn.objects.filter(studyclassroom=studyclassroom)
+            if studyclassroom.teacher.__eq__(teacher):
+                studies = Study.objects.filter(studyclassroom=studyclassroom).order_by('studyclassroom_id')
+                scoredetails = ScoreDetails.objects.filter(study__in=studies).order_by('id')
+
+                # Get distinct score types
+                score_types = scorecolumns.values_list('type', flat=True).distinct()
+
+                # Prepare the header dynamically based on score types
+                header = ['MSSV', 'Họ Và Tên'] + list(score_types)
+                data = [header]
+
+                # Dictionary to store scores for each student
+                student_scores = {}
+
+                for result in scoredetails:
+                    student_code = result.study.student.code
+                    if student_code not in student_scores:
+                        student_name = f"{result.study.student.last_name} {result.study.student.first_name}"
+                        # Initialize scores with empty strings
+                        student_scores[student_code] = {score_type: '' for score_type in score_types}
+                        student_scores[student_code].update({'Họ Và Tên': student_name, 'MSSV': student_code})
+
+                    # Assign scores to the appropriate columns
+                    student_scores[student_code][result.scorecolumn.type] = result.score
+
+                # Populate data with student scores
+                for code, scores in student_scores.items():
+                    row = [scores['MSSV'], scores['Họ Và Tên']] + [scores[score_type] for score_type in score_types]
+                    data.append(row)
+
+                # Construct the file name based on studyclassroom name
+                filename = f"{studyclassroom.name} - {studyclassroom.subject.name}_Bảng Điểm Tổng Hợp.pdf"
+                file_path = os.path.join(
+                    'F:\\PythonProject\\studentScoreManagement\\scoreapp\\score\\static\\Score_pdf',
+                    filename)
+
+                # Generate PDF
+                response = HttpResponse(content_type='application/pdf')
+                response['Content-Disposition'] = f'attachment; filename="{filename}"'
+
+                # Create the PDF document
+                doc = SimpleDocTemplate(response, pagesize=letter)
+                table = Table(data)
+
+                # Add style to table
+                style = TableStyle([
+                    ('BACKGROUND', (0, 0), (-1, 0), colors.gray),
+                    ('TEXTCOLOR', (0, 0), (-1, 0), colors.whitesmoke),
+                    ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
+                    ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
+                    ('BOTTOMPADDING', (0, 0), (-1, 0), 12),
+                    ('BACKGROUND', (0, 1), (-1, -1), colors.beige),
+                    ('GRID', (0, 0), (-1, -1), 1, colors.black)
+                ])
+
+                table.setStyle(style)
+
+                # Add table to document
+                doc.build([table])
+
+                # Save the PDF locally
+                with open(file_path, 'wb') as f:
+                    f.write(response.content)
+
+                # Retrieve email addresses of students
+                student_emails = studies.values_list('student__email', flat=True).distinct()
+
+                # Send the PDF file to each student via email
+                subject = f"Bảng Điểm Tổng Hợp của lớp {studyclassroom.name} - {studyclassroom.subject.name} " \
+                          f"- {studyclassroom.group.name} "
+                message = f"Kính gửi các sinh viên" \
+                          f"\nĐây là bảng điểm tổng hợp của lớp học. Mọi thắc mắc vui lòng liên hệ về email của thầy:" \
+                          f"\nGiáo viên: {teacher.last_name} {teacher.first_name} \nEmail: {teacher.email}" \
+                          f"\n\nTrân trọng!"
+                from_email = settings.EMAIL_HOST_USER
+
+                for email in student_emails:
+                    email_message = EmailMessage(
+                        subject,
+                        message,
+                        from_email,
+                        [email]
+                    )
+                    email_message.attach_file(file_path)
+                    email_message.send()
+
+                # Return a response indicating successful PDF export and email sending
+                return Response(
+                    {'message': f'Xuất bảng điểm lớp {studyclassroom.name} thành file.pdf và gửi email thành công',
+                     'file_name': filename},
+                    status=status.HTTP_200_OK)
+            else:
+                return Response({"message": "Bạn không có quyền xuất bảng điểm của lớp học này."},
+                                status=status.HTTP_401_UNAUTHORIZED)
 
     @action(methods=['post'], url_path='add-topic', detail=True)
     def add_topic(self, request, pk):

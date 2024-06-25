@@ -118,7 +118,9 @@ const Register = () => {
         'Sai định dạng email! Vui lòng sử dụng email trường cấp ("example@ou.edu.vn") hoặc không được bỏ trống email';
     if (!user.username)
       newErrors.username = "Tên đăng nhập không được để trống";
-    if (!user.password) newErrors.password = "Mật khẩu không được để trống";
+    if (!user.password || user.password.length < 6)
+      newErrors.password =
+        "Mật khẩu không được để trống hoặc phải có đủ 6 ký tự";
     if (user.password !== user.confirm)
       newErrors.confirm = "Mật khẩu không khớp";
     if (!user.avatar) newErrors.avatar = "Vui lòng cập nhật ảnh đại diện";
@@ -171,7 +173,7 @@ const Register = () => {
               uid: userFire.uid,
               avatar: user.avatar,
               name: `${user.last_name} ${user.first_name}`,
-              role: user.role
+              role: user.role,
             });
           }
 
@@ -263,7 +265,7 @@ const Register = () => {
             </HelperText> */}
 
             <Button
-              style={{marginTop: 30}}
+              style={{ marginTop: 30 }}
               icon="account"
               loading={loading}
               mode="contained"

@@ -1,21 +1,41 @@
 // Import the functions you need from the SDKs you need
 import { initializeApp } from "firebase/app";
-import { getAuth, initializeAuth, getReactNativePersistence } from "firebase/auth";
-import ReactNativeAsyncStorage from '@react-native-async-storage/async-storage';
+import {
+  getAuth,
+  initializeAuth,
+  getReactNativePersistence,
+} from "firebase/auth";
+import ReactNativeAsyncStorage from "@react-native-async-storage/async-storage";
 import { getFirestore } from "firebase/firestore";
-import Constants from 'expo-constants';
-import { API_KEY, AUTH_DOMAIN, PROJECT_ID, STORAGE_BUCKET, MESSAGE_SENDER_ID, APP_ID } from '@env';
+import Constants from "expo-constants";
+import {
+  API_KEY,
+  AUTH_DOMAIN,
+  PROJECT_ID,
+  STORAGE_BUCKET,
+  MESSAGE_SENDER_ID,
+  APP_ID,
+} from "@env";
 // TODO: Add SDKs for Firebase products that you want to use
 // https://firebase.google.com/docs/web/setup#available-libraries
 
 // Your web app's Firebase configuration
+// const firebaseConfig = {
+//   apiKey: API_KEY,
+//   authDomain: AUTH_DOMAIN,
+//   projectId: PROJECT_ID,
+//   storageBucket: STORAGE_BUCKET,
+//   messagingSenderId: MESSAGE_SENDER_ID,
+//   appId: APP_ID
+// };
+
 const firebaseConfig = {
-  apiKey: API_KEY,
-  authDomain: AUTH_DOMAIN,
-  projectId: PROJECT_ID,
-  storageBucket: STORAGE_BUCKET,
-  messagingSenderId: MESSAGE_SENDER_ID,
-  appId: APP_ID
+  apiKey: "AIzaSyDJVo0zxreQuIoj_JAtuXuQ1dBoQoMi8UM",
+  authDomain: "chatappdetai11.firebaseapp.com",
+  projectId: "chatappdetai11",
+  storageBucket: "chatappdetai11.appspot.com",
+  messagingSenderId: "356883130011",
+  appId: "1:356883130011:web:b757a37dd1441ea0dd483e",
 };
 
 // const firebaseConfig = {
@@ -31,7 +51,7 @@ const firebaseConfig = {
 const app = initializeApp(firebaseConfig);
 // const auth = getAuth(app);
 const auth = initializeAuth(app, {
-  persistence: getReactNativePersistence(ReactNativeAsyncStorage)
+  persistence: getReactNativePersistence(ReactNativeAsyncStorage),
 });
 const database = getFirestore(app);
 

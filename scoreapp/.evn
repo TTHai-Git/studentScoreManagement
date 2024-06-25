@@ -1,0 +1,11 @@
+client_id = "3jFUdqJsKwnhj1X5wf5WihTyp2g7mfdWp6V3mhl5"
+client_secret = "3FJlILnIxptAwsnoQxSUcltQzwLhV87sEXbVRkrsMlJbM3aZjNy90o6VqNtGwNzK9y09NQBqIlVGn8fi3Cnq7ZnRDXNo8f7NsyQQTyVTfJpzbMEePYsSV97NMXBDZZnt"
+cloud_name="dh5jcbzly"
+api_key="956284944785852"
+api_secret="ZYqL_9IS8N4a6uZ1esDJUBHNeq4"
+EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
+EMAIL_HOST = 'smtp.gmail.com'
+EMAIL_USE_TLS = True
+EMAIL_PORT = 587
+EMAIL_HOST_USER = 'spaceboy534@gmail.com'
+EMAIL_HOST_PASSWORD = 'jhcg sbrg vqzc gxgg'

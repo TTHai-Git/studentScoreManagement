@@ -15,11 +15,16 @@ import { MyDispatchContext } from "../../configs/Contexts";
 import Styles from "../User/Styles";
 import { signInWithEmailAndPassword } from "firebase/auth";
 import { auth } from "../../configs/Firebase";
-import Constants from 'expo-constants';
-import { CLIENT_ID_HOANG, CLIENT_SECRET_HOANG, CLIENT_ID_HAI, CLIENT_SECRET_HAI } from '@env';
+import Constants from "expo-constants";
+import {
+  CLIENT_ID_HOANG,
+  CLIENT_SECRET_HOANG,
+  CLIENT_ID_HAI,
+  CLIENT_SECRET_HAI,
+} from "@env";
 
 const Login = ({ route }) => {
-  const [user, setUser] = useState({ username: "", password: "111111" });
+  const [user, setUser] = useState({ username: "", password: "" });
   const [passwordVisible, setPasswordVisible] = useState(true);
   const [errors, setErrors] = useState({
     username: "",
@@ -75,15 +80,15 @@ const Login = ({ route }) => {
 
     try {
       const res = await APIs.post(endpoints["login"], {
-        ...user,
-        client_id: CLIENT_ID_HOANG,
-        client_secret: CLIENT_SECRET_HOANG,
-        grant_type: "password",
-
         // ...user,
-        // client_id: CLIENT_ID_HAI,
-        // client_secret: CLIENT_SECRET_HAI,
+        // client_id: CLIENT_ID_HOANG,
+        // client_secret: CLIENT_SECRET_HOANG,
         // grant_type: "password",
+
+        ...user,
+        client_id: CLIENT_ID_HAI,
+        client_secret: CLIENT_SECRET_HAI,
+        grant_type: "password",
 
         // ...user,
         // client_id: "69KTFKKaC78YxaSoX0ws8yGEgu58ZXNIBiWuDuvI",
@@ -91,8 +96,9 @@ const Login = ({ route }) => {
         // grant_type: "password",
 
         // ...user,
-        // client_id: 3jFUdqJsKwnhj1X5wf5WihTyp2g7mfdWp6V3mhl5,
-        // client_secret: 3FJlILnIxptAwsnoQxSUcltQzwLhV87sEXbVRkrsMlJbM3aZjNy90o6VqNtGwNzK9y09NQBqIlVGn8fi3Cnq7ZnRDXNo8f7NsyQQTyVTfJpzbMEePYsSV97NMXBDZZnt,
+        // client_id: "3jFUdqJsKwnhj1X5wf5WihTyp2g7mfdWp6V3mhl5",
+        // client_secret:
+        //   "3FJlILnIxptAwsnoQxSUcltQzwLhV87sEXbVRkrsMlJbM3aZjNy90o6VqNtGwNzK9y09NQBqIlVGn8fi3Cnq7ZnRDXNo8f7NsyQQTyVTfJpzbMEePYsSV97NMXBDZZnt",
         // grant_type: "password",
       });
 
