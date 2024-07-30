@@ -142,6 +142,24 @@ const Login = ({ route }) => {
     }
   };
 
+  const sendOtp = async () => {
+    try {
+      const res = await APIs.post(
+        endpoints["send-otp"],
+        { email: user.username }, // Body
+        {
+          headers: {
+            "Content-Type": "multipart/form-data",
+          },
+        }
+      );
+      Alert.alert(res.data.message);
+      nav.navigate("ForgotPassword");
+    } catch (ex) {
+      console.info(ex);
+    }
+  };
+
   return (
     <View style={MyStyle.container}>
       <KeyboardAvoidingView
@@ -192,6 +210,14 @@ const Login = ({ route }) => {
               loading={loading}
             >
               ĐĂNG NHẬP
+            </Button>
+            <Button
+              icon="key"
+              mode="contained"
+              onPress={sendOtp}
+              style={{ marginTop: 30 }}
+            >
+              Quên Mật Khẩu
             </Button>
           </View>
         </ScrollView>

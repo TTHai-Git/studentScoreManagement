@@ -23,6 +23,7 @@ import ChatRoom from "./components/General/ChatRoom";
 import { onAuthStateChanged } from "firebase/auth";
 import StudyClassRooms from "./components/General/Studyclassrooms";
 import Admin from "./components/Admin/Admin";
+import ForgotPassword from "./components/User/ForgotPassword";
 
 const Tab = createBottomTabNavigator();
 const Stack = createStackNavigator();
@@ -119,6 +120,11 @@ const MyTab = () => {
                 <Icon name="account" size={size} color={color} />
               ),
             }}
+          />
+          <Tab.Screen
+            name="ForgotPassword"
+            options={{ title: "Quên Mật Khẩu" }}
+            component={ForgotPassword}
           />
         </>
       ) : (

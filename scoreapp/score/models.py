@@ -42,7 +42,7 @@ class User(AbstractUser):
     code = models.CharField(max_length=10, unique=True, default=None, null=True)
     dob = models.DateField(max_length=8, auto_now_add=True)
     address = models.CharField(max_length=254, null=True)
-    avatar = CloudinaryField(null=False, default=None)
+    avatar = CloudinaryField(null=True, default="https://res.cloudinary.com/dh5jcbzly/image/upload/v1718648320/r77u5n3w3ddyy4yqqamp.jpg")
     email = models.EmailField(max_length=254, validators=[validate_ou_mail], null=False)
     role = models.ForeignKey(Role, on_delete=models.CASCADE, null=True, blank=True)
 

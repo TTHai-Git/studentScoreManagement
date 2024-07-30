@@ -9,6 +9,7 @@ export default StyleSheet.create({
     alignItems: "center",
     width: "80%",
     flexDirection: "row",
+    marginTop: 40,
   },
   avatar: {
     marginBottom: 10,

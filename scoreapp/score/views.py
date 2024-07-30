@@ -1,8 +1,15 @@
 import csv
 import os
+from datetime import datetime, timedelta
+
+import jwt
+from django.utils import timezone
+
 import cloudinary
+import pyotp
 from django.core.mail import send_mail, EmailMessage
 from django.db.models.functions import Concat
+from jwt import ExpiredSignatureError, InvalidTokenError
 from rest_framework import viewsets, permissions, status, parsers, generics
 from rest_framework.decorators import action
 from rest_framework.response import Response
@@ -21,38 +28,79 @@ def index(request):
 
 
 class UserViewSet(viewsets.ViewSet, generics.CreateAPIView, generics.ListAPIView):
-    queryset = User.objects.filter(is_active=True).all()
+    queryset = User.objects.filter(is_active=True)
     serializer_class = serializers.UserSerializer
     parser_classes = [parsers.MultiPartParser]
 
     def get_permissions(self):
-        if self.action in ['current_user', 'upload_avatar']:
+        if self.action == 'current_user':
             return [permissions.IsAuthenticated()]
-
         return [permissions.AllowAny()]
 
-    @action(methods=['get', 'patch'], url_path='current-user', url_name='current-user', detail=False)
+    @action(methods=['get', 'patch'], detail=False, url_path='current-user', url_name='current-user')
     def current_user(self, request):
         user = request.user
-        if request.method.__eq__('PATCH'):
+        if request.method == 'PATCH':
             for k, v in request.data.items():
-                setattr(user, k, v)
+                if k == 'password':
+                    user.set_password(v)
+                elif k == 'avatar':
+                    new_avatar = cloudinary.uploader.upload(request.data['avatar'])
+                    user.avatar = new_avatar['secure_url']
+                else:
+                    setattr(user, k, v)
             user.save()
-        return Response(serializers.UserSerializer(user).data)
+            return Response({'message': 'UPLOAD THÔNG TIN CÁ NHÂN THÀNH CÔNG!!!'}, status=status.HTTP_200_OK)
+        else:
+            return Response(serializers.UserSerializer(user).data)
 
-    @action(methods=['patch'], url_path='upload-avatar', url_name='upload-avatar', detail=True)
-    def upload_avatar(self, request, pk=None):
-        avatar_file = request.data.get('avatar', None)
+    @action(methods=['patch'], detail=False, url_path='change-password', url_name='change-password')
+    def change_password(self, request):
+        new_password = request.data.get('new_password')
+        token = request.data.get('token')
 
         try:
-            user = self.get_object()
-            new_avatar = cloudinary.uploader.upload(avatar_file)
-            user.avatar = new_avatar['secure_url']
-            user.save()
-        except User.DoesNotExist:
-            return Response({'message': 'User not found'}, status=status.HTTP_404_NOT_FOUND)
+            # Giải mã token từ token mã hóa gửi qua email thông qua payload của token
+            payload = jwt.decode(token, settings.SECRET_KEY, algorithms=['HS256'])
+            # Lấy username từ payload của token kẹp vào
+            username = payload.get('username')
+            user = User.objects.filter(username=username).first()
 
-        return Response({'message': 'UPLOAD AVATAR THÀNH CÔNG'}, status=status.HTTP_200_OK)
+            if not user:
+                return Response({'error_message': 'Email không tồn tại'}, status=status.HTTP_400_BAD_REQUEST)
+
+            user.set_password(new_password)
+            user.save()
+            return Response({'message': 'Đổi mật khẩu thành công.'}, status=status.HTTP_200_OK)
+        except ExpiredSignatureError:
+            return Response({'error_message': 'Token đã hết hạn.'}, status=status.HTTP_400_BAD_REQUEST)
+        except InvalidTokenError:
+            return Response({'error_message': 'Token không hợp lệ.'}, status=status.HTTP_400_BAD_REQUEST)
+
+    @action(methods=['post'], detail=False, url_path='send-otp', url_name='send-otp')
+    def send_otp(self, request):
+        email = request.data.get('email')
+        user = User.objects.filter(email=email).first()
+
+        if user:
+            # Thời gian token hết hạn là sau 10 phút
+            valid_until = timezone.now() + timedelta(minutes=10)
+            # kẹp username và expire time của token vào payload của token
+            token_payload = {
+                "username": user.username,
+                "exp": valid_until.timestamp()
+            }
+            token = jwt.encode(token_payload, settings.SECRET_KEY, algorithm='HS256')# Mã hóa token
+
+            subject = 'Mail Reset Password Ứng Dụng ScoreApp'
+            message = f'Mã Otp reset password của bạn dùng trong 1 lần hết hạn trong vòng 10 phút kể từ lúc gửi mail: {token}'
+            email_from = settings.EMAIL_HOST_USER
+            recipient_list = [email]
+            send_mail(subject, message, email_from, recipient_list, fail_silently=False)
+            return Response({'message': 'GỬI EMAIL RESET PASSWORD THÀNH CÔNG'}, status=status.HTTP_200_OK)
+
+        return Response({'message': f'GỬI MÃ RESET PASSWORD THẤT BẠI !!! EMAIL: {email} KHÔNG TỒN TẠI'},
+                        status=status.HTTP_400_BAD_REQUEST)
 
 
 class TeacherViewSet(viewsets.ViewSet, generics.ListAPIView):
@@ -700,3 +748,16 @@ class StudentViewSet(viewsets.ViewSet, generics.ListAPIView):
         page = paginator.paginate_queryset(studyclassrooms, request)
         serializer = serializers.StudyClassRoomSerializer(page, many=True)
         return paginator.get_paginated_response(serializer.data)
+
+    @action(methods=['post'], url_path='studyclassrooms/register', detail=True)
+    def register_study(self, request, pk):
+        student = self.get_object()
+        id_classroom = int(request.query_params.get('id_classroom'))
+        studies = Study.objects.filter(student=student)
+        studyclassroom_ids = studies.values_list('studyclassroom', flat=True)
+        for id in studyclassroom_ids:
+            if id_classroom == id:
+                return Response({'error_message': "Bạn đã đăng ký lớp học này rồi!!! Vui lòng chọn lớp học khác"})
+        studyclassroom_register = StudyClassRoom.objects.get(id=id_classroom)
+        study_register = Study.objects.create(student=student, studyclassroom=studyclassroom_register)
+        return Response({"message": "Đăng ký lớp học thành công!!!"})

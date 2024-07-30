@@ -30,18 +30,6 @@ class UserSerializer(serializers.ModelSerializer):
         user.save()
         return user
 
-    def update(self, instance, validated_data):
-        for attr, value in validated_data.items():
-            if attr == 'password':
-                instance.set_password(value)
-            elif attr == 'avatar':
-                new_avatar = cloudinary.uploader.upload(value)
-                instance.avatar = new_avatar['secure_url']
-            else:
-                setattr(instance, attr, value)
-        instance.save()
-        return instance
-
     def to_representation(self, instance):
         rep = super().to_representation(instance)
         rep['avatar'] = instance.avatar.url

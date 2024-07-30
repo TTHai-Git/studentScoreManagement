@@ -41,7 +41,6 @@ const Home = ({ navigation, route }) => {
       setSelectedImage(selectedAsset.uri);
 
       const formData = new FormData();
-      formData.append("id", user.id);
       formData.append("avatar", {
         uri: selectedAsset.uri,
         name: "userProfile.jpg",
@@ -50,12 +49,15 @@ const Home = ({ navigation, route }) => {
 
       try {
         setLoading(true);
-        const url = endpoints["upload-avatar"](user.id);
-        const res = await authApi(token).patch(url, formData, {
-          headers: {
-            "Content-Type": "multipart/form-data",
-          },
-        });
+        const res = await authApi(token).patch(
+          endpoints["current-user"],
+          formData,
+          {
+            headers: {
+              "Content-Type": "multipart/form-data",
+            },
+          }
+        );
 
         if (res.status === 200) {
           Alert.alert(res.data.message);
@@ -155,7 +157,7 @@ const Home = ({ navigation, route }) => {
       <View style={Styles.avatar}>
         {selectedImage === null ? (
           <>
-            <View style={{borderWidth: 5, borderRadius: 150}}>
+            <View style={{ borderWidth: 5, borderRadius: 150 }}>
               {user.avatar && (
                 <Avatar.Image size={250} source={{ uri: user.avatar }} />
               )}

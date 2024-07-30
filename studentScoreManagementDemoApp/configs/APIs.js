@@ -7,7 +7,8 @@ export const endpoints = {
   "current-user": "/users/current-user/",
 
   register: "/users/",
-  "upload-avatar": (user_id) => `/users/${user_id}/upload-avatar/`,
+  "send-otp": "/users/send-otp/",
+  "change-password": "/users/change-password/",
 
   studyclassrooms: "/studyclassrooms/",
   "check-locked-scored-studyclassroom": (studyclassroom_id) =>
