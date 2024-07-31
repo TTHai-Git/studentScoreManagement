@@ -12,8 +12,8 @@ import Styles from "./Styles";
 import APIs, { endpoints } from "../../configs/APIs";
 
 const ForgotPassword = ({ navigation }) => {
-  const [passwordVisible, setPasswordVisible] = useState(false);
-  const [confirmPasswordVisible, setConfirmPasswordVisible] = useState(false);
+  const [passwordVisible, setPasswordVisible] = useState(true);
+  const [confirmPasswordVisible, setConfirmPasswordVisible] = useState(true);
   const [user, setUser] = useState({
     token: "",
     new_password: "",
@@ -47,11 +47,15 @@ const ForgotPassword = ({ navigation }) => {
     let newErrors = {};
     if (!user.token) {
       valid = false;
-      newErrors.token = "token không được để trống";
+      newErrors.token = "Token không được để trống";
     }
     if (!user.new_password) {
       valid = false;
       newErrors.new_password = "Mật khẩu không được để trống";
+    }
+    if (user.new_password.length < 6) {
+      valid = false;
+      newErrors.new_password = "Mật khẩu phải tối thiểu là 6 ký tự";
     }
     if (user.new_password !== user.confirm) {
       valid = false;
@@ -79,9 +83,17 @@ const ForgotPassword = ({ navigation }) => {
           },
         }
       );
-      if (res.data.status === 400) {
-        Alert.alert("Error", res.data.error_message);
-        setErrors(res.data.errors || {});
+      if (res.data.message === "Email không tồn tại.") {
+        Alert.alert("Fail", res.data.message);
+        setErrors(res.data.error_message || {});
+      }
+      if (res.data.message === "Token đã hết hạn.") {
+        Alert.alert("Fail", res.data.message);
+        setErrors(res.data.error_message || {});
+      }
+      if (res.data.message === "Token không hợp lệ.") {
+        Alert.alert("Fail", res.data.message);
+        setErrors(res.data.error_message || {});
       } else {
         Alert.alert("Success", res.data.message);
         navigation.navigate("Login");

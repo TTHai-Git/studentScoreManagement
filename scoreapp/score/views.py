@@ -67,40 +67,41 @@ class UserViewSet(viewsets.ViewSet, generics.CreateAPIView, generics.ListAPIView
             user = User.objects.filter(username=username).first()
 
             if not user:
-                return Response({'error_message': 'Email không tồn tại'}, status=status.HTTP_400_BAD_REQUEST)
+                return Response({'message': 'Email không tồn tại.'}, status=status.HTTP_400_BAD_REQUEST)
 
             user.set_password(new_password)
             user.save()
             return Response({'message': 'Đổi mật khẩu thành công.'}, status=status.HTTP_200_OK)
         except ExpiredSignatureError:
-            return Response({'error_message': 'Token đã hết hạn.'}, status=status.HTTP_400_BAD_REQUEST)
+            return Response({'message': 'Token đã hết hạn.'}, status=status.HTTP_400_BAD_REQUEST)
         except InvalidTokenError:
-            return Response({'error_message': 'Token không hợp lệ.'}, status=status.HTTP_400_BAD_REQUEST)
+            return Response({'message': 'Token không hợp lệ.'}, status=status.HTTP_400_BAD_REQUEST)
 
     @action(methods=['post'], detail=False, url_path='send-otp', url_name='send-otp')
     def send_otp(self, request):
-        email = request.data.get('email')
-        user = User.objects.filter(email=email).first()
+        username = request.data.get('username')
+        user = User.objects.filter(username=username).first()
+        try:
+            if user:
+                # Thời gian token hết hạn là sau 10 phút
+                valid_until = timezone.now() + timedelta(minutes=10)
+                # kẹp username và expire time của token vào payload của token
+                token_payload = {
+                    "username": user.username,
+                    "exp": valid_until.timestamp()
+                }
+                token = jwt.encode(token_payload, settings.SECRET_KEY, algorithm='HS256')# Mã hóa token
 
-        if user:
-            # Thời gian token hết hạn là sau 10 phút
-            valid_until = timezone.now() + timedelta(minutes=10)
-            # kẹp username và expire time của token vào payload của token
-            token_payload = {
-                "username": user.username,
-                "exp": valid_until.timestamp()
-            }
-            token = jwt.encode(token_payload, settings.SECRET_KEY, algorithm='HS256')# Mã hóa token
-
-            subject = 'Mail Reset Password Ứng Dụng ScoreApp'
-            message = f'Mã Otp reset password của bạn dùng trong 1 lần hết hạn trong vòng 10 phút kể từ lúc gửi mail: {token}'
-            email_from = settings.EMAIL_HOST_USER
-            recipient_list = [email]
-            send_mail(subject, message, email_from, recipient_list, fail_silently=False)
-            return Response({'message': 'GỬI EMAIL RESET PASSWORD THÀNH CÔNG'}, status=status.HTTP_200_OK)
-
-        return Response({'message': f'GỬI MÃ RESET PASSWORD THẤT BẠI !!! EMAIL: {email} KHÔNG TỒN TẠI'},
-                        status=status.HTTP_400_BAD_REQUEST)
+                subject = 'Mail Reset Password Ứng Dụng ScoreApp'
+                message = f'Mã Otp reset password của bạn dùng trong 1 lần hết hạn trong vòng 10 phút kể từ lúc gửi mail: {token}'
+                email_from = settings.EMAIL_HOST_USER
+                recipient_list = [user.email]
+                send_mail(subject, message, email_from, recipient_list, fail_silently=False)
+                return Response({'message': f'ĐÃ GỬI TOKEN RESET PASSWORD TỚI EMAIL: {user.email} CỦA BẠN.'}, status=status.HTTP_200_OK)
+        except Exception as ex:
+            return Response({"message": str(ex)}
+                            , status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+        return Response({'message': f'GỬI TOKEN RESET PASSWORD THẤT BẠI!!! NGƯỜI DÙNG KHÔNG TỒN TẠI.'}, status=status.HTTP_400_BAD_REQUEST)
 
 
 class TeacherViewSet(viewsets.ViewSet, generics.ListAPIView):

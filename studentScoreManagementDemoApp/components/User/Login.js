@@ -143,18 +143,32 @@ const Login = ({ route }) => {
   };
 
   const sendOtp = async () => {
+    let valid = true;
+    let newErrors = { username: "", password: "" };
+    if (!user.username) {
+      newErrors.username = "Username không được để trống";
+      valid = false;
+    }
     try {
       const res = await APIs.post(
         endpoints["send-otp"],
-        { email: user.username }, // Body
+        { username: user.username }, // Body
         {
           headers: {
             "Content-Type": "multipart/form-data",
           },
         }
       );
-      Alert.alert(res.data.message);
-      nav.navigate("ForgotPassword");
+      console.info(res.data.message);
+      if (
+        res.data.message ===
+        "GỬI TOKEN RESET PASSWORD THẤT BẠI!!! NGƯỜI DÙNG KHÔNG TỒN TẠI"
+      ) {
+        Alert.alert("Fail", res.data.message);
+      } else {
+        Alert.alert("Success", res.data.message);
+        nav.navigate("ForgotPassword");
+      }
     } catch (ex) {
       console.info(ex);
     }
