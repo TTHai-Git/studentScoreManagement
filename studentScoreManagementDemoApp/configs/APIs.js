@@ -16,6 +16,11 @@ export const endpoints = {
   studyclassroomsofstudent: (student_id) =>
     `/students/${student_id}/studyclassrooms`,
 
+  "list-studyclassrooms-for-register": (student_id) =>
+    `/students/${student_id}/list-studyclassrooms-for-register/`,
+
+  "register-study": (studyclassroom_id) =>
+    `/studyclassrooms/${studyclassroom_id}/register/`,
   // "member-of-chatroom": (studyclassroom_id) =>
   //   `/studyclassrooms/${studyclassroom_id}/chat-room/`,
 

@@ -8,6 +8,7 @@ import { MyDispatchContext, MyUserContext } from "../../configs/Contexts";
 import Styles from "./Styles";
 import { authApi, endpoints } from "../../configs/APIs";
 import { logOutFireBaseUser } from "../../configs/Reducers";
+import { ScrollView } from "react-native-gesture-handler";
 
 const Home = ({ navigation, route }) => {
   const user = useContext(MyUserContext);
@@ -104,6 +105,18 @@ const Home = ({ navigation, route }) => {
             style={MyStyle.button_user}
             mode="contained"
             onPress={() =>
+              navigation.navigate("RegisterStudy", {
+                token: token,
+                user: user,
+              })
+            }
+          >
+            Đăng Ký Lớp Học
+          </Button>
+          <Button
+            style={MyStyle.button_user}
+            mode="contained"
+            onPress={() =>
               navigation.navigate("ScoreDetails", { token: token, user: user })
             }
           >
@@ -159,7 +172,7 @@ const Home = ({ navigation, route }) => {
           <>
             <View style={{ borderWidth: 5, borderRadius: 150 }}>
               {user.avatar && (
-                <Avatar.Image size={250} source={{ uri: user.avatar }} />
+                <Avatar.Image size={150} source={{ uri: user.avatar }} />
               )}
             </View>
           </>
@@ -167,7 +180,7 @@ const Home = ({ navigation, route }) => {
           <>
             <View>
               {user.avatar && (
-                <Avatar.Image size={250} source={{ uri: selectedImage }} />
+                <Avatar.Image size={150} source={{ uri: selectedImage }} />
               )}
             </View>
           </>
@@ -182,7 +195,16 @@ const Home = ({ navigation, route }) => {
         </Text>
         <View style={Styles.info_detail}>{info_detail}</View>
       </View>
-      <View style={Styles.log_items}>
+      <ScrollView style={Styles.log_items}>
+        <Button
+          style={MyStyle.button_user}
+          mode="contained"
+          onPress={() =>
+            navigation.navigate("UpdateInfo", { token: token, user: user })
+          }
+        >
+          Cập nhật thông tin người dùng
+        </Button>
         {button_user}
         <Button
           style={MyStyle.button_user}
@@ -191,7 +213,7 @@ const Home = ({ navigation, route }) => {
         >
           Đăng xuất
         </Button>
-      </View>
+      </ScrollView>
     </View>
   );
 };

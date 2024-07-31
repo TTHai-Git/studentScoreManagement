@@ -20,7 +20,7 @@ from reportlab.lib.pagesizes import letter
 from reportlab.platypus import SimpleDocTemplate, Table, TableStyle
 from django.http import HttpResponse
 from scoreapp import settings
-from django.db.models import Q, Value
+from django.db.models import Q, Value, F
 
 
 def index(request):
@@ -193,6 +193,14 @@ class StudyClassRoomViewSet(viewsets.ViewSet, viewsets.generics.ListAPIView, vie
                            'locked_score_of_studyclassroom', 'export_csv_scores_students_studyclassroom', 'add_topic']:
             return [permissions.IsAuthenticated(), perms.isTeacherOfStudyClassRoom()]
         return [permissions.AllowAny()]
+
+    @action(methods=['post'], url_path='register', detail=True)
+    def register_study(self, request, pk):
+        studyclassrooms_register = self.get_object()
+        id_student = request.data.get('student_id')
+        student = Student.objects.get(id=id_student)
+        study_register = Study.objects.create(student=student, studyclassroom=studyclassrooms_register)
+        return Response({"message": "Đăng ký lớp học thành công!!!"}, status=status.HTTP_201_CREATED)
 
     @action(methods=['get'], url_path='chat-room', url_name='chat-room', detail=True)
     def get_users_of_chat_room(self, request, pk):
@@ -750,15 +758,18 @@ class StudentViewSet(viewsets.ViewSet, generics.ListAPIView):
         serializer = serializers.StudyClassRoomSerializer(page, many=True)
         return paginator.get_paginated_response(serializer.data)
 
-    @action(methods=['post'], url_path='studyclassrooms/register', detail=True)
-    def register_study(self, request, pk):
+    @action(methods=['get'], url_path='list-studyclassrooms-for-register', detail=True)
+    def list_studyclassrooms_for_register(self, request, pk):
         student = self.get_object()
-        id_classroom = int(request.query_params.get('id_classroom'))
         studies = Study.objects.filter(student=student)
+        kw = request.query_params.get('kw')
         studyclassroom_ids = studies.values_list('studyclassroom', flat=True)
-        for id in studyclassroom_ids:
-            if id_classroom == id:
-                return Response({'error_message': "Bạn đã đăng ký lớp học này rồi!!! Vui lòng chọn lớp học khác"})
-        studyclassroom_register = StudyClassRoom.objects.get(id=id_classroom)
-        study_register = Study.objects.create(student=student, studyclassroom=studyclassroom_register)
-        return Response({"message": "Đăng ký lớp học thành công!!!"})
+        studyclassrooms_for_register = StudyClassRoom.objects.filter(~Q(id__in=studyclassroom_ids))
+        if kw:
+            studyclassrooms_for_register = studyclassrooms_for_register\
+                .annotate(search_name=Concat('teacher__last_name', Value(' '), 'teacher__first_name'))\
+                .filter(Q(subject__name__icontains=kw) | Q(search_name__icontains=kw))
+        paginator = pagination.StudyClassRoomPaginator()
+        page = paginator.paginate_queryset(studyclassrooms_for_register, request)
+        serializer = serializers.StudyClassRoomSerializer(page, many=True)
+        return paginator.get_paginated_response(serializer.data)

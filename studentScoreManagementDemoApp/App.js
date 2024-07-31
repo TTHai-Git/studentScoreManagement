@@ -24,6 +24,8 @@ import { onAuthStateChanged } from "firebase/auth";
 import StudyClassRooms from "./components/General/Studyclassrooms";
 import Admin from "./components/Admin/Admin";
 import ForgotPassword from "./components/User/ForgotPassword";
+import RegisterStudy from "./components/Student/RegisterStudy";
+import UpdateInfo from "./components/User/UpdateInfo";
 
 const Tab = createBottomTabNavigator();
 const Stack = createStackNavigator();
@@ -37,9 +39,20 @@ const MyStack = () => {
         component={Home}
       />
       <Stack.Screen
+        name="UpdateInfo"
+        options={{ title: "Thông Tin Người Dùng" }}
+        component={UpdateInfo}
+      />
+
+      <Stack.Screen
         name="StudyClassRooms"
         options={{ title: "Danh sách lớp học" }}
         component={StudyClassRooms}
+      />
+      <Stack.Screen
+        name="RegisterStudy"
+        options={{ title: "Đăng ký lớp học" }}
+        component={RegisterStudy}
       />
       <Stack.Screen
         name="Topics"

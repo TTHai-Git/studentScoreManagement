@@ -24,7 +24,10 @@ import {
 } from "@env";
 
 const Login = ({ route }) => {
-  const [user, setUser] = useState({ username: "", password: "" });
+  const [user, setUser] = useState({
+    username: "Demo",
+    password: "1234567890",
+  });
   const [passwordVisible, setPasswordVisible] = useState(true);
   const [errors, setErrors] = useState({
     username: "",
