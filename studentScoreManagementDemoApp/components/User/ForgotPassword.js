@@ -83,24 +83,16 @@ const ForgotPassword = ({ navigation }) => {
           },
         }
       );
-      if (res.data.message === "Email không tồn tại.") {
-        Alert.alert("Fail", res.data.message);
-        setErrors(res.data.error_message || {});
-      }
-      if (res.data.message === "Token đã hết hạn.") {
-        Alert.alert("Fail", res.data.message);
-        setErrors(res.data.error_message || {});
-      }
-      if (res.data.message === "Token không hợp lệ.") {
-        Alert.alert("Fail", res.data.message);
-        setErrors(res.data.error_message || {});
-      } else {
-        Alert.alert("Success", res.data.message);
-        navigation.navigate("Login");
-      }
+      Alert.alert("Success", res.data.message);
+      navigation.navigate("Login");
     } catch (ex) {
-      console.info(ex);
-      Alert.alert("Error", "Something went wrong. Please try again.");
+      if (ex.response && ex.response.status === 400) {
+        // Handle the 400 error
+        Alert.alert("Error", ex.response.data.message);
+      } else {
+        // Handle other errors
+        console.log("Unexpected error: ", ex);
+      }
     } finally {
       setLoading(false);
     }

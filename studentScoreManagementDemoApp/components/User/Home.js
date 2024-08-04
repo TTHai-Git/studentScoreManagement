@@ -105,6 +105,18 @@ const Home = ({ navigation, route }) => {
             style={MyStyle.button_user}
             mode="contained"
             onPress={() =>
+              navigation.navigate("ScheduleStudyClassrooms", {
+                token: token,
+                user: user,
+              })
+            }
+          >
+            Xem lịch học
+          </Button>
+          <Button
+            style={MyStyle.button_user}
+            mode="contained"
+            onPress={() =>
               navigation.navigate("RegisterStudy", {
                 token: token,
                 user: user,
@@ -135,28 +147,47 @@ const Home = ({ navigation, route }) => {
       );
 
       button_user = (
-        <Button
-          style={MyStyle.button_user}
-          mode="contained"
-          onPress={() =>
-            navigation.navigate("StudyClassRooms", { token: token, user: user })
-          }
-        >
-          Xem danh sách lớp học
-        </Button>
+        <>
+          <Button
+            style={MyStyle.button_user}
+            mode="contained"
+            onPress={() =>
+              navigation.navigate("StudyClassRooms", {
+                token: token,
+                user: user,
+              })
+            }
+          >
+            Xem danh sách lớp học
+          </Button>
+          <Button
+            style={MyStyle.button_user}
+            mode="contained"
+            onPress={() =>
+              navigation.navigate("ScheduleStudyClassrooms", {
+                token: token,
+                user: user,
+              })
+            }
+          >
+            Xem Lịch Giảng Dạy
+          </Button>
+        </>
       );
       break;
 
     case "admin":
       info_detail = <Text style={Styles.text_detail}>Email: {user.email}</Text>;
       button_user = (
-        <Button
-          style={MyStyle.button_user}
-          mode="contained"
-          onPress={() => navigation.navigate("Admin")}
-        >
-          Đăng ký tài khoản
-        </Button>
+        <>
+          <Button
+            style={MyStyle.button_user}
+            mode="contained"
+            onPress={() => navigation.navigate("Admin")}
+          >
+            Đăng ký tài khoản
+          </Button>
+        </>
       );
       break;
 

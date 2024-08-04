@@ -118,10 +118,25 @@ class StudyClassRoom(BaseModel):
     teacher = models.ForeignKey(Teacher, on_delete=models.RESTRICT)
     group = models.ForeignKey(Group, on_delete=models.RESTRICT)
     semester = models.ForeignKey(Semester, on_delete=models.RESTRICT)
+    started_date = models.DateField(null=True)
+    ended_date = models.DateField(null=True)
 
     def __str__(self):
         return f'{self.id} - {self.name} - {self.subject} - {self.teacher} {self.teacher} ' \
                f'- {self.group} - {self.semester} - {self.islock}'
+
+
+class Schedule(BaseModel):
+    started_time = models.DateTimeField(null=True)
+    ended_time = models.DateTimeField(null=True)
+    descriptions = models.CharField(max_length=100, null=True)
+    studyclassroom = models.ForeignKey(StudyClassRoom, on_delete=models.RESTRICT)
+
+    def __str__(self):
+        return f'{self.started_time} - {self.ended_time} - {self.studyclassroom}'
+
+    class Meta:
+        unique_together = ('started_time', 'ended_time', 'studyclassroom')
 
 
 class Topic(BaseModel):
@@ -149,6 +164,11 @@ class Comment(Interaction):
 
     def __str__(self):
         return f'{super().__str__()} - {self.content}'
+
+
+class CommentFile(models.Model):
+    comment = models.ForeignKey(Comment, on_delete=models.CASCADE, related_name='files')
+    file_url = models.URLField(max_length=200, null=True)
 
 
 class ScoreColumn(models.Model):

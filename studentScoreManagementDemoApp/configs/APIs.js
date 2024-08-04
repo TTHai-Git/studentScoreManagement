@@ -16,6 +16,10 @@ export const endpoints = {
   studyclassroomsofstudent: (student_id) =>
     `/students/${student_id}/studyclassrooms`,
 
+  "get-schedule": "studyclassrooms/get-schedule",
+  "new-schedule": (studyclassroom_id) =>
+    `/studyclassrooms/${studyclassroom_id}/new-schedule/`,
+
   "list-studyclassrooms-for-register": (student_id) =>
     `/students/${student_id}/list-studyclassrooms-for-register/`,
 

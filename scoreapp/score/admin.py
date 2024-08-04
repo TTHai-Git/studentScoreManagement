@@ -46,6 +46,7 @@ admin.site.register(Student, name="Student")
 admin.site.register(StudentClassRoom)
 
 admin.site.register(StudyClassRoom)
+admin.site.register(Schedule)
 admin.site.register(Department)
 admin.site.register(Group)
 admin.site.register(Semester)

@@ -25,6 +25,7 @@ const RegisterStudy = ({ navigation, route }) => {
   const [studyClassRooms, setStudyClassRooms] = useState([]);
   const [page, setPage] = useState(1);
   const [kw, setKw] = useState("");
+  const [error, setError] = useState(false);
 
   const loadStudyClassRooms = async () => {
     if (page > 0) {
@@ -89,12 +90,18 @@ const RegisterStudy = ({ navigation, route }) => {
         student_id: user.id,
       });
       Alert.alert(res.data.message);
-      navigation.navigate("Home", {
+      navigation.navigate("RegisterStudy", {
         user: user,
         token: token,
       });
     } catch (ex) {
-      console.log(ex);
+      if (ex.response && ex.response.status === 400) {
+        // Handle the 400 error
+        Alert.alert("Error", ex.response.data.message);
+      } else {
+        // Handle other errors
+        console.log("Unexpected error: ", ex);
+      }
     } finally {
       setLoading(false);
     }
@@ -135,7 +142,13 @@ const RegisterStudy = ({ navigation, route }) => {
                     Năm Học: {c.semester_year}
                   </Text>
                   <Text style={Styles.text_class}>
-                    Giảng Viên: {c.teacher_name}
+                    Giảng viên: {c.teacher_name}
+                  </Text>
+                  <Text style={Styles.text_class}>
+                    Ngày Bắt Đầu: {c.started_date}
+                  </Text>
+                  <Text style={Styles.text_class}>
+                    Ngày Kết Thúc: {c.ended_date}
                   </Text>
                   <Button
                     style={MyStyle.button_user}

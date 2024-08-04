@@ -111,6 +111,14 @@ const StudyClassRooms = ({ navigation, route }) => {
     });
   };
 
+  const goNewSchedule = () => {
+    navigation.navigate("Schedule", {
+      studyclassroom_id: studyclassroom_id,
+      token: token,
+      user: user,
+    });
+  };
+
   useEffect(() => {
     loadStudyClassRooms();
   }, [page]);
@@ -149,13 +157,13 @@ const StudyClassRooms = ({ navigation, route }) => {
                     >
                       Diễn đàn
                     </Button>
-                    {/* <Button
+                    <Button
                       style={MyStyle.button_user}
                       mode="contained"
-                      onPress={goChatRoom}
+                      onPress={goNewSchedule}
                     >
-                      Phòng Chat
-                    </Button> */}
+                      Tạo Lịch học
+                    </Button>
                   </>
                 ) : (
                   <>
@@ -166,13 +174,6 @@ const StudyClassRooms = ({ navigation, route }) => {
                     >
                       Diễn đàn
                     </Button>
-                    {/* <Button
-                      style={MyStyle.button_user}
-                      mode="contained"
-                      onPress={goChatRoom}
-                    >
-                      Phòng Chat
-                    </Button> */}
                   </>
                 )}
               </View>
@@ -201,8 +202,21 @@ const StudyClassRooms = ({ navigation, route }) => {
                     <Text style={Styles.text_class}>Lớp: {c.name}</Text>
                     <Text style={Styles.text_class}>Môn: {c.subject_name}</Text>
                     <Text style={Styles.text_class}>Nhóm: {c.group_name}</Text>
-                    <Text style={Styles.text_class}>Học kỳ: {c.semester_name}</Text>
-                    <Text style={Styles.text_class}>Năm Học: {c.semester_year}</Text>
+                    <Text style={Styles.text_class}>
+                      Học kỳ: {c.semester_name}
+                    </Text>
+                    <Text style={Styles.text_class}>
+                      Năm Học: {c.semester_year}
+                    </Text>
+                    <Text style={Styles.text_class}>
+                      Giảng viên: {c.teacher_name}
+                    </Text>
+                    <Text style={Styles.text_class}>
+                      Ngày Bắt Đầu: {c.started_date}
+                    </Text>
+                    <Text style={Styles.text_class}>
+                      Ngày Kết Thúc: {c.ended_date}
+                    </Text>
                   </View>
                 </TouchableOpacity>
               ))}

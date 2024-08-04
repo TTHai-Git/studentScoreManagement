@@ -115,6 +115,19 @@ class StudentClassRoom(serializers.ModelSerializer):
         fields = ['id', 'name', 'department']
 
 
+class ScheduleSerializer(serializers.ModelSerializer):
+    subject_name = serializers.CharField(source='studyclassroom.subject.name')
+    studyclassroom_name = serializers.CharField(source='studyclassroom.name')
+    teacher_name = serializers.SerializerMethodField()
+
+    def get_teacher_name(self, obj):
+        return obj.studyclassroom.teacher.last_name + ' ' + obj.studyclassroom.teacher.first_name
+
+    class Meta:
+        model = Schedule
+        fields = ['id', 'started_time', 'ended_time', 'descriptions', 'subject_name', 'studyclassroom_name', 'teacher_name']
+
+
 class StudyClassRoomSerializer(serializers.ModelSerializer):
     subject_name = serializers.CharField(source='subject.name')
     teacher_name = serializers.SerializerMethodField()
@@ -128,7 +141,7 @@ class StudyClassRoomSerializer(serializers.ModelSerializer):
     class Meta:
         model = StudyClassRoom
         fields = ['id', 'name', 'subject_name', 'teacher_name', 'group_name', 'semester_name', 'semester_year',
-                  'islock']
+                  'started_date', 'ended_date', 'islock']
 
 
 class TopicSerializer(serializers.ModelSerializer):

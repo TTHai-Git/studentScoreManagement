@@ -25,7 +25,7 @@ import {
 
 const Login = ({ route }) => {
   const [user, setUser] = useState({
-    username: "Demo",
+    username: "DHThanh",
     password: "1234567890",
   });
   const [passwordVisible, setPasswordVisible] = useState(true);
@@ -116,23 +116,23 @@ const Login = ({ route }) => {
         payload: userRes.data,
       });
 
-      if (userRes.data.email && user.password) {
-        try {
-          await signInWithEmailAndPassword(
-            auth,
-            userRes.data.email,
-            user.password
-          );
-          console.log("Đăng nhập Firebase thành công");
-          // Điều hướng đến trang Home với thông tin người dùng đã được cập nhật
-        } catch (err) {
-          console.error("Đăng nhập Firebase thất bại: ", err);
-          Alert.alert("Đăng Nhập Thất Bại", "Đăng nhập Firebase thất bại");
-        }
-      } else {
-        // Nếu không có email hoặc password, thông báo lỗi và không điều hướng đến trang Home
-        Alert.alert("Đăng Nhập Thất Bại", "Sai username hoặc password");
-      }
+      // if (userRes.data.email && user.password) {
+      //   try {
+      //     await signInWithEmailAndPassword(
+      //       auth,
+      //       userRes.data.email,
+      //       user.password
+      //     );
+      //     console.log("Đăng nhập Firebase thành công");
+      //     // Điều hướng đến trang Home với thông tin người dùng đã được cập nhật
+      //   } catch (err) {
+      //     console.error("Đăng nhập Firebase thất bại: ", err);
+      //     Alert.alert("Đăng Nhập Thất Bại", "Đăng nhập Firebase thất bại");
+      //   }
+      // } else {
+      //   // Nếu không có email hoặc password, thông báo lỗi và không điều hướng đến trang Home
+      //   Alert.alert("Đăng Nhập Thất Bại", "Sai username hoặc password");
+      // }
       nav.navigate("Home", {
         token: res.data.access_token,
         user: userRes.data,

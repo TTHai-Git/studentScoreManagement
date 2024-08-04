@@ -1,12 +1,10 @@
 import csv
+import mimetypes
 import os
-from datetime import datetime, timedelta
-
+from datetime import timedelta, datetime
 import jwt
 from django.utils import timezone
-
 import cloudinary
-import pyotp
 from django.core.mail import send_mail, EmailMessage
 from django.db.models.functions import Concat
 from jwt import ExpiredSignatureError, InvalidTokenError
@@ -20,7 +18,7 @@ from reportlab.lib.pagesizes import letter
 from reportlab.platypus import SimpleDocTemplate, Table, TableStyle
 from django.http import HttpResponse
 from scoreapp import settings
-from django.db.models import Q, Value, F
+from django.db.models import Q, Value
 
 
 def index(request):
@@ -115,6 +113,7 @@ class TopicViewSet(viewsets.ViewSet, generics.ListAPIView):
     queryset = Topic.objects.all()
     serializer_class = serializers.TopicSerializer
     pagination_class = pagination.TopicPaginator
+    # parser_classes = [parsers.MultiPartParser]
 
     def get_permissions(self):
         if self.action == 'add_comment':
@@ -129,7 +128,7 @@ class TopicViewSet(viewsets.ViewSet, generics.ListAPIView):
         try:
             topic = self.get_object()
         except Topic.DoesNotExist:
-            return Response(status=status.HTTP_404_NOT_FOUND)
+            return Response({"message": "Chưa có topic nào được tạo!!!"}, status=status.HTTP_404_NOT_FOUND)
 
         topic.active = not topic.active
         topic.save()
@@ -144,19 +143,59 @@ class TopicViewSet(viewsets.ViewSet, generics.ListAPIView):
             topic = self.get_object()
             user = request.user
             content = request.data.get('content')
+            files = request.FILES.getlist('files')  # Get multiple files from the request
+
+            allowed_mime_types = [
+                'application/pdf',
+                'application/msword',  # .docx
+                'application/vnd.ms-excel',  # .xla|xls|xlsx|xlt|xlw|xlam|xlsb|xlsm|xltm
+                'application/vnd.ms-powerpoint',
+                'application/zip',  # .zip
+                'application/vnd.rar' # .rar
+                'text/plain', # .txt
+                'image/jpeg',  # .jpg, .jpeg
+                'image/png',  # .png
+                'image/gif',  # .gif
+                'image/bmp',  # .bmp
+                'image/webp',  # .webp
+                'image/tiff',  # .tiff
+            ]
+
             if topic.active:
-                if content:
-                    comment = Comment.objects.create(content=content, user=user, topic=topic)
-                else:
-                    return Response({"message": "không được bỏ trống nội dung comment!!!"})
+                if not content:
+                    return Response({"message": "Nội dung comment không được bỏ trống!!!"},
+                                    status=status.HTTP_400_BAD_REQUEST)
+
+                file_urls = []
+
+                for file in files:
+                    # Check the MIME type of the uploaded file
+                    file_mime_type, _ = mimetypes.guess_type(file.name)
+                    if file_mime_type not in allowed_mime_types:
+                        return Response({"message": f"Loại tệp {file.name} không được phép!!!"},
+                                        status=status.HTTP_400_BAD_REQUEST)
+
+                    # Upload the file to Cloudinary
+                    upload_response = cloudinary.uploader.upload(file, resource_type='auto')
+                    file_urls.append(upload_response['secure_url'])
+
+                # Create the comment, including the file URLs if present
+                comment = Comment.objects.create(content=content, user=user, topic=topic)
+
+                # Assuming you have a related model or a JSONField to store multiple file URLs
+                for url in file_urls:
+                    CommentFile.objects.create(comment=comment, file_url=url)
+
+                return Response({"message": f'Thêm bình luận vào {topic.title} thành công!'},
+                                status=status.HTTP_201_CREATED)
+
             else:
-                return Response({"message": f'Topic {topic.title} '
-                                            f'đã bị khóa!!! Bạn không thể comment vào topic này được nữa!!!'})
+                return Response(
+                    {"message": f'Topic {topic.title} đã bị khóa!!! Bạn không thể comment vào topic này được nữa!!!'},
+                    status=status.HTTP_400_BAD_REQUEST)
+
         except Exception as ex:
-            return Response({"message": str(ex)}
-                            , status=status.HTTP_500_INTERNAL_SERVER_ERROR)
-        # return Response(serializers.CommentSerializer(comment).data, status=status.HTTP_201_CREATED)
-        return Response({"message": f'Thêm bình luận vào {topic.title} thành công!'}, status=status.HTTP_201_CREATED)
+            return Response({"message": str(ex)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
     @action(methods=['get'], url_path='comments', detail=True)
     def get_comments(self, request, pk):
@@ -175,10 +214,16 @@ class TopicViewSet(viewsets.ViewSet, generics.ListAPIView):
         return Response(serializers.CommentSerializer(comments, many=True).data, status=status.HTTP_200_OK)
 
 
+class ScheduleViewSet(viewsets.ViewSet, viewsets.generics.ListAPIView):
+    queryset = Schedule.objects.filter(active=True)
+    serializer_class = serializers. ScheduleSerializer
+
+
 class StudyClassRoomViewSet(viewsets.ViewSet, viewsets.generics.ListAPIView, viewsets.generics.RetrieveAPIView):
     queryset = StudyClassRoom.objects.filter(active=True)
     serializer_class = serializers.StudyClassRoomSerializer
     pagination_class = pagination.StudyClassRoomPaginator
+    # parser_classes = [parsers.MultiPartParser]
 
     def get_queryset(self):
         teacher = self.request.user
@@ -190,16 +235,106 @@ class StudyClassRoomViewSet(viewsets.ViewSet, viewsets.generics.ListAPIView, vie
     def get_permissions(self):
         if self.action in ['get_students_studyclassroom', 'get_score_collumns', 'get_students_scores_studyclassroom',
                            'save_scores',
-                           'locked_score_of_studyclassroom', 'export_csv_scores_students_studyclassroom', 'add_topic']:
+                           'locked_score_of_studyclassroom', 'export_csv_scores_students_studyclassroom', 'add_topic',
+                           'new_schedule']:
             return [permissions.IsAuthenticated(), perms.isTeacherOfStudyClassRoom()]
+        elif self.action in ['register_study']:
+            return [permissions.IsAuthenticated()]
         return [permissions.AllowAny()]
+
+    @action(methods=['get'], url_path='get-schedule', detail=False)
+    def get_schedule_of_studyclassrooms(self, request):
+        user = request.user
+        if user.role.name == 'student':
+            student = Student.objects.get(id=user.id)
+            studies = Study.objects.filter(student=student)
+            studyclassroom_ids = studies.values_list('studyclassroom', flat=True)
+            studyclassrooms = StudyClassRoom.objects.filter(id__in=studyclassroom_ids)
+        elif user.role.name == 'teacher':
+            teacher = Teacher.objects.get(id=user.id)
+            studyclassrooms = StudyClassRoom.objects.filter(teacher=teacher)
+        else:
+            return Response({"message": "Người dùng không hợp lệ!!!"}, status=status.HTTP_401_UNAUTHORIZED)
+        kw = request.query_params.get('kw')  # Use query_params for GET requests
+
+        if kw:
+            studyclassrooms = studyclassrooms.annotate(
+                search_semester=Concat('semester__name', Value(' '), 'semester_year')
+            ).filter(search_semester__icontains=kw)  # Corrected typo: search_semster to search_semester
+
+        schedule_studyclassrooms = Schedule.objects.filter(studyclassroom__in=studyclassrooms)
+        if schedule_studyclassrooms:
+            return Response(
+                {"data": serializers.ScheduleSerializer(schedule_studyclassrooms, many=True).data},
+                status=status.HTTP_200_OK
+            )
+        else:
+            return Response({"data": []}, status=status.HTTP_200_OK)
+
+    @action(methods=['post'], url_path='new-schedule', detail=True)
+    def new_schedule(self, request, pk):
+        studyclassroom = self.get_object()
+        started_time = request.data.get('started_time')
+        ended_time = request.data.get('ended_time')
+        descriptions = request.data.get('descriptions')
+
+        # Convert times to datetime objects if needed
+        try:
+            started_time = datetime.fromisoformat(started_time)
+            ended_time = datetime.fromisoformat(ended_time)
+        except ValueError:
+            return Response({'message': 'Invalid datetime format.'}, status=status.HTTP_400_BAD_REQUEST)
+
+        # Check for overlapping schedules
+        schedule_conflict = Schedule.objects.filter(
+            studyclassroom=studyclassroom,
+            started_time__lt=ended_time,
+            ended_time__gt=started_time
+        ).exists()
+
+        if schedule_conflict:
+            return Response({
+                'message': 'Lập lịch thất bại!!! Trùng lịch với một lịch học khác.'
+            }, status=status.HTTP_409_CONFLICT)
+
+        # Create new schedule
+        schedule = Schedule.objects.create(
+            started_time=started_time,
+            ended_time=ended_time,
+            studyclassroom=studyclassroom,
+            descriptions=descriptions
+        )
+
+        return Response({"message": "Tạo lịch thành công"}, status=status.HTTP_201_CREATED)
 
     @action(methods=['post'], url_path='register', detail=True)
     def register_study(self, request, pk):
-        studyclassrooms_register = self.get_object()
+        studyclassroom_register = self.get_object()
         id_student = request.data.get('student_id')
         student = Student.objects.get(id=id_student)
-        study_register = Study.objects.create(student=student, studyclassroom=studyclassrooms_register)
+
+        studies = Study.objects.filter(student=student)
+        studyclassroom_ids = studies.values_list('studyclassroom', flat=True)
+        studyclassrooms = StudyClassRoom.objects.filter(id__in=studyclassroom_ids)
+
+        for studyclassroom in studyclassrooms:
+            if studyclassroom.group != studyclassroom_register.group and \
+                    studyclassroom.subject.name == studyclassroom_register.subject.name and \
+                    studyclassroom.semester == studyclassroom_register.semester:
+                return Response({"message": f"Đăng ký lớp học thất bại!!! Trùng môn học trong một học kỳ"}, status=status.HTTP_400_BAD_REQUEST)
+            elif studyclassroom.started_date == studyclassroom_register.started_date:
+                schedule_studyclassroom = Schedule.objects.filter(studyclassroom=studyclassroom)
+                schedule_studyclassroom_register = Schedule.objects.filter(studyclassroom=studyclassroom_register)
+                for schedule in schedule_studyclassroom:
+                    for schedule_register in schedule_studyclassroom_register:
+                        if schedule.started_time == schedule_register.started_time \
+                                and schedule.ended_time == schedule_register.ended_time:
+                            return Response({"message": f'Đăng ký lớp học thất bại!! Trùng lịch học môn '
+                                                        f'{studyclassroom.subject.name} trong một học kỳ'})
+                return Response({"message": f'Đăng ký lớp học thất bại!! Trùng lịch học môn '
+                                            f'{studyclassroom.subject.name} - {studyclassroom.started_date} trong một học kỳ'}, status=status.HTTP_400_BAD_REQUEST)
+
+        study_register = Study.objects.create(student=student, studyclassroom=studyclassroom_register)
         return Response({"message": "Đăng ký lớp học thành công!!!"}, status=status.HTTP_201_CREATED)
 
     @action(methods=['get'], url_path='chat-room', url_name='chat-room', detail=True)
@@ -695,7 +830,7 @@ class StudentViewSet(viewsets.ViewSet, generics.ListAPIView):
     parser_classes = [parsers.MultiPartParser]
 
     def get_permissions(self):
-        if self.action in ['get_study_class_rooms', 'get_details_study']:
+        if self.action in ['get_study_class_rooms', 'get_details_study', 'list_studyclassrooms_for_register']:
             return [permissions.IsAuthenticated()]
 
         return [permissions.AllowAny()]

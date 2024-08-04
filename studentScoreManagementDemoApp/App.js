@@ -26,6 +26,8 @@ import Admin from "./components/Admin/Admin";
 import ForgotPassword from "./components/User/ForgotPassword";
 import RegisterStudy from "./components/Student/RegisterStudy";
 import UpdateInfo from "./components/User/UpdateInfo";
+import ScheduleStudyClassrooms from "./components/General/ScheduleStudyClassrooms";
+import Schedule from "./components/Admin/Schedule";
 
 const Tab = createBottomTabNavigator();
 const Stack = createStackNavigator();
@@ -42,6 +44,16 @@ const MyStack = () => {
         name="UpdateInfo"
         options={{ title: "Thông Tin Người Dùng" }}
         component={UpdateInfo}
+      />
+      <Stack.Screen
+        name="ScheduleStudyClassrooms"
+        options={{ title: "Lịch Học" }}
+        component={ScheduleStudyClassrooms}
+      />
+      <Stack.Screen
+        name="Schedule"
+        options={{ title: "Lập Lịch Học" }}
+        component={Schedule}
       />
 
       <Stack.Screen

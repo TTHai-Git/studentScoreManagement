@@ -2,7 +2,6 @@ import { useEffect, useState } from "react";
 import {
   ActivityIndicator,
   Alert,
-  Image,
   RefreshControl,
   ScrollView,
   Text,
@@ -14,6 +13,7 @@ import MyStyle from "../../styles/MyStyle";
 import { Avatar, Button, TextInput } from "react-native-paper";
 import Styles from "../General/Styles";
 import moment from "moment";
+import * as DocumentPicker from "expo-document-picker";
 
 const Comments = ({ navigation, route }) => {
   const topic_id = route.params?.topic_id;
@@ -24,6 +24,7 @@ const Comments = ({ navigation, route }) => {
   const [content, setContent] = useState("");
   const [page, setPage] = useState(1);
   const [refreshing, setRefreshing] = useState(false);
+  const [selectedFiles, setSelectedFiles] = useState([]);
 
   const loadComments = async (reset = false) => {
     if (reset) {
@@ -32,8 +33,8 @@ const Comments = ({ navigation, route }) => {
     if (page > 0) {
       try {
         setLoading(true);
-        let url = `${endpoints["comments"](topic_id)}?page=${page}`;
-        let res = await authApi(token).get(url);
+        const url = `${endpoints["comments"](topic_id)}?page=${page}`;
+        const res = await authApi(token).get(url);
         if (page === 1) {
           setComments(res.data.results);
         } else {
@@ -48,17 +49,58 @@ const Comments = ({ navigation, route }) => {
     }
   };
 
-  const addComment = async () => {
+  const selectFiles = async () => {
     try {
-      let url = `${endpoints["add-comment"](topic_id)}`;
-      let res = await authApi(token).post(url, {
-        content: content,
+      const results = await DocumentPicker.getDocumentAsync({
+        type: "*/*", // Allows all file types
+        multiple: true, // Allow multiple file selection
       });
-      Alert.alert(res.data.message);
+      if (results.canceled !== "true") {
+        console.log(results.assets);
+        setSelectedFiles(results.assets);
+      }
+    } catch (err) {
+      console.log("Error picking files: ", err);
+    }
+  };
+
+  const addComment = async () => {
+    setLoading(true);
+    const formData = new FormData();
+
+    // Append content to the form data
+    formData.append("content", content);
+
+    // Append each selected file to the form data
+    selectedFiles.forEach((file, index) => {
+      formData.append("files", {
+        uri: file.uri,
+        type: file.mimeType || "application/octet-stream",
+        name: file.name || `file-${index}`,
+      });
+    });
+
+    try {
+      const url = `${endpoints["add-comment"](topic_id)}`;
+      const res = await authApi(token).post(url, formData, {
+        headers: {
+          "Content-Type": "multipart/form-data",
+        },
+      });
+      Alert.alert("Success", res.data.message);
       setContent("");
+      setSelectedFiles([]); // Reset selected files after upload
       loadComments(true);
     } catch (ex) {
-      console.error(ex);
+      if (ex.response && ex.response.status === 400) {
+        // Handle the 400 error
+        Alert.alert("Error", ex.response.data.message);
+      } else {
+        // Handle other errors
+        console.log("Unexpected error: ", ex);
+      }
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -92,7 +134,7 @@ const Comments = ({ navigation, route }) => {
 
   return (
     <View style={[MyStyle.container, MyStyle.centerContainer]}>
-      <ScrollView 
+      <ScrollView
         onScroll={loadMore}
         refreshControl={
           <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
@@ -129,6 +171,14 @@ const Comments = ({ navigation, route }) => {
           onChangeText={(t) => setContent(t)}
           style={MyStyle.input}
         />
+        <Button
+          style={MyStyle.button_user}
+          mode="contained"
+          onPress={selectFiles}
+        >
+          Chọn tệp
+        </Button>
+        <Text>{selectedFiles.map((file) => file.name).join(", ")}</Text>
         <Button
           style={MyStyle.button_user}
           mode="contained"
