@@ -113,7 +113,7 @@ class TopicViewSet(viewsets.ViewSet, generics.ListAPIView):
     queryset = Topic.objects.all()
     serializer_class = serializers.TopicSerializer
     pagination_class = pagination.TopicPaginator
-    # parser_classes = [parsers.MultiPartParser]
+    parser_classes = [parsers.MultiPartParser]
 
     def get_permissions(self):
         if self.action == 'add_comment':
@@ -151,8 +151,8 @@ class TopicViewSet(viewsets.ViewSet, generics.ListAPIView):
                 'application/vnd.ms-excel',  # .xla|xls|xlsx|xlt|xlw|xlam|xlsb|xlsm|xltm
                 'application/vnd.ms-powerpoint',
                 'application/zip',  # .zip
-                'application/vnd.rar' # .rar
-                'text/plain', # .txt
+                'application/rar',  # .rar
+                'text/plain',  # .txt
                 'image/jpeg',  # .jpg, .jpeg
                 'image/png',  # .png
                 'image/gif',  # .gif
@@ -166,25 +166,28 @@ class TopicViewSet(viewsets.ViewSet, generics.ListAPIView):
                     return Response({"message": "Nội dung comment không được bỏ trống!!!"},
                                     status=status.HTTP_400_BAD_REQUEST)
 
-                file_urls = []
+                file_urls_names = []
 
                 for file in files:
                     # Check the MIME type of the uploaded file
-                    file_mime_type, _ = mimetypes.guess_type(file.name)
-                    if file_mime_type not in allowed_mime_types:
+                    # file_mime_type, _ = mimetypes.guess_type(file.name)
+                    if file.content_type not in allowed_mime_types:
                         return Response({"message": f"Loại tệp {file.name} không được phép!!!"},
                                         status=status.HTTP_400_BAD_REQUEST)
 
                     # Upload the file to Cloudinary
                     upload_response = cloudinary.uploader.upload(file, resource_type='auto')
-                    file_urls.append(upload_response['secure_url'])
+                    file_urls_names.append({
+                        "url": upload_response['secure_url'],
+                        "name": file.name
+                    })
 
-                # Create the comment, including the file URLs if present
+                # Create the comment
                 comment = Comment.objects.create(content=content, user=user, topic=topic)
 
-                # Assuming you have a related model or a JSONField to store multiple file URLs
-                for url in file_urls:
-                    CommentFile.objects.create(comment=comment, file_url=url)
+                # Store the file URLs and names if present
+                for url_name in file_urls_names:
+                    CommentFile.objects.create(comment=comment, file_url=url_name["url"], file_name=url_name["name"])
 
                 return Response({"message": f'Thêm bình luận vào {topic.title} thành công!'},
                                 status=status.HTTP_201_CREATED)
@@ -214,6 +217,23 @@ class TopicViewSet(viewsets.ViewSet, generics.ListAPIView):
         return Response(serializers.CommentSerializer(comments, many=True).data, status=status.HTTP_200_OK)
 
 
+class CommentViewSet(viewsets.ViewSet, viewsets.generics.RetrieveAPIView):
+    queryset = Comment.objects.filter(active=True)
+    serializers_class = serializers.CommentSerializer
+
+    @action(methods=['get'], url_path='files', detail=True)
+    def get_files_of_comment(self, request, pk):
+        comment = self.get_object()
+        comment_files = comment.files.prefetch_related('comment')
+        return Response(serializers.CommentFileSerializer(comment_files, many=True).data, status=status.HTTP_200_OK)
+
+
+class CommentFileViewSet(viewsets.ViewSet, viewsets.generics.ListAPIView):
+    queryset = CommentFile.objects.all()
+    serializer_class = serializers.CommentFileSerializer
+    pagination_class = pagination.CommentFilePaginator
+
+
 class ScheduleViewSet(viewsets.ViewSet, viewsets.generics.ListAPIView):
     queryset = Schedule.objects.filter(active=True)
     serializer_class = serializers. ScheduleSerializer
@@ -223,7 +243,7 @@ class StudyClassRoomViewSet(viewsets.ViewSet, viewsets.generics.ListAPIView, vie
     queryset = StudyClassRoom.objects.filter(active=True)
     serializer_class = serializers.StudyClassRoomSerializer
     pagination_class = pagination.StudyClassRoomPaginator
-    # parser_classes = [parsers.MultiPartParser]
+    parser_classes = [parsers.MultiPartParser]
 
     def get_queryset(self):
         teacher = self.request.user

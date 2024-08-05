@@ -25,6 +25,10 @@ class CommentPaginator(pagination.PageNumberPagination):
     page_size = 10
 
 
+class CommentFilePaginator(pagination.PageNumberPagination):
+    page_size = 10
+
+
 class TopicPaginator(pagination.PageNumberPagination):
     page_size = 10
 

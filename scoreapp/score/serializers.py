@@ -173,6 +173,13 @@ class CommentSerializer(serializers.ModelSerializer):
         fields = ['topic_id', 'topic_title', 'id', 'content', 'created_date', 'updated_date', 'user']
 
 
+class CommentFileSerializer(serializers.ModelSerializer):
+    comment_id = serializers.IntegerField(source='comment.id')
+    class Meta:
+        model = CommentFile
+        fields = ['id', 'file_url', 'file_name', 'comment_id']
+
+
 class StudentsOfStudyClassRoom(serializers.ModelSerializer):
     student_name = serializers.SerializerMethodField()
     student_code = serializers.CharField(source='student.code')

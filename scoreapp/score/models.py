@@ -167,8 +167,9 @@ class Comment(Interaction):
 
 
 class CommentFile(models.Model):
-    comment = models.ForeignKey(Comment, on_delete=models.CASCADE, related_name='files')
     file_url = models.URLField(max_length=200, null=True)
+    file_name = models.CharField(max_length=50, null=True)
+    comment = models.ForeignKey(Comment, on_delete=models.CASCADE, related_name='files')
 
 
 class ScoreColumn(models.Model):

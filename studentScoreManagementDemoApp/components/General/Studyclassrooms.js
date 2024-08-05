@@ -14,6 +14,8 @@ import {
   Modal,
   Portal,
   Provider,
+  Card,
+  Paragraph,
 } from "react-native-paper";
 import MyStyle from "../../styles/MyStyle";
 import Styles from "../General/Styles";
@@ -44,7 +46,6 @@ const StudyClassRooms = ({ navigation, route }) => {
           )}?page=${page}`;
         }
         let res = await authApi(token).get(url);
-        console.log(res.data);
         if (page === 1) {
           setStudyClassRooms(res.data.results);
         } else {
@@ -87,14 +88,6 @@ const StudyClassRooms = ({ navigation, route }) => {
     });
   };
 
-  // const goChatRoom = () => {
-  //   navigation.navigate("Chat", {
-  //     studyclassroom_id: studyclassroom_id,
-  //     token: token,
-  //     user: user,
-  //   });
-  // };
-
   const goListStudentScores = () => {
     navigation.navigate("ListStudentScores", {
       studyclassroom_id: studyclassroom_id,
@@ -126,106 +119,105 @@ const StudyClassRooms = ({ navigation, route }) => {
   return (
     <Provider>
       <View style={MyStyle.container}>
-        <View>
-          <Portal>
-            <Modal
-              visible={visible}
-              onDismiss={hideModal}
-              contentContainerStyle={MyStyle.modal}
-            >
-              <View>
-                {user.role === "teacher" ? (
-                  <>
-                    <Button
-                      style={MyStyle.button_user}
-                      mode="contained"
-                      onPress={goListStudents}
-                    >
-                      Xem danh sách sinh viên
-                    </Button>
-                    <Button
-                      style={MyStyle.button_user}
-                      mode="contained"
-                      onPress={goListStudentScores}
-                    >
-                      Quản lý điểm
-                    </Button>
-                    <Button
-                      style={MyStyle.button_user}
-                      mode="contained"
-                      onPress={goTopics}
-                    >
-                      Diễn đàn
-                    </Button>
-                    <Button
-                      style={MyStyle.button_user}
-                      mode="contained"
-                      onPress={goNewSchedule}
-                    >
-                      Tạo Lịch học
-                    </Button>
-                  </>
-                ) : (
-                  <>
-                    <Button
-                      style={MyStyle.button_user}
-                      mode="contained"
-                      onPress={goTopics}
-                    >
-                      Diễn đàn
-                    </Button>
-                  </>
-                )}
-              </View>
-            </Modal>
-          </Portal>
-          {studyClassRooms.length > 0 ? (
-            <ScrollView
-              onScroll={loadMore}
-              scrollEventThrottle={400}
-              refreshControl={
-                <RefreshControl
-                  refreshing={loading}
-                  onRefresh={loadStudyClassRooms}
-                />
-              }
-            >
-              {studyClassRooms.map((c) => (
-                <TouchableOpacity
-                  key={c.id}
-                  onPress={() => {
-                    showModal();
-                    setStudyClassroom_id(c.id);
-                  }}
-                >
-                  <View style={Styles.class}>
-                    <Text style={Styles.text_class}>Lớp: {c.name}</Text>
-                    <Text style={Styles.text_class}>Môn: {c.subject_name}</Text>
-                    <Text style={Styles.text_class}>Nhóm: {c.group_name}</Text>
-                    <Text style={Styles.text_class}>
-                      Học kỳ: {c.semester_name}
-                    </Text>
-                    <Text style={Styles.text_class}>
-                      Năm Học: {c.semester_year}
-                    </Text>
-                    <Text style={Styles.text_class}>
-                      Giảng viên: {c.teacher_name}
-                    </Text>
-                    <Text style={Styles.text_class}>
-                      Ngày Bắt Đầu: {c.started_date}
-                    </Text>
-                    <Text style={Styles.text_class}>
-                      Ngày Kết Thúc: {c.ended_date}
-                    </Text>
-                  </View>
-                </TouchableOpacity>
-              ))}
-              {loading && page > 1 && <ActivityIndicator />}
-            </ScrollView>
-          ) : (
+        <Portal>
+          <Modal
+            visible={visible}
+            onDismiss={hideModal}
+            contentContainerStyle={MyStyle.modal}
+          >
+            <View>
+              {user.role === "teacher" ? (
+                <>
+                  <Button
+                    style={MyStyle.button_user}
+                    mode="contained"
+                    onPress={goListStudents}
+                  >
+                    Xem danh sách sinh viên
+                  </Button>
+                  <Button
+                    style={MyStyle.button_user}
+                    mode="contained"
+                    onPress={goListStudentScores}
+                  >
+                    Quản lý điểm
+                  </Button>
+                  <Button
+                    style={MyStyle.button_user}
+                    mode="contained"
+                    onPress={goTopics}
+                  >
+                    Diễn đàn
+                  </Button>
+                  <Button
+                    style={MyStyle.button_user}
+                    mode="contained"
+                    onPress={goNewSchedule}
+                  >
+                    Tạo Lịch học
+                  </Button>
+                </>
+              ) : (
+                <>
+                  <Button
+                    style={MyStyle.button_user}
+                    mode="contained"
+                    onPress={goTopics}
+                  >
+                    Diễn đàn
+                  </Button>
+                </>
+              )}
+            </View>
+          </Modal>
+        </Portal>
+
+        {studyClassRooms.length > 0 ? (
+          <ScrollView
+            onScroll={loadMore}
+            scrollEventThrottle={400}
+            refreshControl={
+              <RefreshControl
+                refreshing={loading}
+                onRefresh={() => {
+                  setPage(1);
+                  loadStudyClassRooms();
+                }}
+              />
+            }
+          >
+            {studyClassRooms.map((c) => (
+              <TouchableOpacity
+                key={c.id}
+                onPress={() => {
+                  showModal();
+                  setStudyClassroom_id(c.id);
+                }}
+              >
+                <Card style={{ marginBottom: 10 }}>
+                  <Card.Content>
+                    <List.Item
+                      title={`Lớp: ${c.name}`}
+                      description={`Môn: ${c.subject_name}`}
+                      left={(props) => <List.Icon {...props} icon="school" />}
+                    />
+                    <Paragraph>Nhóm: {c.group_name}</Paragraph>
+                    <Paragraph>Học kỳ: {c.semester_name}</Paragraph>
+                    <Paragraph>Năm Học: {c.semester_year}</Paragraph>
+                    <Paragraph>Giảng viên: {c.teacher_name}</Paragraph>
+                    <Paragraph>Ngày Bắt Đầu: {c.started_date}</Paragraph>
+                    <Paragraph>Ngày Kết Thúc: {c.ended_date}</Paragraph>
+                  </Card.Content>
+                </Card>
+              </TouchableOpacity>
+            ))}
+            {loading && page > 1 && <ActivityIndicator />}
+          </ScrollView>
+        ) : (
+          <View style={Styles.centered}>
             <Text>Không tìm thấy lớp học nào!!!</Text>
-          )}
-        </View>
+          </View>
+        )}
       </View>
     </Provider>
   );

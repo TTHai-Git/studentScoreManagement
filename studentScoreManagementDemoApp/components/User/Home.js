@@ -1,5 +1,5 @@
 import React, { useContext, useState } from "react";
-import { View, Text, Alert, Image } from "react-native";
+import { View, Text, Alert, Image, ActivityIndicator } from "react-native";
 import { Button, Avatar } from "react-native-paper";
 import Icon from "react-native-vector-icons/FontAwesome";
 import * as ImagePicker from "expo-image-picker";
@@ -16,8 +16,6 @@ const Home = ({ navigation, route }) => {
   const token = route.params?.token;
   const [loading, setLoading] = useState(false);
   const [selectedImage, setSelectedImage] = useState(null);
-
-  // console.log(user.avatar)
 
   const updateState = (field, value) => {
     dispatch({ type: "updateUser", payload: { field, value } });
@@ -61,14 +59,14 @@ const Home = ({ navigation, route }) => {
         );
 
         if (res.status === 200) {
-          Alert.alert(res.data.message);
+          Alert.alert("Avatar updated successfully!");
           updateState("avatar", selectedAsset.uri);
         } else {
-          Alert.alert("Upload Avatar thất bại!!!");
+          Alert.alert("Failed to upload avatar. Please try again!");
         }
       } catch (ex) {
         console.error(ex);
-        Alert.alert("Có lỗi xảy ra. Vui lòng thử lại!");
+        Alert.alert("An error occurred. Please try again later!");
       } finally {
         setLoading(false);
       }
@@ -199,26 +197,28 @@ const Home = ({ navigation, route }) => {
   return (
     <View style={[MyStyle.container, MyStyle.centerContainer]}>
       <View style={Styles.avatar}>
-        {selectedImage === null ? (
-          <>
-            <View style={{ borderWidth: 5, borderRadius: 150 }}>
-              {user.avatar && (
-                <Avatar.Image size={150} source={{ uri: user.avatar }} />
-              )}
-            </View>
-          </>
+        {loading ? (
+          <ActivityIndicator size="large" color="#0000ff" />
         ) : (
           <>
-            <View>
-              {user.avatar && (
-                <Avatar.Image size={150} source={{ uri: selectedImage }} />
-              )}
-            </View>
+            {selectedImage ? (
+              <Avatar.Image size={150} source={{ uri: selectedImage }} />
+            ) : (
+              user.avatar && (
+                <View style={{ borderWidth: 5, borderRadius: 150 }}>
+                  <Avatar.Image size={150} source={{ uri: user.avatar }} />
+                </View>
+              )
+            )}
+            <Button
+              style={Styles.avatar_button}
+              mode="contained"
+              onPress={picker}
+            >
+              <Icon name="camera" size={20} color="#000" />
+            </Button>
           </>
         )}
-        <Button style={Styles.avatar_button} mode="contained" onPress={picker}>
-          <Icon name="camera" size={20} color="#000" />
-        </Button>
       </View>
       <View style={Styles.info}>
         <Text style={Styles.text_name}>

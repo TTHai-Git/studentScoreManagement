@@ -46,6 +46,7 @@ export const endpoints = {
     `/studyclassrooms/${studyclassroom_id}/topics`,
 
   comments: (topic_id) => `/topics/${topic_id}/comments/`,
+  commentfiles: "/commentfiles/",
   "add-topic": (studyclassroom_id) =>
     `/studyclassrooms/${studyclassroom_id}/add-topic/`,
   "add-comment": (topic_id) => `/topics/${topic_id}/add-comment/`,

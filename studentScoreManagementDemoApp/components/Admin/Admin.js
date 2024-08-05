@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react"; 
+import { useEffect, useState } from "react";
 import {
   View,
   Text,
@@ -158,8 +158,12 @@ const Admin = () => {
       if (res.status === 201) {
         // Đăng ký thành công, tiến hành đăng ký với Firebase
         try {
-          if (user.email !== '' && user.password !== '') {
-            const userCredentital = await createUserWithEmailAndPassword(auth, user.email, user.password);
+          if (user.email !== "" && user.password !== "") {
+            const userCredentital = await createUserWithEmailAndPassword(
+              auth,
+              user.email,
+              user.password
+            );
             const userFire = userCredentital.user;
 
             await setDoc(doc(database, "users", userFire.uid), {
@@ -168,14 +172,16 @@ const Admin = () => {
               avatar: user.avatar,
               name: `${user.last_name} ${user.first_name}`,
               role: user.role,
-            })
+            });
           }
 
           // Hiển thị thông báo thành công và điều hướng sau khi Firebase đăng ký thành công
           Alert.alert("Đăng ký giảng viên thành công!!!");
         } catch (error) {
           console.error("Đăng ký Firebase thất bại:", error);
-          Alert.alert("Đăng ký thành công, nhưng không thể đăng ký với Firebase. Vui lòng thử lại!");
+          Alert.alert(
+            "Đăng ký thành công, nhưng không thể đăng ký với Firebase. Vui lòng thử lại!"
+          );
         }
       } else {
         Alert.alert("Đăng ký thất bại!!!");
@@ -240,7 +246,7 @@ const Admin = () => {
               }}
               onPress={picker}
             >
-              <Text style={{ color: "#000", fontSize: 15}}>
+              <Text style={{ color: "#000", fontSize: 15 }}>
                 Chọn ảnh đại diện
               </Text>
             </Button>
@@ -256,7 +262,7 @@ const Admin = () => {
             </HelperText> */}
 
             <Button
-              style={{marginTop: 30}}
+              style={{ marginTop: 30 }}
               icon="account"
               loading={loading}
               mode="contained"

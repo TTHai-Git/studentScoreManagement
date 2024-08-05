@@ -52,6 +52,7 @@ admin.site.register(Group)
 admin.site.register(Semester)
 admin.site.register(Topic)
 admin.site.register(Comment)
+admin.site.register(CommentFile)
 admin.site.register(Subject, MySubjectAdmin)
 
 

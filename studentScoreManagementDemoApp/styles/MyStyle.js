@@ -50,6 +50,6 @@ export default StyleSheet.create({
   },
   input: {
     backgroundColor: "#fff",
-    borderWidth: 2
+    borderWidth: 2,
   },
 });

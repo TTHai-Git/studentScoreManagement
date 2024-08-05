@@ -10,7 +10,15 @@ import {
 } from "react-native";
 import { authApi, endpoints } from "../../configs/APIs";
 import MyStyle from "../../styles/MyStyle";
-import { Button, Modal, Portal, Provider, TextInput } from "react-native-paper";
+import {
+  Button,
+  Modal,
+  Portal,
+  Provider,
+  TextInput,
+  Dialog,
+  Paragraph,
+} from "react-native-paper";
 import Styles from "../General/Styles";
 import moment from "moment";
 
@@ -24,6 +32,9 @@ const Topics = ({ navigation, route }) => {
   const [title, setTitle] = useState("");
   const [page, setPage] = useState(1);
   const [refreshing, setRefreshing] = useState(false);
+  const [confirmVisible, setConfirmVisible] = useState(false);
+  const [selectedTopicId, setSelectedTopicId] = useState(null);
+  const [actionType, setActionType] = useState(null);
 
   const loadTopics = async () => {
     if (page > 0) {
@@ -31,7 +42,6 @@ const Topics = ({ navigation, route }) => {
         setLoading(true);
         let url = `${endpoints["get-topics"](studyclassroom_id)}?page=${page}`;
         let res = await authApi(token).get(url);
-        console.log(res.data.results);
         if (page === 1) {
           setTopics(res.data.results);
         } else if (page > 1) {
@@ -68,13 +78,27 @@ const Topics = ({ navigation, route }) => {
     loadTopics();
   }, [page]);
 
+  const confirmAction = (topic_id, action) => {
+    setSelectedTopicId(topic_id);
+    setActionType(action);
+    setConfirmVisible(true);
+  };
+
+  const handleConfirmAction = async () => {
+    setConfirmVisible(false);
+    if (actionType === "lockUnlock") {
+      await LockOrUnlockTopic(selectedTopicId);
+    } else if (actionType === "add") {
+      await addTopic();
+    }
+  };
+
   const LockOrUnlockTopic = async (topic_id) => {
     try {
       let url = `${endpoints["lock-or-unlock-topic"](topic_id)}`;
       let res = await authApi(token).patch(url);
       console.log(res.data.message);
       Alert.alert(res.data.message);
-      // Reload topics to update status
       setPage(1);
     } catch (ex) {
       console.log(ex);
@@ -82,6 +106,10 @@ const Topics = ({ navigation, route }) => {
   };
 
   const addTopic = async () => {
+    if (title.trim().length === 0) {
+      Alert.alert("Error", "Topic title cannot be empty");
+      return;
+    }
     try {
       let url = `${endpoints["add-topic"](studyclassroom_id)}`;
       let res = await authApi(token).post(url, {
@@ -89,7 +117,6 @@ const Topics = ({ navigation, route }) => {
       });
       console.log(res.data.message);
       Alert.alert(res.data.message);
-      // Reload topics to include the new topic
       setTitle("");
       setPage(1);
     } catch (ex) {
@@ -126,38 +153,23 @@ const Topics = ({ navigation, route }) => {
               }
             >
               <View style={Styles.topic}>
-                <Text>Tiêu đề: {c.title}</Text>
-                <Text>Ngày tạo: {moment(c.created_date).fromNow()}</Text>
-                {c.active ? (
-                  <>
-                    <Text>Tình trạng: Đang mở khóa</Text>
-                    {user.role === "teacher" && (
-                      <View style={{ alignItems: "flex-end" }}>
-                        <Button
-                          style={[MyStyle.button_user, Styles.button_topic]}
-                          mode="contained"
-                          onPress={() => LockOrUnlockTopic(c.id)}
-                        >
-                          Khóa diễn đàn
-                        </Button>
-                      </View>
-                    )}
-                  </>
-                ) : (
-                  <>
-                    <Text>Tình trạng: Đang khóa</Text>
-                    {user.role === "teacher" && (
-                      <View style={{ alignItems: "flex-end" }}>
-                        <Button
-                          style={[MyStyle.button_user, Styles.button_topic]}
-                          mode="contained"
-                          onPress={() => LockOrUnlockTopic(c.id)}
-                        >
-                          Mở khóa diễn đàn
-                        </Button>
-                      </View>
-                    )}
-                  </>
+                <Text style={Styles.topicTitle}>Tiêu đề: {c.title}</Text>
+                <Text style={Styles.topicDate}>
+                  Ngày tạo: {moment(c.created_date).fromNow()}
+                </Text>
+                <Text style={Styles.topicStatus}>
+                  Tình trạng: {c.active ? "Đang mở khóa" : "Đang khóa"}
+                </Text>
+                {user.role === "teacher" && (
+                  <View style={{ alignItems: "flex-end" }}>
+                    <Button
+                      style={[MyStyle.button_user, Styles.button_topic]}
+                      mode="contained"
+                      onPress={() => confirmAction(c.id, "lockUnlock")}
+                    >
+                      {c.active ? "Khóa diễn đàn" : "Mở khóa diễn đàn"}
+                    </Button>
+                  </View>
                 )}
               </View>
             </TouchableOpacity>
@@ -165,25 +177,43 @@ const Topics = ({ navigation, route }) => {
           {loading && page > 1 && <ActivityIndicator />}
         </ScrollView>
         {user.role === "teacher" && (
-          <>
-            <View style={Styles.addTopic_Comment}>
-              <TextInput
-                placeholder="Nhập tên diễn đàn"
-                value={title}
-                onChangeText={(t) => setTitle(t)}
-                style={MyStyle.input}
-              />
-              <Button
-                style={MyStyle.button_user}
-                mode="contained"
-                onPress={addTopic}
-              >
-                {" "}
-                Thêm diễn đàn{" "}
-              </Button>
-            </View>
-          </>
+          <View style={Styles.addTopic_Comment}>
+            <TextInput
+              placeholder="Nhập tên diễn đàn"
+              value={title}
+              onChangeText={(t) => setTitle(t)}
+              style={MyStyle.input}
+            />
+            <Button
+              style={MyStyle.button_user}
+              mode="contained"
+              onPress={() => confirmAction(null, "add")}
+            >
+              Thêm diễn đàn
+            </Button>
+          </View>
         )}
+
+        {/* Confirmation Dialog */}
+        <Portal>
+          <Dialog
+            visible={confirmVisible}
+            onDismiss={() => setConfirmVisible(false)}
+          >
+            <Dialog.Title>Confirmation</Dialog.Title>
+            <Dialog.Content>
+              <Paragraph>
+                {actionType === "lockUnlock"
+                  ? "Are you sure you want to change the topic status?"
+                  : "Are you sure you want to add this topic?"}
+              </Paragraph>
+            </Dialog.Content>
+            <Dialog.Actions>
+              <Button onPress={() => setConfirmVisible(false)}>Cancel</Button>
+              <Button onPress={handleConfirmAction}>Yes</Button>
+            </Dialog.Actions>
+          </Dialog>
+        </Portal>
       </View>
     </Provider>
   );
