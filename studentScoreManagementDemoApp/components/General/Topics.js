@@ -33,8 +33,10 @@ const Topics = ({ navigation, route }) => {
   const [page, setPage] = useState(1);
   const [refreshing, setRefreshing] = useState(false);
   const [confirmVisible, setConfirmVisible] = useState(false);
-  const [selectedTopicId, setSelectedTopicId] = useState(null);
-  const [actionType, setActionType] = useState(null);
+  const [dialogState, setDialogState] = useState({
+    topicId: null,
+    action: null,
+  });
 
   const loadTopics = async () => {
     if (page > 0) {
@@ -42,11 +44,9 @@ const Topics = ({ navigation, route }) => {
         setLoading(true);
         let url = `${endpoints["get-topics"](studyclassroom_id)}?page=${page}`;
         let res = await authApi(token).get(url);
-        if (page === 1) {
-          setTopics(res.data.results);
-        } else if (page > 1) {
-          setTopics((current) => [...current, ...res.data.results]);
-        }
+        setTopics((prevTopics) =>
+          page === 1 ? res.data.results : [...prevTopics, ...res.data.results]
+        );
         if (res.data.next === null) setPage(0);
       } catch (ex) {
         console.error(ex);
@@ -79,16 +79,16 @@ const Topics = ({ navigation, route }) => {
   }, [page]);
 
   const confirmAction = (topic_id, action) => {
-    setSelectedTopicId(topic_id);
-    setActionType(action);
+    setDialogState({ topicId: topic_id, action: action });
     setConfirmVisible(true);
   };
 
   const handleConfirmAction = async () => {
     setConfirmVisible(false);
-    if (actionType === "lockUnlock") {
-      await LockOrUnlockTopic(selectedTopicId);
-    } else if (actionType === "add") {
+    const { topicId, action } = dialogState;
+    if (action === "lockUnlock") {
+      await LockOrUnlockTopic(topicId);
+    } else if (action === "add") {
       await addTopic();
     }
   };
@@ -112,9 +112,7 @@ const Topics = ({ navigation, route }) => {
     }
     try {
       let url = `${endpoints["add-topic"](studyclassroom_id)}`;
-      let res = await authApi(token).post(url, {
-        title: title,
-      });
+      let res = await authApi(token).post(url, { title });
       console.log(res.data.message);
       Alert.alert(res.data.message);
       setTitle("");
@@ -134,48 +132,54 @@ const Topics = ({ navigation, route }) => {
   return (
     <Provider>
       <View style={[MyStyle.container, MyStyle.centerContainer]}>
-        <ScrollView
-          style={{ width: "100%", padding: 10 }}
-          onScroll={loadMore}
-          refreshControl={
-            <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
-          }
-        >
-          {loading && page === 1 && <ActivityIndicator />}
-          {topics.map((c) => (
-            <TouchableOpacity
-              key={c.id}
-              onPress={() =>
-                navigation.navigate("Comments", {
-                  token: token,
-                  topic_id: c.id,
-                })
-              }
-            >
-              <View style={Styles.topic}>
-                <Text style={Styles.topicTitle}>Tiêu đề: {c.title}</Text>
-                <Text style={Styles.topicDate}>
-                  Ngày tạo: {moment(c.created_date).fromNow()}
-                </Text>
-                <Text style={Styles.topicStatus}>
-                  Tình trạng: {c.active ? "Đang mở khóa" : "Đang khóa"}
-                </Text>
-                {user.role === "teacher" && (
-                  <View style={{ alignItems: "flex-end" }}>
-                    <Button
-                      style={[MyStyle.button_user, Styles.button_topic]}
-                      mode="contained"
-                      onPress={() => confirmAction(c.id, "lockUnlock")}
-                    >
-                      {c.active ? "Khóa diễn đàn" : "Mở khóa diễn đàn"}
-                    </Button>
-                  </View>
-                )}
-              </View>
-            </TouchableOpacity>
-          ))}
-          {loading && page > 1 && <ActivityIndicator />}
-        </ScrollView>
+        {topics.length === 0 ? (
+          <>
+            <Text>Chưa có diễn đàn nào được tạo</Text>
+          </>
+        ) : (
+          <ScrollView
+            style={{ width: "100%", padding: 10 }}
+            onScroll={loadMore}
+            refreshControl={
+              <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
+            }
+          >
+            {loading && page === 1 && <ActivityIndicator />}
+            {topics.map((c) => (
+              <TouchableOpacity
+                key={c.id}
+                onPress={() =>
+                  navigation.navigate("Comments", {
+                    token: token,
+                    topic_id: c.id,
+                  })
+                }
+              >
+                <View style={Styles.topic}>
+                  <Text style={Styles.topicTitle}>Tiêu đề: {c.title}</Text>
+                  <Text style={Styles.topicDate}>
+                    Ngày tạo: {moment(c.created_date).fromNow()}
+                  </Text>
+                  <Text style={Styles.topicStatus}>
+                    Tình trạng: {c.active ? "Đang mở khóa" : "Đang khóa"}
+                  </Text>
+                  {user.role === "teacher" && (
+                    <View style={{ alignItems: "flex-end" }}>
+                      <Button
+                        style={[MyStyle.button_user, Styles.button_topic]}
+                        mode="contained"
+                        onPress={() => confirmAction(c.id, "lockUnlock")}
+                      >
+                        {c.active ? "Khóa diễn đàn" : "Mở khóa diễn đàn"}
+                      </Button>
+                    </View>
+                  )}
+                </View>
+              </TouchableOpacity>
+            ))}
+            {loading && page > 1 && <ActivityIndicator />}
+          </ScrollView>
+        )}
         {user.role === "teacher" && (
           <View style={Styles.addTopic_Comment}>
             <TextInput
@@ -193,7 +197,6 @@ const Topics = ({ navigation, route }) => {
             </Button>
           </View>
         )}
-
         {/* Confirmation Dialog */}
         <Portal>
           <Dialog
@@ -203,7 +206,7 @@ const Topics = ({ navigation, route }) => {
             <Dialog.Title>Confirmation</Dialog.Title>
             <Dialog.Content>
               <Paragraph>
-                {actionType === "lockUnlock"
+                {dialogState.action === "lockUnlock"
                   ? "Are you sure you want to change the topic status?"
                   : "Are you sure you want to add this topic?"}
               </Paragraph>

@@ -102,8 +102,8 @@ const Comments = ({ navigation, route }) => {
           const fileSizeInMB = file.size / (1024 * 1024); // Convert bytes to MB
           if (fileSizeInMB > 2) {
             Alert.alert(
-              "File too large",
-              `${file.name} is larger than 2MB and won't be selected.`
+              "Dung lượng File quá lớn",
+              `${file.name} lớn hơn 2MB và sẽ không được chọn!!!`
             );
             return false;
           }
@@ -234,45 +234,49 @@ const Comments = ({ navigation, route }) => {
 
   return (
     <View style={[MyStyle.container, { padding: 10 }]}>
-      <ScrollView
-        onScroll={loadMore}
-        refreshControl={
-          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
-        }
-      >
-        {loading && page === 1 && <ActivityIndicator />}
-        {comments.map((c) => (
-          <Card key={c.id} style={{ marginBottom: 10 }}>
-            <Card.Title
-              title={`${c.user.last_name} ${c.user.first_name}`}
-              subtitle={moment(c.created_date).fromNow()}
-              left={(props) => (
-                <Avatar.Image
-                  {...props}
-                  size={40}
-                  source={{ uri: c.user.avatar }}
-                />
-              )}
-            />
-            <Card.Content>
-              <Text style={{ marginBottom: 10 }}>{c.content}</Text>
-              {commentfiles
-                .filter((cf) => cf.comment_id === c.id)
-                .map((cf) => (
-                  <Button
-                    key={cf.id}
-                    icon="file-download"
-                    mode="outlined"
-                    onPress={() => downloadFile(cf.file_url, cf.file_name)}
-                  >
-                    {cf.file_name}
-                  </Button>
-                ))}
-            </Card.Content>
-          </Card>
-        ))}
-        {loading && page > 1 && <ActivityIndicator />}
-      </ScrollView>
+      {comments.length > 0 ? (
+        <ScrollView
+          onScroll={loadMore}
+          refreshControl={
+            <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
+          }
+        >
+          {comments.map((c) => (
+            <Card key={c.id} style={{ marginBottom: 10 }}>
+              <Card.Title
+                title={`${c.user.last_name} ${c.user.first_name}`}
+                subtitle={moment(c.created_date).fromNow()}
+                left={(props) => (
+                  <Avatar.Image
+                    {...props}
+                    size={40}
+                    source={{ uri: c.user.avatar }}
+                  />
+                )}
+              />
+              <Card.Content>
+                <Text style={{ marginBottom: 10 }}>{c.content}</Text>
+                {commentfiles
+                  .filter((cf) => cf.comment_id === c.id)
+                  .map((cf) => (
+                    <Button
+                      key={cf.id}
+                      icon="file-download"
+                      mode="outlined"
+                      onPress={() => downloadFile(cf.file_url, cf.file_name)}
+                    >
+                      {cf.file_name}
+                    </Button>
+                  ))}
+              </Card.Content>
+            </Card>
+          ))}
+          {loading && page > 1 && <ActivityIndicator />}
+        </ScrollView>
+      ) : (
+        <Text>Chưa có bình luận nào trong diễn đàn này</Text>
+      )}
+
       <View
         style={[
           Styles.addTopic_Comment,

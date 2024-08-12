@@ -12,18 +12,12 @@ import APIs, { authApi, endpoints } from "../../configs/APIs";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useNavigation } from "@react-navigation/native";
 import { MyDispatchContext } from "../../configs/Contexts";
-import Styles from "../User/Styles";
 import { signInWithEmailAndPassword } from "firebase/auth";
 import { auth } from "../../configs/Firebase";
-import Constants from "expo-constants";
-import {
-  CLIENT_ID_HOANG,
-  CLIENT_SECRET_HOANG,
-  CLIENT_ID_HAI,
-  CLIENT_SECRET_HAI,
-} from "@env";
+import Styles from "../User/Styles";
+import { CLIENT_ID_HAI, CLIENT_SECRET_HAI } from "@env";
 
-const Login = ({ route }) => {
+const Login = () => {
   const [user, setUser] = useState({
     username: "DHThanh",
     password: "1234567890",
@@ -33,6 +27,10 @@ const Login = ({ route }) => {
     username: "",
     password: "",
   });
+  const [loading, setLoading] = useState(false);
+
+  const nav = useNavigation();
+  const dispatch = useContext(MyDispatchContext);
 
   const fields = [
     {
@@ -46,10 +44,6 @@ const Login = ({ route }) => {
       secureTextEntry: passwordVisible,
     },
   ];
-
-  const [loading, setLoading] = useState(false);
-  const nav = useNavigation();
-  const dispatch = useContext(MyDispatchContext);
 
   const updateState = (field, value) => {
     setUser((current) => ({ ...current, [field]: value }));
@@ -83,26 +77,10 @@ const Login = ({ route }) => {
 
     try {
       const res = await APIs.post(endpoints["login"], {
-        // ...user,
-        // client_id: CLIENT_ID_HOANG,
-        // client_secret: CLIENT_SECRET_HOANG,
-        // grant_type: "password",
-
         ...user,
         client_id: CLIENT_ID_HAI,
         client_secret: CLIENT_SECRET_HAI,
         grant_type: "password",
-
-        // ...user,
-        // client_id: "69KTFKKaC78YxaSoX0ws8yGEgu58ZXNIBiWuDuvI",
-        // client_secret: "JHeq6IIvPTBmCBJ3MAmGkcNbMmZQ4PoqctbCLuxGRSQaYFQDs4tHI7bPKqUf3TMKf7U3YUdP9IGlHCDJABRchql6XfBpHkn1R6pcNYMDyEoS54id9IiXXYyx7O9m4GP7",
-        // grant_type: "password",
-
-        // ...user,
-        // client_id: "3jFUdqJsKwnhj1X5wf5WihTyp2g7mfdWp6V3mhl5",
-        // client_secret:
-        //   "3FJlILnIxptAwsnoQxSUcltQzwLhV87sEXbVRkrsMlJbM3aZjNy90o6VqNtGwNzK9y09NQBqIlVGn8fi3Cnq7ZnRDXNo8f7NsyQQTyVTfJpzbMEePYsSV97NMXBDZZnt",
-        // grant_type: "password",
       });
 
       await AsyncStorage.setItem("token", res.data.access_token);
@@ -116,23 +94,22 @@ const Login = ({ route }) => {
         payload: userRes.data,
       });
 
-      // if (userRes.data.email && user.password) {
-      //   try {
-      //     await signInWithEmailAndPassword(
-      //       auth,
-      //       userRes.data.email,
-      //       user.password
-      //     );
-      //     console.log("Đăng nhập Firebase thành công");
-      //     // Điều hướng đến trang Home với thông tin người dùng đã được cập nhật
-      //   } catch (err) {
-      //     console.error("Đăng nhập Firebase thất bại: ", err);
-      //     Alert.alert("Đăng Nhập Thất Bại", "Đăng nhập Firebase thất bại");
-      //   }
-      // } else {
-      //   // Nếu không có email hoặc password, thông báo lỗi và không điều hướng đến trang Home
-      //   Alert.alert("Đăng Nhập Thất Bại", "Sai username hoặc password");
-      // }
+      if (userRes.data.email && user.password) {
+        try {
+          await signInWithEmailAndPassword(
+            auth,
+            userRes.data.email,
+            user.password
+          );
+          console.log("Đăng nhập Firebase thành công");
+        } catch (err) {
+          console.error("Đăng nhập Firebase thất bại: ", err);
+          Alert.alert("Đăng Nhập Thất Bại", "Đăng nhập Firebase thất bại");
+        }
+      } else {
+        Alert.alert("Đăng Nhập Thất Bại", "Sai username hoặc password");
+      }
+
       nav.navigate("Home", {
         token: res.data.access_token,
         user: userRes.data,
@@ -146,23 +123,25 @@ const Login = ({ route }) => {
   };
 
   const sendOtp = async () => {
-    let valid = true;
-    let newErrors = { username: "", password: "" };
     if (!user.username) {
-      newErrors.username = "Username không được để trống";
-      valid = false;
+      setErrors((current) => ({
+        ...current,
+        username: "Username không được để trống",
+      }));
+      return;
     }
+
     try {
       const res = await APIs.post(
         endpoints["send-otp"],
-        { username: user.username }, // Body
+        { username: user.username },
         {
           headers: {
             "Content-Type": "multipart/form-data",
           },
         }
       );
-      console.info(res.data.message);
+
       if (
         res.data.message ===
         "GỬI TOKEN RESET PASSWORD THẤT BẠI!!! NGƯỜI DÙNG KHÔNG TỒN TẠI"
@@ -173,7 +152,8 @@ const Login = ({ route }) => {
         nav.navigate("ForgotPassword");
       }
     } catch (ex) {
-      console.info(ex);
+      console.error("Gửi OTP thất bại: ", ex);
+      Alert.alert("Gửi OTP Thất Bại", "Vui lòng thử lại sau.");
     }
   };
 
@@ -219,7 +199,6 @@ const Login = ({ route }) => {
                 </HelperText>
               </View>
             ))}
-
             <Button
               icon="account"
               mode="contained"

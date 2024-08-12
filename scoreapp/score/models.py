@@ -130,6 +130,7 @@ class Schedule(BaseModel):
     started_time = models.DateTimeField(null=True)
     ended_time = models.DateTimeField(null=True)
     descriptions = models.CharField(max_length=100, null=True)
+    google_calendar_event_id = models.CharField(max_length=255, null=True, blank=True)
     studyclassroom = models.ForeignKey(StudyClassRoom, on_delete=models.RESTRICT)
 
     def __str__(self):

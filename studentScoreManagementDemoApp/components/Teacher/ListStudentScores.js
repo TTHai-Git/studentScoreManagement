@@ -31,7 +31,6 @@ const ListStudentScores = ({ navigation, route }) => {
   const [visible, setVisible] = useState(false);
   const [lockStatus, setLockStatus] = useState(false);
   const [isHandlingLockScore, setIsHandlingLockScore] = useState(false);
-  const [index, setIndex] = useState(1);
 
   const showModal = () => setVisible(true);
   const hideModal = () => setVisible(false);
@@ -48,6 +47,7 @@ const ListStudentScores = ({ navigation, route }) => {
       setScoreColumns(res.data.scoredetails_with_scores.score_cols);
     } catch (ex) {
       console.error(ex);
+      Alert.alert("Error", "Failed to load scores. Please try again.");
     } finally {
       setLoading(false);
     }
@@ -66,27 +66,13 @@ const ListStudentScores = ({ navigation, route }) => {
       setLockStatus(res.data.is_lock);
     } catch (ex) {
       console.error(ex);
+      Alert.alert("Error", "Failed to check lock status.");
     }
   }, [studyclassroom_id, token]);
 
   useEffect(() => {
     getLockedScoreStatus();
   }, [getLockedScoreStatus]);
-
-  // const addScores = async (student_id, scorecolumn_id, score) => {
-  //   try {
-  //     let url = `${endpoints["add-scores"](studyclassroom_id)}`;
-  //     let res = await authApi(token).post(url, {
-  //       student_id: student_id,
-  //       scorecolumn_id: scorecolumn_id,
-  //       score: score,
-  //     });
-  //     Alert.alert(res.data.message);
-  //     loadScoresOfStudyClassRoom(); // Refresh scores after adding new score
-  //   } catch (ex) {
-  //     console.error(ex);
-  //   }
-  // };
 
   const lockScoreOfStudyClassRoom = async () => {
     try {
@@ -95,10 +81,11 @@ const ListStudentScores = ({ navigation, route }) => {
       )}`;
       setIsHandlingLockScore(true);
       let res = await authApi(token).patch(url);
-      Alert.alert(res.data.message);
+      Alert.alert("Success", res.data.message);
       setLockStatus(!lockStatus);
     } catch (ex) {
       console.error(ex);
+      Alert.alert("Error", "Failed to lock/unlock scores.");
     } finally {
       setIsHandlingLockScore(false);
     }
@@ -108,9 +95,10 @@ const ListStudentScores = ({ navigation, route }) => {
     try {
       let url = `${endpoints["export-csv-scores"](studyclassroom_id)}`;
       let res = await authApi(token).get(url);
-      Alert.alert(res.data.message);
+      Alert.alert("Success", res.data.message);
     } catch (ex) {
       console.error(ex);
+      Alert.alert("Error", "Failed to export CSV.");
     }
   };
 
@@ -118,9 +106,10 @@ const ListStudentScores = ({ navigation, route }) => {
     try {
       let url = `${endpoints["export-pdf-scores"](studyclassroom_id)}`;
       let res = await authApi(token).get(url);
-      Alert.alert(res.data.message);
+      Alert.alert("Success", res.data.message);
     } catch (ex) {
       console.error(ex);
+      Alert.alert("Error", "Failed to export PDF.");
     }
   };
 
@@ -159,9 +148,10 @@ const ListStudentScores = ({ navigation, route }) => {
       let url = `${endpoints["save-scores"](studyclassroom_id)}`;
       let res = await authApi(token).post(url, { scores: scores });
       console.log(res.data);
-      Alert.alert(res.data.message);
+      Alert.alert("Success", res.data.message);
     } catch (ex) {
       console.log(ex);
+      Alert.alert("Error", "Failed to save scores.");
     } finally {
       setLoading(false);
     }
@@ -193,44 +183,6 @@ const ListStudentScores = ({ navigation, route }) => {
             {loading ? (
               <ActivityIndicator size="large" color="#0000ff" />
             ) : (
-              // <DataTable style={styles.container}>
-              //   <DataTable.Header style={styles.tableHeader}>
-              //     <DataTable.Title>Id</DataTable.Title>
-              //     <DataTable.Title>Tên</DataTable.Title>
-              //     {scoreColumns.map((col) => (
-              //       <DataTable.Title key={col.id}>{col.type}</DataTable.Title>
-              //     ))}
-              //   </DataTable.Header>
-
-              //   {scores.length > 0 &&
-              //     scores.map((score, index) => (
-              //       <DataTable.Row key={index}>
-              //         <DataTable.Cell>{score.student_id}</DataTable.Cell>
-              //         <DataTable.Cell>{score.student_name}</DataTable.Cell>
-              //         {scoreColumns.map((col) => {
-              //           const scoreValue = score.scores.find(
-              //             (s) => s.col_id === col.id
-              //           )?.score;
-              //           return (
-              //             <DataTable.Cell key={col.id} style={styles.cell}>
-              //               <TextInput
-              //                 value={scoreValue ? scoreValue.toString() : ""}
-              //                 style={{ fontSize: 20 }}
-              //                 onChangeText={(value) =>
-              //                   handleChangeScore(
-              //                     score.student_id,
-              //                     col.id,
-              //                     value
-              //                   )
-              //                 }
-              //                 keyboardType="numeric"
-              //               />
-              //             </DataTable.Cell>
-              //           );
-              //         })}
-              //       </DataTable.Row>
-              //     ))}
-              // </DataTable>
               <Table borderStyle={{ borderWidth: 1, borderColor: "#000" }}>
                 <Row
                   data={tableHead}
@@ -248,19 +200,20 @@ const ListStudentScores = ({ navigation, route }) => {
                         score.student_code,
                         score.student_name,
                         ...scoreColumns.map((col) => {
-                          s = score.scores.filter((e) => e.col_id == col.id)[0]
-                            .score;
+                          const s = score.scores.find(
+                            (e) => e.col_id == col.id
+                          )?.score;
 
                           return (
                             <TextInput
-                              key={index}
+                              key={col.id}
                               value={s ? s.toString() : ""}
                               style={{ fontSize: 15, textAlign: "center" }}
-                              onChangeText={(value) =>
+                              onEndEditing={(e) =>
                                 handleChangeScore(
                                   score.student_id,
                                   col.id,
-                                  value
+                                  e.nativeEvent.text
                                 )
                               }
                               keyboardType="numeric"
@@ -275,7 +228,7 @@ const ListStudentScores = ({ navigation, route }) => {
                   ))
                 ) : (
                   <Row
-                    data={["", "", ...scoreColumns.map(() => "")]}
+                    data={["", "", "", "", ...scoreColumns.map(() => "")]}
                     style={MyStyle.body}
                     textStyle={MyStyle.text}
                     widthArr={widthArr}

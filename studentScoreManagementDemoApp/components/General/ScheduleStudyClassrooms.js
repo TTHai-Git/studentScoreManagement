@@ -5,6 +5,7 @@ import {
   Text,
   TouchableOpacity,
   SafeAreaView,
+  Alert,
 } from "react-native";
 import { Agenda } from "react-native-calendars";
 import { authApi, endpoints } from "../../configs/APIs";
@@ -18,8 +19,8 @@ const ScheduleStudyClassrooms = ({ navigation, route }) => {
   const loadSchedule = async () => {
     setLoading(true);
     try {
-      let url = `${endpoints["get-schedule"]}`;
-      let res = await authApi(token).get(url);
+      const url = `${endpoints["get-schedule"]}`;
+      const res = await authApi(token).get(url);
       const formattedData = formatScheduleData(res.data.data);
       setSchedule(formattedData);
     } catch (ex) {
@@ -30,9 +31,9 @@ const ScheduleStudyClassrooms = ({ navigation, route }) => {
   };
 
   const formatScheduleData = (data) => {
-    let formattedData = {};
+    const formattedData = {};
     data.forEach((item) => {
-      const date = item.started_time.split("T")[0]; // Get the date part (YYYY-MM-DD)
+      const date = item.started_time.split("T")[0];
       if (!formattedData[date]) {
         formattedData[date] = [];
       }
@@ -41,8 +42,8 @@ const ScheduleStudyClassrooms = ({ navigation, route }) => {
         subject_name: item.subject_name,
         studyclassroom_name: item.studyclassroom_name,
         teacher_name: item.teacher_name,
-        started_time: item.started_time.split("T")[1].split("Z")[0], // Get time part (HH:MM:SS)
-        ended_time: item.ended_time.split("T")[1].split("Z")[0], // Get time part (HH:MM:SS)
+        started_time: item.started_time.split("T")[1].split("Z")[0],
+        ended_time: item.ended_time.split("T")[1].split("Z")[0],
         descriptions: item.descriptions,
       });
     });
@@ -53,10 +54,29 @@ const ScheduleStudyClassrooms = ({ navigation, route }) => {
     loadSchedule();
   }, []);
 
+  const deleteSchedule = async (item) => {
+    try {
+      const url = `${endpoints["del-schedule"](item.id)}`;
+      const res = await authApi(token).delete(url);
+
+      if (res.status === 204) {
+        Alert.alert("Xoá lịch học thành công");
+        navigation.navigate("ScheduleStudyClassrooms", {
+          user: user,
+          token: token,
+        });
+      }
+    } catch (ex) {
+      console.log(ex.response);
+    }
+  };
+
   const renderItem = (item, isFirst) => {
     return (
       <TouchableOpacity
+        key={item.id}
         style={[styles.item, isFirst ? styles.firstItem : null]}
+        onPress={() => console.log(item)}
       >
         <Text style={styles.itemText}>{item.subject_name}</Text>
         <Text style={styles.itemText}>
@@ -66,9 +86,33 @@ const ScheduleStudyClassrooms = ({ navigation, route }) => {
         <Text style={styles.itemText}>Start: {item.started_time}</Text>
         <Text style={styles.itemText}>End: {item.ended_time}</Text>
         <Text style={styles.itemText}>Descriptions: {item.descriptions}</Text>
+        {user.role === "teacher" && (
+          <>
+            <TouchableOpacity
+              style={styles.button}
+              onPress={() =>
+                navigation.navigate("UpdateSchedule", {
+                  user: user,
+                  token: token,
+                  item_id: item.id,
+                })
+              }
+            >
+              <Text style={styles.buttonText}>Sửa</Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={styles.button}
+              onPress={() => deleteSchedule(item)}
+            >
+              <Text style={styles.buttonText}>Xoá</Text>
+            </TouchableOpacity>
+          </>
+        )}
       </TouchableOpacity>
     );
   };
+
   return (
     <SafeAreaView style={styles.container}>
       <Agenda items={schedule} renderItem={renderItem} />
@@ -93,5 +137,15 @@ const styles = StyleSheet.create({
     color: "#000",
     fontSize: 16,
     marginBottom: 5,
+  },
+  button: {
+    backgroundColor: "#007bff",
+    padding: 8,
+    borderRadius: 5,
+    marginTop: 5,
+  },
+  buttonText: {
+    color: "#fff",
+    textAlign: "center",
   },
 });

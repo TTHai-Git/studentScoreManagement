@@ -19,6 +19,8 @@ from reportlab.platypus import SimpleDocTemplate, Table, TableStyle
 from django.http import HttpResponse
 from scoreapp import settings
 from django.db.models import Q, Value
+from scoreapp.settings import creds
+from googleapiclient.discovery import build
 
 
 def index(request):
@@ -95,11 +97,13 @@ class UserViewSet(viewsets.ViewSet, generics.CreateAPIView, generics.ListAPIView
                 email_from = settings.EMAIL_HOST_USER
                 recipient_list = [user.email]
                 send_mail(subject, message, email_from, recipient_list, fail_silently=False)
-                return Response({'message': f'ĐÃ GỬI TOKEN RESET PASSWORD TỚI EMAIL: {user.email} CỦA BẠN.'}, status=status.HTTP_200_OK)
+                return Response({'message': f'ĐÃ GỬI TOKEN RESET PASSWORD TỚI EMAIL: {user.email} CỦA BẠN.'},
+                                status=status.HTTP_200_OK)
+            return Response({'message': f'GỬI TOKEN RESET PASSWORD THẤT BẠI!!! NGƯỜI DÙNG KHÔNG TỒN TẠI.'},
+                            status=status.HTTP_400_BAD_REQUEST)
         except Exception as ex:
             return Response({"message": str(ex)}
                             , status=status.HTTP_500_INTERNAL_SERVER_ERROR)
-        return Response({'message': f'GỬI TOKEN RESET PASSWORD THẤT BẠI!!! NGƯỜI DÙNG KHÔNG TỒN TẠI.'}, status=status.HTTP_400_BAD_REQUEST)
 
 
 class TeacherViewSet(viewsets.ViewSet, generics.ListAPIView):
@@ -219,7 +223,8 @@ class TopicViewSet(viewsets.ViewSet, generics.ListAPIView):
 
 class CommentViewSet(viewsets.ViewSet, viewsets.generics.RetrieveAPIView):
     queryset = Comment.objects.filter(active=True)
-    serializers_class = serializers.CommentSerializer
+    serializer_class = serializers.CommentSerializer
+    # parser_classes = [parsers.MultiPartParser]
 
     @action(methods=['get'], url_path='files', detail=True)
     def get_files_of_comment(self, request, pk):
@@ -234,9 +239,147 @@ class CommentFileViewSet(viewsets.ViewSet, viewsets.generics.ListAPIView):
     pagination_class = pagination.CommentFilePaginator
 
 
-class ScheduleViewSet(viewsets.ViewSet, viewsets.generics.ListAPIView):
+class ScheduleViewSet(viewsets.ViewSet, viewsets.generics.ListAPIView, viewsets.generics.DestroyAPIView):
     queryset = Schedule.objects.filter(active=True)
     serializer_class = serializers. ScheduleSerializer
+    parser_classes = [parsers.MultiPartParser]
+
+    @action(methods=['patch'], url_path='update-schedule', detail=True)
+    def update_schedule(self, request, pk):
+        try:
+            # Retrieve the existing schedule
+            schedule = self.get_object()
+            user = request.user
+            studyclassrooms = StudyClassRoom.objects.filter(teacher__id=user.id)
+
+            # Extract and validate the request data
+            started_time = request.data.get('started_time')
+            ended_time = request.data.get('ended_time')
+
+            try:
+                started_time = datetime.fromisoformat(started_time)
+                ended_time = datetime.fromisoformat(ended_time)
+            except ValueError:
+                return Response({'message': 'Invalid datetime format.'}, status=status.HTTP_400_BAD_REQUEST)
+
+            # Check if the end time is after the start time
+            if ended_time <= started_time:
+                return Response(
+                    {'message': 'Thời gian kết thúc phải sau thời gian bắt đầu.'},
+                    status=status.HTTP_400_BAD_REQUEST
+                )
+
+            # Check for schedule conflict with other classrooms the teacher is handling
+            schedule_conflict = False
+            for studyclassroom in studyclassrooms:
+                if Schedule.objects.filter(
+                        studyclassroom=studyclassroom,
+                        started_time__lt=ended_time,
+                        ended_time__gt=started_time
+                ).exclude(pk=schedule.pk).exists():  # Exclude current schedule from conflict check
+                    schedule_conflict = True
+                    break
+
+            if schedule_conflict:
+                return Response({
+                    'message': 'Cập nhật lịch thất bại!!! Trùng lịch với một lịch học khác.'
+                }, status=status.HTTP_409_CONFLICT)
+
+            # Update the schedule with the new data
+            try:
+                for k, v in request.data.items():
+                    if k == "started_time":
+                        schedule.started_time = datetime.fromisoformat(v)
+                    elif k == "ended_time":
+                        schedule.ended_time = datetime.fromisoformat(v)
+                    else:
+                        setattr(schedule, k, v)
+            except ValueError:
+                return Response({'message': 'Invalid datetime format.'}, status=status.HTTP_400_BAD_REQUEST)
+
+            schedule.save()
+
+            # Initialize the Google Calendar API
+            service = build("calendar", "v3", credentials=creds)
+
+            # Define the updated Google Calendar event
+            event = {
+                "summary": "Updated Class Schedule: " + schedule.studyclassroom.name,
+                "location": "Khu dân cư, Nhà Bè, Hồ Chí Minh",
+                "description": schedule.descriptions,
+                "colorId": "1",
+                "start": {
+                    "dateTime": started_time.isoformat() + "+07:00",  # Vietnam time zone
+                    "timeZone": "Asia/Ho_Chi_Minh",
+                },
+                "end": {
+                    "dateTime": ended_time.isoformat() + "+07:00",  # Vietnam time zone
+                    "timeZone": "Asia/Ho_Chi_Minh",
+                },
+                "attendees": [{"email": "2151050112hai@ou.edu.vn"}],  # Add more attendees as needed
+                'reminders': {
+                    'useDefault': False,
+                    'overrides': [
+                        {'method': 'email', 'minutes': 24 * 60},
+                        {'method': 'popup', 'minutes': 10},
+                    ],
+                },
+                "sendUpdates": "all",
+                "guestsCanModify": False
+            }
+
+            # Update the event in Google Calendar
+            try:
+                service.events().patch(calendarId="primary", eventId=schedule.google_calendar_event_id,
+                                       body=event).execute()
+                return Response(
+                    {"message": "Cập nhật lịch thành công và đã đồng bộ với Google Calendar."},
+                    status=status.HTTP_200_OK
+                )
+            except Exception as e:
+                return Response(
+                    {"message": f"Cập nhật lịch học thành công nhưng không đồng bộ với Google Calendar: {str(e)}"},
+                    status=status.HTTP_200_OK
+                )
+
+        except Exception as e:
+            return Response(
+                {"message": f"An error occurred: {str(e)}"},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR
+            )
+
+    @action(methods=['delete'], url_path='delete-schedule', detail=True)
+    def delete_schedule(self, request, pk=None):
+        try:
+            # Retrieve the schedule object
+            schedule = self.get_object()
+
+            # Initialize the Google Calendar API
+            service = build("calendar", "v3", credentials=creds)
+
+            # Attempt to delete the event from Google Calendar
+            try:
+                if schedule.google_calendar_event_id:
+                    service.events().delete(calendarId="primary", eventId=schedule.google_calendar_event_id).execute()
+            except Exception as e:
+                return Response(
+                    {"message": f"Lịch học đã được xoá nhưng không đồng bộ với Google Calendar: {str(e)}"},
+                    status=status.HTTP_200_OK
+                )
+
+            # Delete the schedule from the database
+            schedule.delete()
+
+            return Response(
+                {"message": "Lịch học đã được xoá và đồng bộ với Google Calendar."},
+                status=status.HTTP_204_NO_CONTENT
+            )
+
+        except Exception as e:
+            return Response(
+                {"message": f"An error occurred: {str(e)}"},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR
+            )
 
 
 class StudyClassRoomViewSet(viewsets.ViewSet, viewsets.generics.ListAPIView, viewsets.generics.RetrieveAPIView):
@@ -292,40 +435,118 @@ class StudyClassRoomViewSet(viewsets.ViewSet, viewsets.generics.ListAPIView, vie
             return Response({"data": []}, status=status.HTTP_200_OK)
 
     @action(methods=['post'], url_path='new-schedule', detail=True)
-    def new_schedule(self, request, pk):
-        studyclassroom = self.get_object()
-        started_time = request.data.get('started_time')
-        ended_time = request.data.get('ended_time')
-        descriptions = request.data.get('descriptions')
-
-        # Convert times to datetime objects if needed
+    def new_schedule(self, request, pk=None):
         try:
-            started_time = datetime.fromisoformat(started_time)
-            ended_time = datetime.fromisoformat(ended_time)
-        except ValueError:
-            return Response({'message': 'Invalid datetime format.'}, status=status.HTTP_400_BAD_REQUEST)
+            # Retrieve the study classroom object
+            studyclassroom = self.get_object()
 
-        # Check for overlapping schedules
-        schedule_conflict = Schedule.objects.filter(
-            studyclassroom=studyclassroom,
-            started_time__lt=ended_time,
-            ended_time__gt=started_time
-        ).exists()
+            # Extract and validate the request data
+            started_time = request.data.get('started_time')
+            ended_time = request.data.get('ended_time')
+            descriptions = request.data.get('descriptions')
 
-        if schedule_conflict:
-            return Response({
-                'message': 'Lập lịch thất bại!!! Trùng lịch với một lịch học khác.'
-            }, status=status.HTTP_409_CONFLICT)
+            # Convert times to datetime objects and validate the format
+            try:
+                started_time = datetime.fromisoformat(started_time)
+                ended_time = datetime.fromisoformat(ended_time)
+            except ValueError:
+                return Response(
+                    {'message': 'Invalid datetime format. Please use ISO 8601 format.'},
+                    status=status.HTTP_400_BAD_REQUEST
+                )
 
-        # Create new schedule
-        schedule = Schedule.objects.create(
-            started_time=started_time,
-            ended_time=ended_time,
-            studyclassroom=studyclassroom,
-            descriptions=descriptions
-        )
+            # Check if the end time is after the start time
+            if ended_time <= started_time:
+                return Response(
+                    {'message': 'Thời gian kết thúc phải sau thời gian bắt đầu.'},
+                    status=status.HTTP_400_BAD_REQUEST
+                )
 
-        return Response({"message": "Tạo lịch thành công"}, status=status.HTTP_201_CREATED)
+            # Check for overlapping schedules in the same classroom
+            schedule_conflict = Schedule.objects.filter(
+                studyclassroom=studyclassroom,
+                started_time__lt=ended_time,
+                ended_time__gt=started_time
+            ).exists()
+
+            if schedule_conflict:
+                return Response(
+                    {'message': 'Trùng lịch học. Hãy chọn lịch học khác!!!.'},
+                    status=status.HTTP_409_CONFLICT
+                )
+
+            # Create and save the new schedule
+            schedule = Schedule.objects.create(
+                started_time=started_time,
+                ended_time=ended_time,
+                studyclassroom=studyclassroom,
+                descriptions=descriptions
+            )
+
+            # Initialize the Google Calendar API
+            service = build("calendar", "v3", credentials=creds)
+
+            # Define the Google Calendar event
+            event = {
+                "summary": "Class Schedule: " + studyclassroom.name,
+                "location": "Khu dân cư, Nhà Bè, Hồ Chí Minh",
+                "description": descriptions,
+                "colorId": "1",
+                "start": {
+                    "dateTime": started_time.isoformat() + "+07:00",
+                    "timeZone": "Asia/Ho_Chi_Minh",
+                },
+                "end": {
+                    "dateTime": ended_time.isoformat() + "+07:00",
+                    "timeZone": "Asia/Ho_Chi_Minh",
+                },
+                "attendees": [{"email": "2151050112hai@ou.edu.vn"}],
+                'reminders': {
+                    'useDefault': False,
+                    'overrides': [
+                        {'method': 'email', 'minutes': 24 * 60},
+                        {'method': 'popup', 'minutes': 10},
+                    ],
+                },
+                "sendUpdates": "all",
+                "guestsCanModify": False
+            }
+
+            # Check if the time slot is free in Google Calendar
+            freebusy_query = service.freebusy().query(
+                body={
+                    "timeMin": started_time.isoformat() + "+07:00",
+                    "timeMax": ended_time.isoformat() + "+07:00",
+                    "timeZone": "Asia/Ho_Chi_Minh",
+                    "items": [{"id": "primary"}],
+                }
+            ).execute()
+
+            busy_times = freebusy_query.get("calendars").get("primary").get("busy")
+
+            if not busy_times:
+                # Insert the event into Google Calendar if the time slot is free
+                created_event = service.events().insert(calendarId="primary", body=event).execute()
+
+                # Save the event ID in the schedule object
+                schedule.google_calendar_event_id = created_event.get('id')
+                schedule.save()
+
+                return Response(
+                    {"message": "Tạo lịch thành công và đồng bộ với Google Calendar."},
+                    status=status.HTTP_201_CREATED
+                )
+            else:
+                return Response(
+                    {"message": "Lịch đã được tạo nhưng chưa đồng bộ với Google Calendar."},
+                    status=status.HTTP_201_CREATED
+                )
+
+        except Exception as e:
+            return Response(
+                {"message": f"An error occurred: {str(e)}"},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR
+            )
 
     @action(methods=['post'], url_path='register', detail=True)
     def register_study(self, request, pk):
@@ -341,7 +562,9 @@ class StudyClassRoomViewSet(viewsets.ViewSet, viewsets.generics.ListAPIView, vie
             if studyclassroom.group != studyclassroom_register.group and \
                     studyclassroom.subject.name == studyclassroom_register.subject.name and \
                     studyclassroom.semester == studyclassroom_register.semester:
-                return Response({"message": f"Đăng ký lớp học thất bại!!! Trùng môn học trong một học kỳ"}, status=status.HTTP_400_BAD_REQUEST)
+                return Response({"message": f"Đăng ký lớp học thất bại!!! "
+                                            f"Trùng lớp học có cùng môn học trong cùng một học kỳ"},
+                                status=status.HTTP_400_BAD_REQUEST)
             elif studyclassroom.started_date == studyclassroom_register.started_date:
                 schedule_studyclassroom = Schedule.objects.filter(studyclassroom=studyclassroom)
                 schedule_studyclassroom_register = Schedule.objects.filter(studyclassroom=studyclassroom_register)
@@ -349,10 +572,14 @@ class StudyClassRoomViewSet(viewsets.ViewSet, viewsets.generics.ListAPIView, vie
                     for schedule_register in schedule_studyclassroom_register:
                         if schedule.started_time == schedule_register.started_time \
                                 and schedule.ended_time == schedule_register.ended_time:
-                            return Response({"message": f'Đăng ký lớp học thất bại!! Trùng lịch học môn '
-                                                        f'{studyclassroom.subject.name} trong một học kỳ'})
-                return Response({"message": f'Đăng ký lớp học thất bại!! Trùng lịch học môn '
-                                            f'{studyclassroom.subject.name} - {studyclassroom.started_date} trong một học kỳ'}, status=status.HTTP_400_BAD_REQUEST)
+                            return Response({"message": f'Đăng ký lớp học thất bại!! Trùng lịch học '
+                                                        f'{studyclassroom.subject.name} '
+                                                        f'đã đăng ký từ trước trong cùng một học kỳ'}
+                                            , status=status.HTTP_400_BAD_REQUEST)
+                return Response({"message": f'Đăng ký lớp học thất bại!! Trùng lịch học'
+                                            f'{studyclassroom.subject.name}'
+                                            f'đã đăng ký từ trước trong cùng một học kỳ'},
+                                status=status.HTTP_400_BAD_REQUEST)
 
         study_register = Study.objects.create(student=student, studyclassroom=studyclassroom_register)
         return Response({"message": "Đăng ký lớp học thành công!!!"}, status=status.HTTP_201_CREATED)

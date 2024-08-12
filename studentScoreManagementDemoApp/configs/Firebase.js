@@ -15,37 +15,18 @@ import {
   STORAGE_BUCKET,
   MESSAGE_SENDER_ID,
   APP_ID,
+  MEASUREMENT_ID,
 } from "@env";
-// TODO: Add SDKs for Firebase products that you want to use
-// https://firebase.google.com/docs/web/setup#available-libraries
-
-// Your web app's Firebase configuration
-// const firebaseConfig = {
-//   apiKey: API_KEY,
-//   authDomain: AUTH_DOMAIN,
-//   projectId: PROJECT_ID,
-//   storageBucket: STORAGE_BUCKET,
-//   messagingSenderId: MESSAGE_SENDER_ID,
-//   appId: APP_ID
-// };
 
 const firebaseConfig = {
-  apiKey: "AIzaSyDJVo0zxreQuIoj_JAtuXuQ1dBoQoMi8UM",
-  authDomain: "chatappdetai11.firebaseapp.com",
-  projectId: "chatappdetai11",
-  storageBucket: "chatappdetai11.appspot.com",
-  messagingSenderId: "356883130011",
-  appId: "1:356883130011:web:b757a37dd1441ea0dd483e",
+  apiKey: API_KEY,
+  authDomain: AUTH_DOMAIN,
+  projectId: PROJECT_ID,
+  storageBucket: STORAGE_BUCKET,
+  messagingSenderId: MESSAGE_SENDER_ID,
+  appId: APP_ID,
+  measurementId: MEASUREMENT_ID,
 };
-
-// const firebaseConfig = {
-//   apiKey: "AIzaSyBtB9tgWXyv4T3-X3RqCHlYc2KrNiXyjb8",
-//   authDomain: "chatapp11-4c1bf.firebaseapp.com",
-//   projectId: "chatapp11-4c1bf",
-//   storageBucket: "chatapp11-4c1bf.appspot.com",
-//   messagingSenderId: "310089416769",
-//   appId: "1:310089416769:web:df8307635671f7c670c6c0"
-// };
 
 // Initialize Firebase
 const app = initializeApp(firebaseConfig);

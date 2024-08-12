@@ -170,11 +170,12 @@ class CommentSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Comment
-        fields = ['topic_id', 'topic_title', 'id', 'content', 'created_date', 'updated_date', 'user']
+        fields = ['id', 'content', 'created_date', 'updated_date', 'user', 'topic_id', 'topic_title']
 
 
 class CommentFileSerializer(serializers.ModelSerializer):
     comment_id = serializers.IntegerField(source='comment.id')
+
     class Meta:
         model = CommentFile
         fields = ['id', 'file_url', 'file_name', 'comment_id']

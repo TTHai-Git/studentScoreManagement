@@ -1,19 +1,24 @@
-import 'dotenv/config'
+import "dotenv/config";
 
 export default {
-  "expo": {
-    "name": "studentScoreManagementDemoApp",
-    "slug": "studentScoreManagementDemoApp",
-    "version": "1.0.0",
-    "orientation": "portrait",
-    "updates": {
-      "fallbackToCacheTimeout": 0
+  expo: {
+    name: "studentScoreManagementDemoApp",
+    slug: "studentScoreManagementDemoApp",
+    version: "1.0.0",
+    orientation: "portrait",
+    updates: {
+      fallbackToCacheTimeout: 0,
     },
-    "assetBundlePatterns": [
-      "**/*"
-    ],
-    "ios": {
-      "supportsTablet": true
+    assetBundlePatterns: ["**/*"],
+    ios: {
+      supportsTablet: true,
+    },
+    plugins: "@react-native-google-signin/google-signin",
+    android: {
+      googleServicesFile: "./google-services.json",
+    },
+    ios: {
+      googleServicesFile: "./GoogleService-Info.plist",
     },
     extra: {
       apiKey: process.env.API_KEY,
@@ -27,7 +32,7 @@ export default {
       clientSecretHoang: process.env.CLIENT_SECRET_HOANG,
 
       clientIdHai: process.env.CLIENT_ID_HAI,
-      clientSecretHai: process.env.CLIENT_SECRET_HAI
-    }
-  }
-}
+      clientSecretHai: process.env.CLIENT_SECRET_HAI,
+    },
+  },
+};

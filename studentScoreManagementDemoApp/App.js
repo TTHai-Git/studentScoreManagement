@@ -20,7 +20,6 @@ import Comments from "./components/General/Comments";
 import { auth } from "./configs/Firebase";
 import ChatList from "./components/General/ChatList";
 import ChatRoom from "./components/General/ChatRoom";
-import { onAuthStateChanged } from "firebase/auth";
 import StudyClassRooms from "./components/General/Studyclassrooms";
 import Admin from "./components/Admin/Admin";
 import ForgotPassword from "./components/User/ForgotPassword";
@@ -28,6 +27,7 @@ import RegisterStudy from "./components/Student/RegisterStudy";
 import UpdateInfo from "./components/User/UpdateInfo";
 import ScheduleStudyClassrooms from "./components/General/ScheduleStudyClassrooms";
 import Schedule from "./components/Admin/Schedule";
+import UpdateSchedule from "./components/General/UpdateSchedule";
 
 const Tab = createBottomTabNavigator();
 const Stack = createStackNavigator();
@@ -54,6 +54,11 @@ const MyStack = () => {
         name="Schedule"
         options={{ title: "Lập Lịch Học" }}
         component={Schedule}
+      />
+      <Stack.Screen
+        name="UpdateSchedule"
+        options={{ title: "Cập Nhật Lịch Học" }}
+        component={UpdateSchedule}
       />
 
       <Stack.Screen

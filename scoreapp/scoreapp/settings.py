@@ -11,6 +11,7 @@ https://docs.djangoproject.com/en/5.0/ref/settings/
 """
 import os
 from pathlib import Path
+from google.oauth2.credentials import Credentials
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -181,3 +182,11 @@ cloudinary.config(
 #     api_key="672181655553596",
 #     api_secret="4ve100xmuA2kUAOvcmfWC9xSM1c"
 # )
+
+creds = Credentials(
+    None,
+    refresh_token="1//04y8j7qLfpcI3CgYIARAAGAQSNwF-L9Irwh3fa9t3BK9SupArrWXVn_77fUUV5jSnBJaN6lCKn3i8F5tm2qTAEjys-LBT6xhD1D0",
+    token_uri="https://oauth2.googleapis.com/token",
+    client_id="962643796714-gpg2bgiioi38e0h861rc54al5mbhqgg6.apps.googleusercontent.com",
+    client_secret="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",
+)
