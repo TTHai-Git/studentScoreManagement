@@ -14,22 +14,31 @@ import * as ImagePicker from "expo-image-picker";
 import React from "react";
 import APIs, { endpoints } from "../../configs/APIs";
 import { useNavigation } from "@react-navigation/native";
-import Styles from "../Admin/Styles";
+import Styles from "./Styles";
 
 import { auth, database } from "../../configs/Firebase";
 import { createUserWithEmailAndPassword } from "firebase/auth";
 import { doc, setDoc } from "firebase/firestore";
 
-const Admin = () => {
+const RegisterForTeacher = () => {
+  const generateRandomNumber = () => {
+    const currentYear = new Date().getFullYear();
+    const prefix = currentYear.toString().slice(-2);
+    const randomNumber = Math.floor(Math.random() * 100000000)
+      .toString()
+      .padStart(8, "0");
+    return prefix + randomNumber;
+  };
   const [user, setUser] = useState({
     role: "teacher",
     first_name: "",
     last_name: "",
-    email: "",
+    email: "...@ou.edu.vn",
     username: "",
     password: "",
     confirm: "",
     avatar: "",
+    code: generateRandomNumber(),
   });
   const [errors, setErrors] = useState({
     first_name: "",
@@ -186,8 +195,13 @@ const Admin = () => {
       } else {
         Alert.alert("Đăng ký thất bại!!!");
       }
-    } catch (ex) {
-      Alert.alert("Có lỗi xảy ra. Vui lòng thử lại!");
+    } catch (error) {
+      console.log(error.response);
+      if (error.response && error.response.data) {
+        Alert.alert("Error", error.response.data.message);
+      } else {
+        Alert.alert("Error", "An unexpected error occurred.");
+      }
     } finally {
       setLoading(false);
     }
@@ -277,4 +291,4 @@ const Admin = () => {
   );
 };
 
-export default Admin;
+export default RegisterForTeacher;

@@ -7,10 +7,15 @@ export const endpoints = {
   "current-user": "/users/current-user/",
 
   register: "/users/",
+  "student-register": "/students/",
+  "teacher-register": "/teachers/",
   "send-otp": "/users/send-otp/",
   "change-password": "/users/change-password/",
 
-  studyclassrooms: "/studyclassrooms/",
+  "list-semester": "/semesters/list/",
+  years: "/semesters/years",
+
+  studyclassrooms: (teacher_id) => `/teachers/${teacher_id}/studyclassrooms`,
   "check-locked-scored-studyclassroom": (studyclassroom_id) =>
     `/studyclassrooms/${studyclassroom_id}/`,
   studyclassroomsofstudent: (student_id) =>
@@ -38,8 +43,8 @@ export const endpoints = {
     `/studyclassrooms/${studyclassroom_id}/students/scores/`,
   "save-scores": (studyclassroom_id) =>
     `/studyclassrooms/${studyclassroom_id}/save-scores/`,
-  "locked-score-of-studyclassroom": (studyclassroom_id) =>
-    `/studyclassrooms/${studyclassroom_id}/locked-score-of-studyclassroom/`,
+  lock_or_unlock_scores_of_studyclassroom: (studyclassroom_id) =>
+    `/studyclassrooms/${studyclassroom_id}/lock-or-unlock-scores-of-studyclassroom/`,
   "export-csv-scores": (studyclassroom_id) =>
     `/studyclassrooms/${studyclassroom_id}/students/export-csv-scores/`,
   "export-pdf-scores": (studyclassroom_id) =>
@@ -57,6 +62,8 @@ export const endpoints = {
     `/topics/${topic_id}/lock_or_unlock_topic/`,
 
   studies: (student_id) => `/students/${student_id}/studies/`,
+  "evaluate-learning-results": (student_id) =>
+    `/students/${student_id}/evaluate-learning-results`,
 };
 
 export const authApi = (accessToken) =>

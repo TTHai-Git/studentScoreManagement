@@ -13,13 +13,6 @@ export default {
     ios: {
       supportsTablet: true,
     },
-    plugins: "@react-native-google-signin/google-signin",
-    android: {
-      googleServicesFile: "./google-services.json",
-    },
-    ios: {
-      googleServicesFile: "./GoogleService-Info.plist",
-    },
     extra: {
       apiKey: process.env.API_KEY,
       authDomain: process.env.AUTH_DOMAIN,

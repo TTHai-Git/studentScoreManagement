@@ -1,13 +1,12 @@
-import enum
-
 from django.db import models
 from django.contrib.auth.models import AbstractUser
 from ckeditor.fields import RichTextField
 from cloudinary.models import CloudinaryField
 from django.core.validators import MinValueValidator, MaxValueValidator
+from rest_framework.exceptions import ValidationError
+
 
 # Create your models here.
-from rest_framework.exceptions import ValidationError
 
 
 class BaseModel(models.Model):
@@ -25,7 +24,7 @@ class RoleEnum(models.TextChoices):
     TEACHER = 'teacher'
 
 
-class Role (models.Model):
+class Role(models.Model):
     name = models.CharField(max_length=50, choices=RoleEnum.choices, primary_key=True)
 
     def __str__(self):
@@ -42,7 +41,8 @@ class User(AbstractUser):
     code = models.CharField(max_length=10, unique=True, default=None, null=True)
     dob = models.DateField(max_length=8, auto_now_add=True)
     address = models.CharField(max_length=254, null=True)
-    avatar = CloudinaryField(null=True, default="https://res.cloudinary.com/dh5jcbzly/image/upload/v1718648320/r77u5n3w3ddyy4yqqamp.jpg")
+    avatar = CloudinaryField(null=True,
+                             default="https://res.cloudinary.com/dh5jcbzly/image/upload/v1718648320/r77u5n3w3ddyy4yqqamp.jpg")
     email = models.EmailField(max_length=254, validators=[validate_ou_mail], null=False)
     role = models.ForeignKey(Role, on_delete=models.CASCADE, null=True, blank=True)
 
@@ -74,7 +74,6 @@ class StudentClassRoom(BaseModel):
 
 
 class Student(User):
-
     studentclassroom = models.ForeignKey(StudentClassRoom, on_delete=models.CASCADE, null=True, default=None)
 
     def __str__(self):
@@ -186,7 +185,7 @@ class ScoreColumn(models.Model):
 
 class Study(BaseModel):
     student = models.ForeignKey(Student, on_delete=models.CASCADE)
-    studyclassroom = models.ForeignKey(StudyClassRoom, on_delete=models.CASCADE)
+    studyclassroom = models.ForeignKey(StudyClassRoom, on_delete=models.RESTRICT)
 
     def __str__(self):
         return f'{self.student} - {self.studyclassroom}'
@@ -202,3 +201,32 @@ class ScoreDetails(BaseModel):
 
     def __str__(self):
         return f'{self.study} - {self.scorecolumn} - {self.score}'
+
+
+class PointConversion(models.Model):
+    ten_point_scale_max = models.DecimalField(
+        null=True,
+        validators=[MinValueValidator(0.0), MaxValueValidator(10.0)],
+        max_digits=3,
+        decimal_places=1
+    )
+    ten_point_scale_min = models.DecimalField(
+        null=True,
+        validators=[MinValueValidator(0.0), MaxValueValidator(10.0)],
+        max_digits=3,
+        decimal_places=1
+    )
+    four_point_scale = models.FloatField(
+        null=True,
+        validators=[MinValueValidator(0.0), MaxValueValidator(4.0)]
+    )
+    grade = models.CharField(
+        null=True,
+        max_length=2
+    )
+
+    class Meta:
+        unique_together = ('ten_point_scale_max', 'ten_point_scale_min', 'four_point_scale', 'grade')
+
+    def __str__(self):
+        return f'{self.ten_point_scale_min} - {self.ten_point_scale_max} : {self.four_point_scale} - {self.grade}'

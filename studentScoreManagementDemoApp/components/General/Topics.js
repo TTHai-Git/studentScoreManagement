@@ -12,7 +12,6 @@ import { authApi, endpoints } from "../../configs/APIs";
 import MyStyle from "../../styles/MyStyle";
 import {
   Button,
-  Modal,
   Portal,
   Provider,
   TextInput,
@@ -20,6 +19,7 @@ import {
   Paragraph,
 } from "react-native-paper";
 import Styles from "../General/Styles";
+import Icon from "react-native-vector-icons/FontAwesome";
 import moment from "moment";
 
 const Topics = ({ navigation, route }) => {
@@ -48,8 +48,13 @@ const Topics = ({ navigation, route }) => {
           page === 1 ? res.data.results : [...prevTopics, ...res.data.results]
         );
         if (res.data.next === null) setPage(0);
-      } catch (ex) {
-        console.error(ex);
+      } catch (error) {
+        console.log(error.response);
+        if (error.response && error.response.data) {
+          Alert.alert("Error", error.response.data.message);
+        } else {
+          Alert.alert("Error", "An unexpected error occurred.");
+        }
       } finally {
         setLoading(false);
       }
@@ -100,8 +105,15 @@ const Topics = ({ navigation, route }) => {
       console.log(res.data.message);
       Alert.alert(res.data.message);
       setPage(1);
-    } catch (ex) {
-      console.log(ex);
+    } catch (error) {
+      console.log(error.response);
+      if (error.response && error.response.data) {
+        Alert.alert("Error", error.response.data.message);
+      } else {
+        Alert.alert("Error", "An unexpected error occurred.");
+      }
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -117,8 +129,15 @@ const Topics = ({ navigation, route }) => {
       Alert.alert(res.data.message);
       setTitle("");
       setPage(1);
-    } catch (ex) {
-      console.log(ex);
+    } catch (error) {
+      console.log(error.response);
+      if (error.response && error.response.data) {
+        Alert.alert("Error", error.response.data.message);
+      } else {
+        Alert.alert("Error", "An unexpected error occurred.");
+      }
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -155,24 +174,34 @@ const Topics = ({ navigation, route }) => {
                   })
                 }
               >
-                <View style={Styles.topic}>
-                  <Text style={Styles.topicTitle}>Tiêu đề: {c.title}</Text>
+                <View style={[Styles.topic, Styles.card]}>
+                  <View style={Styles.topicHeader}>
+                    <Text style={Styles.topicTitle}>
+                      <Icon name="comments" size={20} color="#4CAF50" />{" "}
+                      {c.title}
+                    </Text>
+                  </View>
                   <Text style={Styles.topicDate}>
-                    Ngày tạo: {moment(c.created_date).fromNow()}
+                    <Icon name="clock-o" size={16} color="#888" />{" "}
+                    {moment(c.created_date).fromNow()}
                   </Text>
                   <Text style={Styles.topicStatus}>
+                    <Icon
+                      name={c.active ? "unlock" : "lock"}
+                      size={16}
+                      color={c.active ? "#4CAF50" : "#F44336"}
+                    />{" "}
                     Tình trạng: {c.active ? "Đang mở khóa" : "Đang khóa"}
                   </Text>
                   {user.role === "teacher" && (
-                    <View style={{ alignItems: "flex-end" }}>
-                      <Button
-                        style={[MyStyle.button_user, Styles.button_topic]}
-                        mode="contained"
-                        onPress={() => confirmAction(c.id, "lockUnlock")}
-                      >
-                        {c.active ? "Khóa diễn đàn" : "Mở khóa diễn đàn"}
-                      </Button>
-                    </View>
+                    <Button
+                      style={Styles.button_topic}
+                      mode="outlined"
+                      icon={c.active ? "lock-open-outline" : "lock-outline"}
+                      onPress={() => confirmAction(c.id, "lockUnlock")}
+                    >
+                      {c.active ? "Khóa" : "Mở khóa"}
+                    </Button>
                   )}
                 </View>
               </TouchableOpacity>
@@ -186,11 +215,13 @@ const Topics = ({ navigation, route }) => {
               placeholder="Nhập tên diễn đàn"
               value={title}
               onChangeText={(t) => setTitle(t)}
-              style={MyStyle.input}
+              style={[MyStyle.input, Styles.inputWithIcon]}
+              left={<TextInput.Icon name={() => <Icon name="edit" />} />}
             />
             <Button
               style={MyStyle.button_user}
               mode="contained"
+              icon={() => <Icon name="plus" size={16} color="#FFF" />}
               onPress={() => confirmAction(null, "add")}
             >
               Thêm diễn đàn
@@ -203,17 +234,17 @@ const Topics = ({ navigation, route }) => {
             visible={confirmVisible}
             onDismiss={() => setConfirmVisible(false)}
           >
-            <Dialog.Title>Confirmation</Dialog.Title>
+            <Dialog.Title>Xác nhận</Dialog.Title>
             <Dialog.Content>
               <Paragraph>
                 {dialogState.action === "lockUnlock"
-                  ? "Are you sure you want to change the topic status?"
-                  : "Are you sure you want to add this topic?"}
+                  ? "Bạn có chắc muốn thay đổi trạng thái diễn đàn?"
+                  : "Bạn có chắc muốn thêm diễn đàn này?"}
               </Paragraph>
             </Dialog.Content>
             <Dialog.Actions>
-              <Button onPress={() => setConfirmVisible(false)}>Cancel</Button>
-              <Button onPress={handleConfirmAction}>Yes</Button>
+              <Button onPress={() => setConfirmVisible(false)}>Hủy</Button>
+              <Button onPress={handleConfirmAction}>Đồng ý</Button>
             </Dialog.Actions>
           </Dialog>
         </Portal>

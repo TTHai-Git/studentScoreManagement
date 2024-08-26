@@ -19,6 +19,7 @@ import {
 } from "react-native-paper";
 import Styles from "../Teacher/Styles";
 import { Row, Table } from "react-native-table-component";
+import Icon from "react-native-vector-icons/FontAwesome"; // Importing FontAwesome icons
 
 const ListStudentScores = ({ navigation, route }) => {
   const token = route.params?.token;
@@ -45,9 +46,13 @@ const ListStudentScores = ({ navigation, route }) => {
       let res = await authApi(token).get(url);
       setScores(res.data.scoredetails_with_scores.score_details);
       setScoreColumns(res.data.scoredetails_with_scores.score_cols);
-    } catch (ex) {
-      console.error(ex);
-      Alert.alert("Error", "Failed to load scores. Please try again.");
+    } catch (error) {
+      if (error.response && error.response.status === 401) {
+        Alert.alert("Error", error.response.data.message);
+      } else {
+        console.log("Unexpected error: ", error);
+        Alert.alert("Error", "Failed to load Scores of StudyClassrooms.");
+      }
     } finally {
       setLoading(false);
     }
@@ -76,7 +81,7 @@ const ListStudentScores = ({ navigation, route }) => {
 
   const lockScoreOfStudyClassRoom = async () => {
     try {
-      let url = `${endpoints["locked-score-of-studyclassroom"](
+      let url = `${endpoints["lock_or_unlock_scores_of_studyclassroom"](
         studyclassroom_id
       )}`;
       setIsHandlingLockScore(true);
@@ -96,9 +101,15 @@ const ListStudentScores = ({ navigation, route }) => {
       let url = `${endpoints["export-csv-scores"](studyclassroom_id)}`;
       let res = await authApi(token).get(url);
       Alert.alert("Success", res.data.message);
-    } catch (ex) {
-      console.error(ex);
-      Alert.alert("Error", "Failed to export CSV.");
+    } catch (error) {
+      console.log(error.response);
+      if (error.response && error.response.data) {
+        Alert.alert("Error", error.response.data.message);
+      } else {
+        Alert.alert("Error", "An unexpected error occurred.");
+      }
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -107,9 +118,15 @@ const ListStudentScores = ({ navigation, route }) => {
       let url = `${endpoints["export-pdf-scores"](studyclassroom_id)}`;
       let res = await authApi(token).get(url);
       Alert.alert("Success", res.data.message);
-    } catch (ex) {
-      console.error(ex);
-      Alert.alert("Error", "Failed to export PDF.");
+    } catch (error) {
+      console.log(error.response);
+      if (error.response && error.response.data) {
+        Alert.alert("Error", error.response.data.message);
+      } else {
+        Alert.alert("Error", "An unexpected error occurred.");
+      }
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -149,9 +166,13 @@ const ListStudentScores = ({ navigation, route }) => {
       let res = await authApi(token).post(url, { scores: scores });
       console.log(res.data);
       Alert.alert("Success", res.data.message);
-    } catch (ex) {
-      console.log(ex);
-      Alert.alert("Error", "Failed to save scores.");
+    } catch (error) {
+      console.log(error.response);
+      if (error.response && error.response.data) {
+        Alert.alert("Error", error.response.data.message);
+      } else {
+        Alert.alert("Error", "An unexpected error occurred.");
+      }
     } finally {
       setLoading(false);
     }
@@ -246,6 +267,7 @@ const ListStudentScores = ({ navigation, route }) => {
           >
             <View>
               <Button
+                icon={() => <Icon name="file-pdf-o" size={20} color="white" />}
                 style={MyStyle.button_user}
                 mode="contained"
                 onPress={exportScoresPDF}
@@ -253,6 +275,7 @@ const ListStudentScores = ({ navigation, route }) => {
                 Xuất file điểm PDF
               </Button>
               <Button
+                icon={() => <Icon name="file-csv" size={20} color="white" />}
                 style={MyStyle.button_user}
                 mode="contained"
                 onPress={exportScoresCSV}
@@ -264,6 +287,13 @@ const ListStudentScores = ({ navigation, route }) => {
         </Portal>
         <View style={Styles.button_score}>
           <Button
+            icon={() => (
+              <Icon
+                name={lockStatus ? "unlock" : "lock"}
+                size={20}
+                color="white"
+              />
+            )}
             disabled={isHandlingLockScore}
             style={MyStyle.button_user}
             mode="contained"
@@ -272,6 +302,7 @@ const ListStudentScores = ({ navigation, route }) => {
             {lockStatus ? "Mở khóa điểm" : "Khóa điểm"}
           </Button>
           <Button
+            icon={() => <Icon name="save" size={20} color="white" />}
             style={MyStyle.button_user}
             mode="contained"
             onPress={handleSaveScore}
@@ -279,6 +310,7 @@ const ListStudentScores = ({ navigation, route }) => {
             Lưu nháp
           </Button>
           <Button
+            icon={() => <Icon name="download" size={20} color="white" />}
             style={MyStyle.button_user}
             mode="contained"
             onPress={showModal}

@@ -6,6 +6,7 @@ import {
   Text,
   TouchableOpacity,
   View,
+  StyleSheet,
 } from "react-native";
 import { authApi, endpoints } from "../../configs/APIs";
 import {
@@ -16,42 +17,82 @@ import {
 } from "react-native-paper";
 import MyStyle from "../../styles/MyStyle";
 import Styles from "../General/Styles";
+import { Dropdown } from "react-native-element-dropdown";
+import AntDesign from "react-native-vector-icons/AntDesign";
 
 const RegisterStudy = ({ navigation, route }) => {
-  let token = route.params?.token;
-  let user = route.params?.user;
+  const token = route.params?.token;
+  const user = route.params?.user;
 
   const [loading, setLoading] = useState(false);
   const [studyClassRooms, setStudyClassRooms] = useState([]);
   const [page, setPage] = useState(1);
   const [kw, setKw] = useState("");
+  const [semester, setSemester] = useState("");
   const [error, setError] = useState(false);
+  const [data, setData] = useState([]);
+  const [value, setValue] = useState(null);
+  const [isFocus, setIsFocus] = useState(false);
+
+  const loadSemester = async () => {
+    try {
+      const url = `${endpoints["list-semester"]}`;
+      const res = await authApi(token).get(url);
+      const arr = res.data.results.map((item) => ({
+        label: item.name,
+        value: item.name,
+      }));
+      arr.push({
+        label: "Show All",
+        value: "Show All",
+      });
+      setData(arr);
+    } catch (error) {
+      console.log(error.response);
+      if (error.response && error.response.data) {
+        Alert.alert("Error", error.response.data.message);
+      } else {
+        Alert.alert("Error", "An unexpected error occurred.");
+      }
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const renderItem = (item) => (
+    <View style={styles.item}>
+      <Text style={styles.textItem}>{item.label}</Text>
+      {item.value === value && (
+        <AntDesign style={styles.icon} color="black" name="Safety" size={20} />
+      )}
+    </View>
+  );
 
   const loadStudyClassRooms = async () => {
-    if (page > 0) {
-      try {
-        setLoading(true);
-        let url = `${endpoints["list-studyclassrooms-for-register"](
-          user.id
-        )}?page=${page}`;
-        if (kw) {
-          url += `&kw=${kw}`;
-        }
-        let res = await authApi(token).get(url);
-        console.log(res.data);
-        if (page === 1) {
-          setStudyClassRooms(res.data.results);
-        } else {
-          setStudyClassRooms((current) => [...current, ...res.data.results]);
-        }
-        if (res.data.next === null) {
-          setPage(0); // No more pages to load
-        }
-      } catch (ex) {
-        console.error(ex);
-      } finally {
-        setLoading(false);
+    if (page <= 0) return;
+
+    try {
+      setLoading(true);
+      let url = `${endpoints["list-studyclassrooms-for-register"](
+        user.id
+      )}?page=${page}`;
+      if (kw) url += `&kw=${kw}`;
+      if (semester) url += `&semester=${semester}`;
+
+      const res = await authApi(token).get(url);
+      setStudyClassRooms((prev) =>
+        page === 1 ? res.data.results : [...prev, ...res.data.results]
+      );
+      if (!res.data.next) setPage(0); // No more pages to load
+    } catch (error) {
+      console.log(error.response);
+      if (error.response && error.response.data) {
+        Alert.alert("Error", error.response.data.message);
+      } else {
+        Alert.alert("Error", "An unexpected error occurred.");
       }
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -60,7 +101,7 @@ const RegisterStudy = ({ navigation, route }) => {
     contentOffset,
     contentSize,
   }) => {
-    const paddingToBottom = 20;
+    const paddingToBottom = 100; // Increase padding if needed
     return (
       layoutMeasurement.height + contentOffset.y >=
       contentSize.height - paddingToBottom
@@ -68,39 +109,44 @@ const RegisterStudy = ({ navigation, route }) => {
   };
 
   const loadMore = ({ nativeEvent }) => {
-    if (!loading && isCloseToBottom(nativeEvent)) {
+    if (!loading && isCloseToBottom(nativeEvent) && page > 0) {
       setPage((prevPage) => prevPage + 1);
     }
   };
 
   useEffect(() => {
     loadStudyClassRooms();
-  }, [page, kw]);
+  }, [page, kw, semester]);
+
+  useEffect(() => {
+    loadSemester();
+  }, []);
 
   const handleSearchChange = (value) => {
-    setPage(1); // Reset page to 1 when new search is performed
+    setPage(1);
     setKw(value);
+  };
+
+  const handleItemChange = (item) => {
+    setPage(1);
+    setSemester(item.value);
   };
 
   const registerStudy = async (studyclassroom_id) => {
     try {
       setLoading(true);
-      let url = `${endpoints["register-study"](studyclassroom_id)}`;
-      let res = await authApi(token).post(url, {
+      const url = `${endpoints["register-study"](studyclassroom_id)}`;
+      const res = await authApi(token).post(url, {
         student_id: user.id,
       });
       Alert.alert(res.data.message);
-      navigation.navigate("RegisterStudy", {
-        user: user,
-        token: token,
-      });
-    } catch (ex) {
-      if (ex.response && ex.response.status === 400) {
-        // Handle the 400 error
-        Alert.alert("Error", ex.response.data.message);
+      setPage(1); // Reset page after registration
+    } catch (error) {
+      if (error.response && error.response.status === 400) {
+        Alert.alert("Error", error.response.data.message);
       } else {
-        // Handle other errors
-        console.log("Unexpected error: ", ex);
+        console.log("Unexpected error: ", error);
+        Alert.alert("Error", "Failed to register study.");
       }
     } finally {
       setLoading(false);
@@ -115,6 +161,34 @@ const RegisterStudy = ({ navigation, route }) => {
           value={kw}
           placeholder="Tìm theo kiếm môn học"
         />
+
+        <Dropdown
+          style={styles.dropdown}
+          placeholderStyle={styles.placeholderStyle}
+          selectedTextStyle={styles.selectedTextStyle}
+          inputSearchStyle={styles.inputSearchStyle}
+          iconStyle={styles.iconStyle}
+          data={data}
+          search
+          maxHeight={300}
+          labelField="label"
+          valueField="value"
+          placeholder="Select item"
+          searchPlaceholder="Search..."
+          value={value}
+          onChange={(item) => {
+            handleItemChange(item);
+          }}
+          renderLeftIcon={() => (
+            <AntDesign
+              style={styles.icon}
+              color="black"
+              name="Safety"
+              size={20}
+            />
+          )}
+          renderItem={renderItem}
+        />
         {studyClassRooms.length > 0 ? (
           <ScrollView
             onScroll={loadMore}
@@ -123,7 +197,7 @@ const RegisterStudy = ({ navigation, route }) => {
               <RefreshControl
                 refreshing={loading}
                 onRefresh={() => {
-                  setPage(1); // Reset page to 1 and reload
+                  setPage(1);
                   loadStudyClassRooms();
                 }}
               />
@@ -171,3 +245,49 @@ const RegisterStudy = ({ navigation, route }) => {
 };
 
 export default RegisterStudy;
+
+const styles = StyleSheet.create({
+  dropdown: {
+    margin: 16,
+    height: 50,
+    backgroundColor: "white",
+    borderRadius: 12,
+    padding: 12,
+    shadowColor: "#000",
+    shadowOffset: {
+      width: 0,
+      height: 1,
+    },
+    shadowOpacity: 0.2,
+    shadowRadius: 1.41,
+
+    elevation: 2,
+  },
+  icon: {
+    marginRight: 5,
+  },
+  item: {
+    padding: 17,
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+  },
+  textItem: {
+    flex: 1,
+    fontSize: 16,
+  },
+  placeholderStyle: {
+    fontSize: 16,
+  },
+  selectedTextStyle: {
+    fontSize: 16,
+  },
+  iconStyle: {
+    width: 20,
+    height: 20,
+  },
+  inputSearchStyle: {
+    height: 40,
+    fontSize: 16,
+  },
+});

@@ -30,6 +30,7 @@ router.register('topics', views.TopicViewSet, basename='topics')
 router.register('schedules', views.ScheduleViewSet, basename='schedules')
 router.register('comments', views.CommentViewSet, basename='comments')
 router.register('commentfiles', views.CommentFileViewSet, basename='commentfiles')
+router.register('semesters', views.SemesterViewSet, basename='semesters')
 
 schema_view = get_schema_view(
     openapi.Info(

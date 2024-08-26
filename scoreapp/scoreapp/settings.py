@@ -183,10 +183,10 @@ cloudinary.config(
 #     api_secret="4ve100xmuA2kUAOvcmfWC9xSM1c"
 # )
 
-creds = Credentials(
-    None,
-    refresh_token="1//04y8j7qLfpcI3CgYIARAAGAQSNwF-L9Irwh3fa9t3BK9SupArrWXVn_77fUUV5jSnBJaN6lCKn3i8F5tm2qTAEjys-LBT6xhD1D0",
-    token_uri="https://oauth2.googleapis.com/token",
-    client_id="962643796714-gpg2bgiioi38e0h861rc54al5mbhqgg6.apps.googleusercontent.com",
-    client_secret="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",
-)
+# creds = Credentials(
+#     None,
+#     refresh_token="1//04vTaSNMOkUTECgYIARAAGAQSNwF-L9IrE9Ik-YDj3gUP4CG-rtvbdVFMvmZtrESS9gZF56aHoD2FiM2POKW5KZKs_V3unE0_BOg",
+#     token_uri="https://oauth2.googleapis.com/token",
+#     client_id="962643796714-gpg2bgiioi38e0h861rc54al5mbhqgg6.apps.googleusercontent.com",
+#     client_secret="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",
+# )

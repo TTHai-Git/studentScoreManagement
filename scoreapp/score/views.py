@@ -1,16 +1,19 @@
 import csv
-import mimetypes
 import os
 from datetime import timedelta, datetime
+from decimal import Decimal, ROUND_HALF_UP
+
 import jwt
 from django.utils import timezone
 import cloudinary
 from django.core.mail import send_mail, EmailMessage
 from django.db.models.functions import Concat
+from googleapiclient.errors import HttpError
 from jwt import ExpiredSignatureError, InvalidTokenError
 from rest_framework import viewsets, permissions, status, parsers, generics
 from rest_framework.decorators import action
 from rest_framework.response import Response
+from configs import creds
 from score.models import *
 from score import serializers, pagination, perms
 from reportlab.lib import colors
@@ -19,7 +22,7 @@ from reportlab.platypus import SimpleDocTemplate, Table, TableStyle
 from django.http import HttpResponse
 from scoreapp import settings
 from django.db.models import Q, Value
-from scoreapp.settings import creds
+# from scoreapp.settings import creds
 from googleapiclient.discovery import build
 
 
@@ -40,19 +43,22 @@ class UserViewSet(viewsets.ViewSet, generics.CreateAPIView, generics.ListAPIView
     @action(methods=['get', 'patch'], detail=False, url_path='current-user', url_name='current-user')
     def current_user(self, request):
         user = request.user
-        if request.method == 'PATCH':
-            for k, v in request.data.items():
-                if k == 'password':
-                    user.set_password(v)
-                elif k == 'avatar':
-                    new_avatar = cloudinary.uploader.upload(request.data['avatar'])
-                    user.avatar = new_avatar['secure_url']
-                else:
-                    setattr(user, k, v)
-            user.save()
-            return Response({'message': 'UPLOAD THÔNG TIN CÁ NHÂN THÀNH CÔNG!!!'}, status=status.HTTP_200_OK)
-        else:
-            return Response(serializers.UserSerializer(user).data)
+        try:
+            if request.method == 'PATCH':
+                for k, v in request.data.items():
+                    if k == 'password':
+                        user.set_password(v)
+                    elif k == 'avatar':
+                        new_avatar = cloudinary.uploader.upload(request.data['avatar'])
+                        user.avatar = new_avatar['secure_url']
+                    else:
+                        setattr(user, k, v)
+                user.save()
+                return Response({'message': 'CẬP NHẬT THÔNG TIN CÁ NHÂN THÀNH CÔNG!!!'}, status=status.HTTP_200_OK)
+            else:
+                return Response(serializers.UserSerializer(user).data)
+        except Exception as ex:
+            return Response({"message": str(ex)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
     @action(methods=['patch'], detail=False, url_path='change-password', url_name='change-password')
     def change_password(self, request):
@@ -71,11 +77,13 @@ class UserViewSet(viewsets.ViewSet, generics.CreateAPIView, generics.ListAPIView
 
             user.set_password(new_password)
             user.save()
-            return Response({'message': 'Đổi mật khẩu thành công.'}, status=status.HTTP_200_OK)
+            return Response({'message': 'Đặt lại mật khẩu thành công.'}, status=status.HTTP_200_OK)
         except ExpiredSignatureError:
             return Response({'message': 'Token đã hết hạn.'}, status=status.HTTP_400_BAD_REQUEST)
         except InvalidTokenError:
             return Response({'message': 'Token không hợp lệ.'}, status=status.HTTP_400_BAD_REQUEST)
+        except Exception as ex:
+            return Response({"message": str(ex)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
     @action(methods=['post'], detail=False, url_path='send-otp', url_name='send-otp')
     def send_otp(self, request):
@@ -90,7 +98,7 @@ class UserViewSet(viewsets.ViewSet, generics.CreateAPIView, generics.ListAPIView
                     "username": user.username,
                     "exp": valid_until.timestamp()
                 }
-                token = jwt.encode(token_payload, settings.SECRET_KEY, algorithm='HS256')# Mã hóa token
+                token = jwt.encode(token_payload, settings.SECRET_KEY, algorithm='HS256')  # Mã hóa token
 
                 subject = 'Mail Reset Password Ứng Dụng ScoreApp'
                 message = f'Mã Otp reset password của bạn dùng trong 1 lần hết hạn trong vòng 10 phút kể từ lúc gửi mail: {token}'
@@ -106,11 +114,23 @@ class UserViewSet(viewsets.ViewSet, generics.CreateAPIView, generics.ListAPIView
                             , status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 
-class TeacherViewSet(viewsets.ViewSet, generics.ListAPIView):
+class TeacherViewSet(viewsets.ViewSet, generics.ListAPIView, generics.CreateAPIView):
     queryset = Teacher.objects.all()
     serializer_class = serializers.TeacherSerializer
     pagination_class = pagination.TeacherPaginator
     parser_classes = [parsers.MultiPartParser]
+
+    @action(methods=['get'], url_path='studyclassrooms', detail=True)
+    def get_studyclassrooms(self, request, pk: None):
+        try:
+            teacher = self.get_object()
+            studyclassrooms = StudyClassRoom.objects.filter(teacher=teacher, active=True)
+            paginator = pagination.StudyClassRoomPaginator()
+            page = paginator.paginate_queryset(studyclassrooms, request)
+            serializer = serializers.StudyClassRoomSerializer(page, many=True)
+            return paginator.get_paginated_response(serializer.data)
+        except Exception as ex:
+            return Response({"message": str(ex)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 
 class TopicViewSet(viewsets.ViewSet, generics.ListAPIView):
@@ -224,13 +244,19 @@ class TopicViewSet(viewsets.ViewSet, generics.ListAPIView):
 class CommentViewSet(viewsets.ViewSet, viewsets.generics.RetrieveAPIView):
     queryset = Comment.objects.filter(active=True)
     serializer_class = serializers.CommentSerializer
-    # parser_classes = [parsers.MultiPartParser]
 
     @action(methods=['get'], url_path='files', detail=True)
     def get_files_of_comment(self, request, pk):
         comment = self.get_object()
-        comment_files = comment.files.prefetch_related('comment')
-        return Response(serializers.CommentFileSerializer(comment_files, many=True).data, status=status.HTTP_200_OK)
+        try:
+            comment_files = comment.files.prefetch_related('comment')
+            if comment_files.exists():  # Check if there are any files
+                return Response(serializers.CommentFileSerializer(comment_files, many=True).data,
+                                status=status.HTTP_200_OK)
+            else:
+                return Response({"message": "No files found for this comment."}, status=status.HTTP_204_NO_CONTENT)
+        except Exception as ex:
+            return Response({"message": str(ex)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 
 class CommentFileViewSet(viewsets.ViewSet, viewsets.generics.ListAPIView):
@@ -241,8 +267,9 @@ class CommentFileViewSet(viewsets.ViewSet, viewsets.generics.ListAPIView):
 
 class ScheduleViewSet(viewsets.ViewSet, viewsets.generics.ListAPIView, viewsets.generics.DestroyAPIView):
     queryset = Schedule.objects.filter(active=True)
-    serializer_class = serializers. ScheduleSerializer
-    parser_classes = [parsers.MultiPartParser]
+    serializer_class = serializers.ScheduleSerializer
+
+    # parser_classes = [parsers.MultiPartParser]
 
     @action(methods=['patch'], url_path='update-schedule', detail=True)
     def update_schedule(self, request, pk):
@@ -354,18 +381,19 @@ class ScheduleViewSet(viewsets.ViewSet, viewsets.generics.ListAPIView, viewsets.
             # Retrieve the schedule object
             schedule = self.get_object()
 
-            # Initialize the Google Calendar API
-            service = build("calendar", "v3", credentials=creds)
+            # Check if Google Calendar event ID exists
+            if schedule.google_calendar_event_id:
+                try:
+                    # Initialize the Google Calendar API
+                    service = build("calendar", "v3", credentials=creds)
 
-            # Attempt to delete the event from Google Calendar
-            try:
-                if schedule.google_calendar_event_id:
+                    # Attempt to delete the event from Google Calendar
                     service.events().delete(calendarId="primary", eventId=schedule.google_calendar_event_id).execute()
-            except Exception as e:
-                return Response(
-                    {"message": f"Lịch học đã được xoá nhưng không đồng bộ với Google Calendar: {str(e)}"},
-                    status=status.HTTP_200_OK
-                )
+                except HttpError as e:
+                    return Response(
+                        {"message": f"Lịch học đã được xoá nhưng không đồng bộ với Google Calendar: {e}"},
+                        status=status.HTTP_200_OK
+                    )
 
             # Delete the schedule from the database
             schedule.delete()
@@ -377,9 +405,42 @@ class ScheduleViewSet(viewsets.ViewSet, viewsets.generics.ListAPIView, viewsets.
 
         except Exception as e:
             return Response(
+                {"message": f"Đã xảy ra lỗi khi xóa lịch học: {str(e)}"},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+
+class SemesterViewSet(viewsets.ViewSet):
+    queryset = Semester.objects.all()
+    serializer_class = serializers.SemesterSerializer
+    pagination_class = pagination.SemesterPaginator
+
+    @action(methods=['get'], url_path='list', detail=False)
+    def get_list_semester(self, request, pk=None):
+        semestes = Semester.objects.filter(year__icontains=str(datetime.now().year))
+        try:
+            if semestes:
+                paginator = pagination.SemesterPaginator()
+                page = paginator.paginate_queryset(semestes, request)
+                serializer = serializers.SemesterSerializer(page, many=True)
+                return paginator.get_paginated_response(serializer.data)
+            else:
+                return Response({"message": "Lỗi load học kỳ!!!"}, status=status.HTTP_400_BAD_REQUEST)
+        except Exception as e:
+            return Response(
                 {"message": f"An error occurred: {str(e)}"},
                 status=status.HTTP_500_INTERNAL_SERVER_ERROR
             )
+
+    @action(methods=['get'], url_path='years', detail=False)
+    def get_years_semester(self, request, pk=None):
+        years = Semester.objects.values('year').distinct()
+        data = []
+        for year in years:
+            data.append({
+                "name": year['year'],
+            })
+        return Response({"results": data}, status=status.HTTP_200_OK)
 
 
 class StudyClassRoomViewSet(viewsets.ViewSet, viewsets.generics.ListAPIView, viewsets.generics.RetrieveAPIView):
@@ -482,13 +543,12 @@ class StudyClassRoomViewSet(viewsets.ViewSet, viewsets.generics.ListAPIView, vie
                 studyclassroom=studyclassroom,
                 descriptions=descriptions
             )
-
             # Initialize the Google Calendar API
             service = build("calendar", "v3", credentials=creds)
 
             # Define the Google Calendar event
             event = {
-                "summary": "Class Schedule: " + studyclassroom.name,
+                "summary": f"Class Schedule: {studyclassroom.name}",
                 "location": "Khu dân cư, Nhà Bè, Hồ Chí Minh",
                 "description": descriptions,
                 "colorId": "1",
@@ -552,37 +612,55 @@ class StudyClassRoomViewSet(viewsets.ViewSet, viewsets.generics.ListAPIView, vie
     def register_study(self, request, pk):
         studyclassroom_register = self.get_object()
         id_student = request.data.get('student_id')
-        student = Student.objects.get(id=id_student)
 
-        studies = Study.objects.filter(student=student)
-        studyclassroom_ids = studies.values_list('studyclassroom', flat=True)
-        studyclassrooms = StudyClassRoom.objects.filter(id__in=studyclassroom_ids)
+        try:
+            # Retrieve student object, handle case where student ID is invalid
+            student = Student.objects.get(id=id_student)
 
-        for studyclassroom in studyclassrooms:
-            if studyclassroom.group != studyclassroom_register.group and \
-                    studyclassroom.subject.name == studyclassroom_register.subject.name and \
-                    studyclassroom.semester == studyclassroom_register.semester:
-                return Response({"message": f"Đăng ký lớp học thất bại!!! "
-                                            f"Trùng lớp học có cùng môn học trong cùng một học kỳ"},
-                                status=status.HTTP_400_BAD_REQUEST)
-            elif studyclassroom.started_date == studyclassroom_register.started_date:
-                schedule_studyclassroom = Schedule.objects.filter(studyclassroom=studyclassroom)
-                schedule_studyclassroom_register = Schedule.objects.filter(studyclassroom=studyclassroom_register)
-                for schedule in schedule_studyclassroom:
-                    for schedule_register in schedule_studyclassroom_register:
-                        if schedule.started_time == schedule_register.started_time \
-                                and schedule.ended_time == schedule_register.ended_time:
-                            return Response({"message": f'Đăng ký lớp học thất bại!! Trùng lịch học '
-                                                        f'{studyclassroom.subject.name} '
-                                                        f'đã đăng ký từ trước trong cùng một học kỳ'}
-                                            , status=status.HTTP_400_BAD_REQUEST)
-                return Response({"message": f'Đăng ký lớp học thất bại!! Trùng lịch học'
-                                            f'{studyclassroom.subject.name}'
-                                            f'đã đăng ký từ trước trong cùng một học kỳ'},
-                                status=status.HTTP_400_BAD_REQUEST)
+            # Retrieve all study classrooms the student is currently registered in
+            studies = Study.objects.filter(student=student)
+            studyclassroom_ids = studies.values_list('studyclassroom', flat=True)
+            studyclassrooms = StudyClassRoom.objects.filter(id__in=studyclassroom_ids)
 
-        study_register = Study.objects.create(student=student, studyclassroom=studyclassroom_register)
-        return Response({"message": "Đăng ký lớp học thành công!!!"}, status=status.HTTP_201_CREATED)
+            # Check for conflicts
+            for studyclassroom in studyclassrooms:
+                if studyclassroom.group != studyclassroom_register.group and \
+                        studyclassroom.subject.name == studyclassroom_register.subject.name and \
+                        studyclassroom.semester == studyclassroom_register.semester:
+                    return Response({
+                        "message": "Đăng ký lớp học thất bại!!! Trùng lớp học có cùng môn học trong cùng một học kỳ"
+                    }, status=status.HTTP_400_BAD_REQUEST)
+
+                if studyclassroom.started_date == studyclassroom_register.started_date:
+                    schedule_studyclassroom = Schedule.objects.filter(studyclassroom=studyclassroom)
+                    schedule_studyclassroom_register = Schedule.objects.filter(studyclassroom=studyclassroom_register)
+
+                    for schedule in schedule_studyclassroom:
+                        for schedule_register in schedule_studyclassroom_register:
+                            if schedule.started_time == schedule_register.started_time and \
+                                    schedule.ended_time == schedule_register.ended_time:
+                                return Response({
+                                    "message": f"Đăng ký lớp học thất bại!! Trùng lịch học {studyclassroom.subject.name} "
+                                               "đã đăng ký từ trước trong cùng một học kỳ"
+                                }, status=status.HTTP_400_BAD_REQUEST)
+
+                    return Response({
+                        "message": f"Đăng ký lớp học thất bại!! Trùng lịch học {studyclassroom.subject.name} "
+                                   "đã đăng ký từ trước trong cùng một học kỳ"
+                    }, status=status.HTTP_400_BAD_REQUEST)
+
+            # No conflicts found, register the study
+            study_register = Study.objects.create(student=student, studyclassroom=studyclassroom_register)
+            return Response({"message": "Đăng ký lớp học thành công!!!"}, status=status.HTTP_201_CREATED)
+
+        except Student.DoesNotExist:
+            return Response({"message": "Student not found"}, status=status.HTTP_404_NOT_FOUND)
+        except Exception as ex:
+            # Optional: log the exception if logging is set up
+            # logger.error(f"Unexpected error occurred: {ex}")
+
+            return Response({"message": "An unexpected error occurred: " + str(ex)},
+                            status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
     @action(methods=['get'], url_path='chat-room', url_name='chat-room', detail=True)
     def get_users_of_chat_room(self, request, pk):
@@ -644,7 +722,8 @@ class StudyClassRoomViewSet(viewsets.ViewSet, viewsets.generics.ListAPIView, vie
     def save_scores(self, request, pk):
         studyclassroom = self.get_object()
         if studyclassroom.islock:
-            return Response({"message": "Thao tác điểm lên bảng điểm thất bại!!! Bảng điểm của lớp học đã bị khóa"})
+            return Response({"message": "Thao tác điểm lên bảng điểm thất bại!!! Bảng điểm của lớp học đã bị khóa"},
+                            status=status.HTTP_400_BAD_REQUEST)
         else:
             try:
                 scores = request.data.get('scores')
@@ -658,7 +737,8 @@ class StudyClassRoomViewSet(viewsets.ViewSet, viewsets.generics.ListAPIView, vie
                                 defaults={"study": study,
                                           "scorecolumn_id": score["col_id"]})
                             if float(score["score"]) < 0.0 or float(score["score"]) > 10.0:
-                                return Response({"message": "Lưu điểm thất bại!!! Sai định dạng điểm"})
+                                return Response({"message": "Lưu điểm thất bại!!! Sai định dạng điểm"},
+                                                status=status.HTTP_400_BAD_REQUEST)
                             else:
                                 scoredetail.score = float(score["score"])
                                 scoredetail.save()
@@ -673,7 +753,7 @@ class StudyClassRoomViewSet(viewsets.ViewSet, viewsets.generics.ListAPIView, vie
             studyclassroom = self.get_object()
 
             if studyclassroom.teacher != teacher:
-                return Response({"message": "Bạn không có quyền xem bảng điểm của lớp học này."},
+                return Response({"message": "Bạn không có quyền thao tác trên bảng điểm của lớp học này."},
                                 status=status.HTTP_401_UNAUTHORIZED)
 
             kw = request.query_params.get('kw')
@@ -717,102 +797,14 @@ class StudyClassRoomViewSet(viewsets.ViewSet, viewsets.generics.ListAPIView, vie
 
             dataJson = serializers.ScoresSerializer(
                 {"score_cols": colsSerializer, "score_details": listscoressSerializer})
-
-            # for col in columns:
-            #     scoredetails = []
-            #     for study in studies:
-            #         try:
-            #             sd = ScoreDetails.objects.get(study=study, scorecolumn=col)
-            #         except Exception:
-            #             sd = ScoreDetails(None, study=study, scorecolumn=col)
-            #         muData = {
-            #             'student_id': study.student.id,
-            #             'student_name': study.student.last_name + ' ' + study.student.first_name,
-            #             'score': sd.score
-            #         }
-            #         mu = serializers.ScoreDetailsSerializerMU(muData).data
-            #         scoredetails.append(mu)
-            #
-            #     scoreData.append({
-            #         'scorecolumn_id': col.id,
-            #         'scorecolumn_type': col.type,
-            #         'scorecolumn_percent': col.percent,
-            #         'scoredetails': scoredetails
-            #     })
-            # dataJson = serializers.ScoresSerializer(scoreData, many=True)
-
             return Response({
                 'scoredetails_with_scores': dataJson.data
             }, status=status.HTTP_200_OK)
         except Exception as e:
             return Response({"message": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
-    # @action(methods=['post'], url_path='students/add-scores', detail=True)
-    # def add_score_students_studyclassroom(self, request, pk):
-    #     try:
-    #         student_id = int(request.data.get('student_id'))
-    #         scorecolumn_id = int(request.data.get('scorecolumn_id'))
-    #         score = float(request.data.get('score'))
-    #
-    #         teacher = Teacher.objects.get(id=request.user.id)
-    #         studyclassroom = self.get_object()
-    #
-    #         if studyclassroom.teacher == teacher:
-    #             student = Student.objects.get(id=student_id)
-    #             # kiểm tra học sinh có đăng ký lớp học đó không á
-    #             study = Study.objects.get(student=student, studyclassroom=studyclassroom)
-    #
-    #             # Lấy cột điểm của lớp học đó (GK hoặc CK)
-    #             scorecolumn = ScoreColumn.objects.get(id=scorecolumn_id, studyclassroom=studyclassroom)
-    #
-    #             # Thêm điểm xuống db
-    #             scoredetails = ScoreDetails.objects.create(study=study, scorecolumn=scorecolumn, score=score)
-    #
-    #             # return Response(serializers.ScoreDetailsSerializer(scoredetails).data, status=status.HTTP_201_CREATED)
-    #             return Response(
-    #                 {"message": f'Nhập điểm cho sinh viên {student.last_name} 'f' {student.first_name} thành công'},
-    #                 status=status.HTTP_201_CREATED)
-    #
-    #         else:
-    #             return Response({"message": "Bạn không có quyền nhập bảng điểm của lớp học này."},
-    #                             status=status.HTTP_401_UNAUTHORIZED)
-    #     except (ValueError, Student.DoesNotExist, Study.DoesNotExist, ScoreColumn.DoesNotExist) as e:
-    #         return Response({"message": str(e)}, status=status.HTTP_400_BAD_REQUEST)
-
-    # @action(methods=['patch'], url_path='students/update-scores', detail=True)
-    # def update_score_students_studyclassroom(self, request, pk):
-    #     try:
-    #         student_id = int(request.data.get('student_id'))
-    #         scorecolumn_id = int(request.data.get('scorecolumn_id'))
-    #         updated_score = float(request.data.get('updated_score'))
-    #
-    #         teacher = Teacher.objects.get(id=request.user.id)
-    #         studyclassroom = self.get_object()
-    #
-    #         if studyclassroom.teacher == teacher:
-    #             student = Student.objects.get(id=student_id)
-    #             study = Study.objects.get(student=student, studyclassroom=studyclassroom)
-    #
-    #             scorecolumn = ScoreColumn.objects.get(id=scorecolumn_id, studyclassroom=studyclassroom)
-    #
-    #             scoredetails = ScoreDetails.objects.get(study=study, scorecolumn=scorecolumn)
-    #
-    #             scoredetails.score = updated_score
-    #             scoredetails.save()
-    #
-    #             # return Response(serializers.ScoreDetailsSerializer(scoredetails).data, status=status.HTTP_200_OK)
-    #             return Response(
-    #                 {"message": f'Cập nhật điểm cho sinh viên {student.last_name} {student.first_name} thành công!'},
-    #                 status=status.HTTP_200_OK)
-    #         else:
-    #             return Response({"message": "Bạn không có quyền nhập bảng điểm của lớp học này."},
-    #                             status=status.HTTP_401_UNAUTHORIZED)
-    #     except (ValueError, Student.DoesNotExist, Study.DoesNotExist, ScoreColumn.DoesNotExist,
-    #             ScoreDetails.DoesNotExist) as ex:
-    #         return Response({"message": str(ex)}, status=status.HTTP_400_BAD_REQUEST)
-
-    @action(methods=['PATCH'], url_path='locked-score-of-studyclassroom', detail=True)
-    def locked_score_of_studyclassroom(self, request, pk):
+    @action(methods=['PATCH'], url_path='lock-or-unlock-scores-of-studyclassroom', detail=True)
+    def lock_or_unlock_scores_of_studyclassroom(self, request, pk):
         try:
             studyclassroom = self.get_object()
             teacher = Teacher.objects.get(id=request.user.id)
@@ -824,7 +816,7 @@ class StudyClassRoomViewSet(viewsets.ViewSet, viewsets.generics.ListAPIView, vie
             if studyclassroom.teacher == teacher:
                 studyclassroom.islock = not studyclassroom.islock
                 studyclassroom.save()
-                if studyclassroom.islock == True:
+                if studyclassroom.islock:
                     for result in serialized_data:
                         subject = f'THÔNG BÁO ĐIỂM - ' \
                                   f'Lớp học: {studyclassroom.name} - Môn học: {studyclassroom.subject.name} - ' \
@@ -844,197 +836,206 @@ class StudyClassRoomViewSet(viewsets.ViewSet, viewsets.generics.ListAPIView, vie
 
         except (StudyClassRoom.DoesNotExist, Teacher.DoesNotExist):
             return Response(status=status.HTTP_404_NOT_FOUND)
-        return Response({"message": f'Khóa bảng điểm lớp {studyclassroom.name} thành công!'},
+        return Response({"message": f'Khóa bảng điểm lớp {studyclassroom.name} thành công! '
+                                    f'Đã gửi mail thông báo tới email của Sinh Viên'},
                         status=status.HTTP_201_CREATED)
 
     @action(methods=['get'], url_path='students/export-csv-scores', detail=True)
     def export_csv_scores_students_studyclassroom(self, request, pk):
         studyclassroom = self.get_object()
-        if not studyclassroom.islock:
-            return Response(
-                {'message': f'Xuất bảng điểm lớp {studyclassroom.name} thành file.csv và gửi email thất bại!!! '
-                            f'Bảng điểm của lớp học chưa khóa'},
-                status=status.HTTP_400_BAD_REQUEST)
-        else:
-            teacher = Teacher.objects.get(id=request.user.id)
-            scorecolumns = ScoreColumn.objects.filter(studyclassroom=studyclassroom)
-            if studyclassroom.teacher.__eq__(teacher):
-                studies = Study.objects.filter(studyclassroom=studyclassroom).order_by('studyclassroom_id')
-                scoredetails = ScoreDetails.objects.filter(study__in=studies).order_by('id')
-
-                # Get distinct score types
-                score_types = scorecolumns.values_list('type', flat=True).distinct()
-
-                # Prepare the header dynamically based on score types
-                header = ['MSSV', 'Họ Và Tên'] + list(score_types)
-                csv_data = [header]
-
-                # Dictionary to store scores for each student
-                student_scores = {}
-
-                for result in scoredetails:
-                    student_code = result.study.student.code
-                    if student_code not in student_scores:
-                        student_name = f"{result.study.student.last_name} {result.study.student.first_name}"
-                        # Initialize scores with empty strings
-                        student_scores[student_code] = {score_type: '' for score_type in score_types}
-                        student_scores[student_code].update({'Name': student_name, 'Code': student_code})
-
-                    # Assign scores to the appropriate columns
-                    student_scores[student_code][result.scorecolumn.type] = result.score
-
-                # Populate data with student scores
-                for code, scores in student_scores.items():
-                    row = [scores['Code'], scores['Name']] + [scores[score_type] for score_type in score_types]
-                    csv_data.append(row)
-
-                # Construct the file name based on studyclassroom name
-                filename = f"{studyclassroom.name} - {studyclassroom.subject.name}_Bảng Điểm Tổng Hợp.csv"
-                file_path = os.path.join(
-                    'F:\\PythonProject\\studentScoreManagement\\scoreapp\\score\\static\\Score_csv',
-                    filename)
-
-                # Write the data to a CSV file with UTF-8 encoding
-                with open(file_path, 'w', newline='', encoding='utf-8') as csvfile:
-                    csv_writer = csv.writer(csvfile)
-                    csv_writer.writerows(csv_data)
-
-                # Retrieve email addresses of students
-                student_emails = studies.values_list('student__email', flat=True).distinct()
-
-                # Send the CSV file to each student via email
-                subject = f"Bảng Điểm Tổng Hợp của lớp {studyclassroom.name} - {studyclassroom.subject.name} " \
-                          f"- {studyclassroom.group.name} "
-                message = f"Kính gửi các sinh viên" \
-                          f"\nĐây là bảng điểm tổng hợp của lớp học. Mọi thắc mắc vui lòng liên hệ về email của thầy:" \
-                          f"\nGiáo viên: {teacher.last_name} {teacher.first_name} \nEmail: {teacher.email}" \
-                          f"\n\nTrân trọng!"
-                from_email = settings.EMAIL_HOST_USER
-
-                for email in student_emails:
-                    email_message = EmailMessage(
-                        subject,
-                        message,
-                        from_email,
-                        [email]
-                    )
-                    email_message.attach_file(file_path)
-                    email_message.send()
-
-                # Return a response indicating successful CSV export
+        try:
+            if not studyclassroom.islock:
                 return Response(
-                    {'message': f'Xuất bảng điểm lớp {studyclassroom.name} thành file.csv và gửi email thành công',
-                     'file_name': filename},
-                    status=status.HTTP_200_OK)
+                    {'message': f'Xuất bảng điểm lớp {studyclassroom.name} thành file.csv và gửi email thất bại!!! '
+                                f'Bảng điểm của lớp học chưa khóa'},
+                    status=status.HTTP_400_BAD_REQUEST)
             else:
-                return Response({"message": "Bạn không có quyền xuất bảng điểm của lớp học này."},
-                                status=status.HTTP_401_UNAUTHORIZED)
+                teacher = Teacher.objects.get(id=request.user.id)
+                scorecolumns = ScoreColumn.objects.filter(studyclassroom=studyclassroom)
+                if studyclassroom.teacher.__eq__(teacher):
+                    studies = Study.objects.filter(studyclassroom=studyclassroom).order_by('studyclassroom_id')
+                    scoredetails = ScoreDetails.objects.filter(study__in=studies).order_by('id')
+
+                    # Get distinct score types
+                    score_types = scorecolumns.values_list('type', flat=True).distinct()
+
+                    # Prepare the header dynamically based on score types
+                    header = ['MSSV', 'Họ Và Tên'] + list(score_types)
+                    csv_data = [header]
+
+                    # Dictionary to store scores for each student
+                    student_scores = {}
+
+                    for result in scoredetails:
+                        student_code = result.study.student.code
+                        if student_code not in student_scores:
+                            student_name = f"{result.study.student.last_name} {result.study.student.first_name}"
+                            # Initialize scores with empty strings
+                            student_scores[student_code] = {score_type: '' for score_type in score_types}
+                            student_scores[student_code].update({'Name': student_name, 'Code': student_code})
+
+                        # Assign scores to the appropriate columns
+                        student_scores[student_code][result.scorecolumn.type] = result.score
+
+                    # Populate data with student scores
+                    for code, scores in student_scores.items():
+                        row = [scores['Code'], scores['Name']] + [scores[score_type] for score_type in score_types]
+                        csv_data.append(row)
+
+                    # Construct the file name based on studyclassroom name
+                    filename = f"{studyclassroom.name} - {studyclassroom.subject.name}_Bảng Điểm Tổng Hợp.csv"
+                    file_path = os.path.join(
+                        'F:\\PythonProject\\studentScoreManagement\\scoreapp\\score\\static\\Score_csv',
+                        filename)
+
+                    # Write the data to a CSV file with UTF-8 encoding
+                    with open(file_path, 'w', newline='', encoding='utf-8') as csvfile:
+                        csv_writer = csv.writer(csvfile)
+                        csv_writer.writerows(csv_data)
+
+                    # Retrieve email addresses of students
+                    student_emails = studies.values_list('student__email', flat=True).distinct()
+
+                    # Send the CSV file to each student via email
+                    subject = f"Bảng Điểm Tổng Hợp của lớp {studyclassroom.name} - {studyclassroom.subject.name} " \
+                              f"- {studyclassroom.group.name} "
+                    message = f"Kính gửi các sinh viên" \
+                              f"\nĐây là bảng điểm tổng hợp của lớp học. Mọi thắc mắc vui lòng liên hệ về email của thầy:" \
+                              f"\nGiáo viên: {teacher.last_name} {teacher.first_name} \nEmail: {teacher.email}" \
+                              f"\n\nTrân trọng!"
+                    from_email = settings.EMAIL_HOST_USER
+
+                    for email in student_emails:
+                        email_message = EmailMessage(
+                            subject,
+                            message,
+                            from_email,
+                            [email]
+                        )
+                        email_message.attach_file(file_path)
+                        email_message.send()
+
+                    # Return a response indicating successful CSV export
+                    return Response(
+                        {'message': f'Xuất bảng điểm lớp {studyclassroom.name} thành file.csv và gửi email thành công',
+                         'file_name': filename},
+                        status=status.HTTP_200_OK)
+                else:
+                    return Response({"message": "Bạn không có quyền xuất bảng điểm của lớp học này."},
+                                    status=status.HTTP_401_UNAUTHORIZED)
+        except Exception as ex:
+            return Response({"message": "An unexpected error occurred: " + str(ex)},
+                            status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
     @action(methods=['get'], url_path='students/export-pdf-scores', detail=True)
     def export_pdf_scores_students_studyclassroom(self, request, pk):
         studyclassroom = self.get_object()
-        if not studyclassroom.islock:
-            return Response(
-                {'message': f'Xuất bảng điểm lớp {studyclassroom.name} thành file.pdf và gửi email thất bại!!! '
-                            f'Bảng điểm của lớp học đã chưa khóa'},
-                status=status.HTTP_400_BAD_REQUEST)
-        else:
-            teacher = Teacher.objects.get(id=request.user.id)
-            scorecolumns = ScoreColumn.objects.filter(studyclassroom=studyclassroom)
-            if studyclassroom.teacher.__eq__(teacher):
-                studies = Study.objects.filter(studyclassroom=studyclassroom).order_by('studyclassroom_id')
-                scoredetails = ScoreDetails.objects.filter(study__in=studies).order_by('id')
-
-                # Get distinct score types
-                score_types = scorecolumns.values_list('type', flat=True).distinct()
-
-                # Prepare the header dynamically based on score types
-                header = ['MSSV', 'Họ Và Tên'] + list(score_types)
-                data = [header]
-
-                # Dictionary to store scores for each student
-                student_scores = {}
-
-                for result in scoredetails:
-                    student_code = result.study.student.code
-                    if student_code not in student_scores:
-                        student_name = f"{result.study.student.last_name} {result.study.student.first_name}"
-                        # Initialize scores with empty strings
-                        student_scores[student_code] = {score_type: '' for score_type in score_types}
-                        student_scores[student_code].update({'Họ Và Tên': student_name, 'MSSV': student_code})
-
-                    # Assign scores to the appropriate columns
-                    student_scores[student_code][result.scorecolumn.type] = result.score
-
-                # Populate data with student scores
-                for code, scores in student_scores.items():
-                    row = [scores['MSSV'], scores['Họ Và Tên']] + [scores[score_type] for score_type in score_types]
-                    data.append(row)
-
-                # Construct the file name based on studyclassroom name
-                filename = f"{studyclassroom.name} - {studyclassroom.subject.name}_Bảng Điểm Tổng Hợp.pdf"
-                file_path = os.path.join(
-                    'F:\\PythonProject\\studentScoreManagement\\scoreapp\\score\\static\\Score_pdf',
-                    filename)
-
-                # Generate PDF
-                response = HttpResponse(content_type='application/pdf')
-                response['Content-Disposition'] = f'attachment; filename="{filename}"'
-
-                # Create the PDF document
-                doc = SimpleDocTemplate(response, pagesize=letter)
-                table = Table(data)
-
-                # Add style to table
-                style = TableStyle([
-                    ('BACKGROUND', (0, 0), (-1, 0), colors.gray),
-                    ('TEXTCOLOR', (0, 0), (-1, 0), colors.whitesmoke),
-                    ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
-                    ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
-                    ('BOTTOMPADDING', (0, 0), (-1, 0), 12),
-                    ('BACKGROUND', (0, 1), (-1, -1), colors.beige),
-                    ('GRID', (0, 0), (-1, -1), 1, colors.black)
-                ])
-
-                table.setStyle(style)
-
-                # Add table to document
-                doc.build([table])
-
-                # Save the PDF locally
-                with open(file_path, 'wb') as f:
-                    f.write(response.content)
-
-                # Retrieve email addresses of students
-                student_emails = studies.values_list('student__email', flat=True).distinct()
-
-                # Send the PDF file to each student via email
-                subject = f"Bảng Điểm Tổng Hợp của lớp {studyclassroom.name} - {studyclassroom.subject.name} " \
-                          f"- {studyclassroom.group.name} "
-                message = f"Kính gửi các sinh viên" \
-                          f"\nĐây là bảng điểm tổng hợp của lớp học. Mọi thắc mắc vui lòng liên hệ về email của thầy:" \
-                          f"\nGiáo viên: {teacher.last_name} {teacher.first_name} \nEmail: {teacher.email}" \
-                          f"\n\nTrân trọng!"
-                from_email = settings.EMAIL_HOST_USER
-
-                for email in student_emails:
-                    email_message = EmailMessage(
-                        subject,
-                        message,
-                        from_email,
-                        [email]
-                    )
-                    email_message.attach_file(file_path)
-                    email_message.send()
-
-                # Return a response indicating successful PDF export and email sending
+        try:
+            if not studyclassroom.islock:
                 return Response(
-                    {'message': f'Xuất bảng điểm lớp {studyclassroom.name} thành file.pdf và gửi email thành công',
-                     'file_name': filename},
-                    status=status.HTTP_200_OK)
+                    {'message': f'Xuất bảng điểm lớp {studyclassroom.name} thành file.pdf và gửi email thất bại!!! '
+                                f'Bảng điểm của lớp học đã chưa khóa'},
+                    status=status.HTTP_400_BAD_REQUEST)
             else:
-                return Response({"message": "Bạn không có quyền xuất bảng điểm của lớp học này."},
-                                status=status.HTTP_401_UNAUTHORIZED)
+                teacher = Teacher.objects.get(id=request.user.id)
+                scorecolumns = ScoreColumn.objects.filter(studyclassroom=studyclassroom)
+                if studyclassroom.teacher.__eq__(teacher):
+                    studies = Study.objects.filter(studyclassroom=studyclassroom).order_by('studyclassroom_id')
+                    scoredetails = ScoreDetails.objects.filter(study__in=studies).order_by('id')
+
+                    # Get distinct score types
+                    score_types = scorecolumns.values_list('type', flat=True).distinct()
+
+                    # Prepare the header dynamically based on score types
+                    header = ['MSSV', 'Họ Và Tên'] + list(score_types)
+                    data = [header]
+
+                    # Dictionary to store scores for each student
+                    student_scores = {}
+
+                    for result in scoredetails:
+                        student_code = result.study.student.code
+                        if student_code not in student_scores:
+                            student_name = f"{result.study.student.last_name} {result.study.student.first_name}"
+                            # Initialize scores with empty strings
+                            student_scores[student_code] = {score_type: '' for score_type in score_types}
+                            student_scores[student_code].update({'Họ Và Tên': student_name, 'MSSV': student_code})
+
+                        # Assign scores to the appropriate columns
+                        student_scores[student_code][result.scorecolumn.type] = result.score
+
+                    # Populate data with student scores
+                    for code, scores in student_scores.items():
+                        row = [scores['MSSV'], scores['Họ Và Tên']] + [scores[score_type] for score_type in score_types]
+                        data.append(row)
+
+                    # Construct the file name based on studyclassroom name
+                    filename = f"{studyclassroom.name} - {studyclassroom.subject.name}_Bảng Điểm Tổng Hợp.pdf"
+                    file_path = os.path.join(
+                        'F:\\PythonProject\\studentScoreManagement\\scoreapp\\score\\static\\Score_pdf',
+                        filename)
+
+                    # Generate PDF
+                    response = HttpResponse(content_type='application/pdf')
+                    response['Content-Disposition'] = f'attachment; filename="{filename}"'
+
+                    # Create the PDF document
+                    doc = SimpleDocTemplate(response, pagesize=letter)
+                    table = Table(data)
+
+                    # Add style to table
+                    style = TableStyle([
+                        ('BACKGROUND', (0, 0), (-1, 0), colors.gray),
+                        ('TEXTCOLOR', (0, 0), (-1, 0), colors.whitesmoke),
+                        ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
+                        ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
+                        ('BOTTOMPADDING', (0, 0), (-1, 0), 12),
+                        ('BACKGROUND', (0, 1), (-1, -1), colors.beige),
+                        ('GRID', (0, 0), (-1, -1), 1, colors.black)
+                    ])
+
+                    table.setStyle(style)
+
+                    # Add table to document
+                    doc.build([table])
+
+                    # Save the PDF locally
+                    with open(file_path, 'wb') as f:
+                        f.write(response.content)
+
+                    # Retrieve email addresses of students
+                    student_emails = studies.values_list('student__email', flat=True).distinct()
+
+                    # Send the PDF file to each student via email
+                    subject = f"Bảng Điểm Tổng Hợp của lớp {studyclassroom.name} - {studyclassroom.subject.name} " \
+                              f"- {studyclassroom.group.name} "
+                    message = f"Kính gửi các sinh viên" \
+                              f"\nĐây là bảng điểm tổng hợp của lớp học. Mọi thắc mắc vui lòng liên hệ về email của thầy:" \
+                              f"\nGiáo viên: {teacher.last_name} {teacher.first_name} \nEmail: {teacher.email}" \
+                              f"\n\nTrân trọng!"
+                    from_email = settings.EMAIL_HOST_USER
+
+                    for email in student_emails:
+                        email_message = EmailMessage(
+                            subject,
+                            message,
+                            from_email,
+                            [email]
+                        )
+                        email_message.attach_file(file_path)
+                        email_message.send()
+
+                    # Return a response indicating successful PDF export and email sending
+                    return Response(
+                        {'message': f'Xuất bảng điểm lớp {studyclassroom.name} thành file.pdf và gửi email thành công',
+                         'file_name': filename},
+                        status=status.HTTP_200_OK)
+                else:
+                    return Response({"message": "Bạn không có quyền xuất bảng điểm của lớp học này."},
+                                    status=status.HTTP_401_UNAUTHORIZED)
+        except Exception as ex:
+            return Response({"message": "An unexpected error occurred: " + str(ex)},
+                            status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
     @action(methods=['post'], url_path='add-topic', detail=True)
     def add_topic(self, request, pk):
@@ -1047,9 +1048,11 @@ class StudyClassRoomViewSet(viewsets.ViewSet, viewsets.generics.ListAPIView, vie
                 if not created:
                     topic.active = not topic.active
                     topic.save()
-
-                # return Response(serializers.TopicSerializer(topic).data, status=status.HTTP_201_CREATED)
-                return Response({"message": f'Tạo diễn đàn {topic.title} thành công!'}, status=status.HTTP_201_CREATED)
+                    return Response({"message": f'Tạo diễn đàn {topic.title} thành công!'},
+                                    status=status.HTTP_201_CREATED)
+                else:
+                    return Response({"message": "Tạo diễn đàn thất bại!!! Trùng tên diễn đàn"},
+                                    status=status.HTTP_401_UNAUTHORIZED)
             else:
                 return Response({"message": "Bạn không có quyền để tạo topic cho lớp học này!!!"},
                                 status=status.HTTP_401_UNAUTHORIZED)
@@ -1070,7 +1073,7 @@ class StudyClassRoomViewSet(viewsets.ViewSet, viewsets.generics.ListAPIView, vie
             return Response({"message": str(ex)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 
-class StudentViewSet(viewsets.ViewSet, generics.ListAPIView):
+class StudentViewSet(viewsets.ViewSet, generics.ListAPIView, generics.CreateAPIView):
     queryset = Student.objects.all()
     serializer_class = serializers.StudentSerializer
     pagination_class = pagination.StudentPaginator
@@ -1087,41 +1090,77 @@ class StudentViewSet(viewsets.ViewSet, generics.ListAPIView):
         try:
             student = self.get_object()
             kw = request.query_params.get('kw')
+            semester = request.query_params.get('semester')
 
+            # Filter study classrooms based on the query parameters
             if kw:
                 subjects = Subject.objects.filter(name__icontains=kw)
                 studyclassrooms = StudyClassRoom.objects.filter(subject__in=subjects, islock=True)
+            elif semester and semester != "Show All":
+                studyclassrooms = StudyClassRoom.objects.annotate(
+                    search_semester=Concat('semester__name', Value(' '), 'semester__year')
+                ).filter(Q(search_semester=semester), islock=True)
             else:
                 studyclassrooms = StudyClassRoom.objects.filter(islock=True)
 
+            # Get the studies associated with the student and filtered classrooms
             studies = student.study_set.select_related('student').filter(studyclassroom__in=studyclassrooms)
-            scoredetails = ScoreDetails.objects.filter(study__in=studies).select_related('scorecolumn',
-                                                                                         'study__studyclassroom__subject',
-                                                                                         'study__studyclassroom__semester')
+
+            if not studies.exists():
+                return Response({"message": "Bạn không có kết quả học tập ở học kỳ này!!!"}, status=status.HTTP_200_OK)
+
+            scoredetails = ScoreDetails.objects.filter(study__in=studies).select_related(
+                'scorecolumn', 'study__studyclassroom__subject', 'study__studyclassroom__semester'
+            )
 
             studyresult = []
+            pointconversions = PointConversion.objects.all()
 
             studyclassroom_map = {sc.id: [] for sc in studyclassrooms}
+
             for scoredetail in scoredetails:
                 studyclassroom_id = scoredetail.study.studyclassroom.id
                 if studyclassroom_id in studyclassroom_map:
                     studyclassroom_map[studyclassroom_id].append({
                         "col_id": scoredetail.scorecolumn.id,
                         "col_type": scoredetail.scorecolumn.type,
+                        "col_percent": scoredetail.scorecolumn.percent,
                         "score": scoredetail.score
                     })
 
             for studyclassroom in studyclassrooms:
                 scoredetails_list = studyclassroom_map.get(studyclassroom.id, [])
+                ten_point_scale = sum(
+                    (sd["score"] * sd["col_percent"]) / 100 for sd in scoredetails_list
+                )
+
+                parsed_value = Decimal(ten_point_scale).quantize(Decimal('9.9'), rounding=ROUND_HALF_UP)
+
+                four_point_scale = 0.0
+                grade = ""
+                result = False
+
+                for pointconversion in pointconversions:
+                    if pointconversion.ten_point_scale_min <= parsed_value <= pointconversion.ten_point_scale_max:
+                        four_point_scale = pointconversion.four_point_scale
+                        grade = pointconversion.grade
+                        result = grade != "F"
+                        break
+
                 studyresult.append({
                     "subject_name": studyclassroom.subject.name,
                     "semester_name": studyclassroom.semester.name,
                     "semester_year": studyclassroom.semester.year,
-                    "scoredetails": scoredetails_list
+                    "ten_point_scale": parsed_value,
+                    "four_point_scale": four_point_scale,
+                    "grade": grade,
+                    "result": result,
+                    "scoredetails": scoredetails_list,
                 })
 
             return Response({"studyresult": serializers.StudyResultSerializer(studyresult, many=True).data},
                             status=status.HTTP_200_OK)
+
         except Subject.DoesNotExist:
             return Response({"message": "Subject not found"}, status=status.HTTP_404_NOT_FOUND)
         except StudyClassRoom.DoesNotExist:
@@ -1129,29 +1168,144 @@ class StudentViewSet(viewsets.ViewSet, generics.ListAPIView):
         except Exception as ex:
             return Response({"message": str(ex)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
+    @action(methods=['get'], url_path='evaluate-learning-results', detail=True)
+    def evaluate_learning_results(self, request, pk=None):
+        student = self.get_object()
+        studyclassrooms = StudyClassRoom.objects.filter(islock=True)
+        kw = request.query_params.get('kw')
+        current_year = datetime.now().year
+        year_format = f"{current_year - 1} - {current_year}"
+
+        # Filter the studies associated with the student and classrooms
+        studies = student.study_set.select_related('student').filter(
+            studyclassroom__in=studyclassrooms,
+            studyclassroom__semester__year=year_format
+        )
+        if kw:
+            studies = studies.filter(studyclassroom__semester__year=kw)
+
+        if not studies.exists():
+            return Response({"message": "Bạn không có kết quả học tập để tổng hợp GPA trong năm học này!!!"},
+                            status=status.HTTP_400_BAD_REQUEST)
+
+        # Fetch score details
+        scoredetails = ScoreDetails.objects.filter(
+            study__in=studies
+        ).select_related('scorecolumn', 'study__studyclassroom__subject', 'study__studyclassroom__semester')
+
+        # Calculate the 10-point and 4-point scales
+        pointconversions = PointConversion.objects.all()
+        studyresult = []
+
+        for studyclassroom in studyclassrooms:
+            scoredetails_list = [
+                {
+                    "col_id": sd.scorecolumn.id,
+                    "col_type": sd.scorecolumn.type,
+                    "col_percent": sd.scorecolumn.percent,
+                    "score": sd.score
+                }
+                for sd in scoredetails if sd.study.studyclassroom.id == studyclassroom.id
+            ]
+
+            ten_point_scale = sum(
+                (sd["score"] * sd["col_percent"]) / 100 for sd in scoredetails_list
+            )
+
+            parsed_value = Decimal(ten_point_scale).quantize(Decimal('9.9'), rounding=ROUND_HALF_UP)
+            four_point_scale = next(
+                (pc.four_point_scale for pc in pointconversions
+                 if pc.ten_point_scale_min <= parsed_value <= pc.ten_point_scale_max),
+                0.0
+            )
+
+            studyresult.append({
+                "semester_name": studyclassroom.semester.name,
+                "semester_year": studyclassroom.semester.year,
+                "four_point_scale": four_point_scale,
+            })
+
+        # Calculate GPA for each semester
+        results = []
+        semesters = Semester.objects.filter(year__icontains=str(current_year))
+
+        for semester in semesters:
+            semester_results = [sr['four_point_scale'] for sr in studyresult if sr['semester_name'] == semester.name]
+            gpa = sum(semester_results) / len(semester_results) if semester_results else 0.0
+            results.append({
+                "semester_name": semester.name,
+                "GPA": round(gpa, 2)
+            })
+
+        return Response({"results": results}, status=status.HTTP_200_OK)
+
     @action(methods=['get'], url_path='studyclassrooms', detail=True)
     def get_study_class_rooms(self, request, pk):
         student = self.get_object()
-        studies = Study.objects.filter(student=student)
-        studyclassroom_ids = studies.values_list('studyclassroom', flat=True)
-        studyclassrooms = StudyClassRoom.objects.filter(id__in=studyclassroom_ids)
-        paginator = pagination.StudyClassRoomPaginator()
-        page = paginator.paginate_queryset(studyclassrooms, request)
-        serializer = serializers.StudyClassRoomSerializer(page, many=True)
-        return paginator.get_paginated_response(serializer.data)
+        try:
+            studies = Study.objects.filter(student=student)
+            studyclassroom_ids = studies.values_list('studyclassroom', flat=True)
+            studyclassrooms = StudyClassRoom.objects.filter(id__in=studyclassroom_ids)
+            paginator = pagination.StudyClassRoomPaginator()
+            page = paginator.paginate_queryset(studyclassrooms, request)
+            serializer = serializers.StudyClassRoomSerializer(page, many=True)
+            return paginator.get_paginated_response(serializer.data)
+        except Study.DoesNotExist as ex:
+            return Response({"message": "Sinh viên chưa đăng ký lớp học nào: " + str(ex)},
+                            status=status.HTTP_404_NOT_FOUND)
+        except StudyClassRoom.DoesNotExist as ex:
+            return Response({"message": "Không tìm thấy lớp học của sinh viên: " + str(ex)},
+                            status=status.HTTP_404_NOT_FOUND)
+        except ValueError as ex:
+            return Response({"message": "Invalid value encountered: " + str(ex)},
+                            status=status.HTTP_400_BAD_REQUEST)
+        except Exception as ex:
+            return Response({"message": str(ex)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
     @action(methods=['get'], url_path='list-studyclassrooms-for-register', detail=True)
     def list_studyclassrooms_for_register(self, request, pk):
         student = self.get_object()
         studies = Study.objects.filter(student=student)
         kw = request.query_params.get('kw')
-        studyclassroom_ids = studies.values_list('studyclassroom', flat=True)
-        studyclassrooms_for_register = StudyClassRoom.objects.filter(~Q(id__in=studyclassroom_ids))
-        if kw:
-            studyclassrooms_for_register = studyclassrooms_for_register\
-                .annotate(search_name=Concat('teacher__last_name', Value(' '), 'teacher__first_name'))\
-                .filter(Q(subject__name__icontains=kw) | Q(search_name__icontains=kw))
-        paginator = pagination.StudyClassRoomPaginator()
-        page = paginator.paginate_queryset(studyclassrooms_for_register, request)
-        serializer = serializers.StudyClassRoomSerializer(page, many=True)
-        return paginator.get_paginated_response(serializer.data)
+        semester = request.query_params.get('semester')
+        try:
+            # Exclude study classrooms already registered by the student
+            studyclassroom_ids = studies.values_list('studyclassroom', flat=True)
+            studyclassrooms_for_register = StudyClassRoom.objects.filter(~Q(id__in=studyclassroom_ids))
+
+            # Filter by current year
+            studyclassrooms_for_register = studyclassrooms_for_register.filter(
+                semester__year__icontains=str(datetime.now().year)
+            )
+
+            # Apply keyword search
+            if kw:
+                studyclassrooms_for_register = studyclassrooms_for_register.annotate(
+                    search_name=Concat('teacher__last_name', Value(' '), 'teacher__first_name')
+                ).filter(
+                    Q(subject__name__icontains=kw) | Q(search_name__icontains=kw)
+                )
+
+            # Apply semester filter
+            if semester and semester != "Show All":
+                studyclassrooms_for_register = studyclassrooms_for_register.filter(
+                    semester__name=semester
+                )
+
+            # Initialize paginator
+            paginator = pagination.StudyClassRoomPaginator()
+            page = paginator.paginate_queryset(studyclassrooms_for_register, request)
+            serializer = serializers.StudyClassRoomSerializer(page, many=True)
+
+            return paginator.get_paginated_response(serializer.data)
+
+        except StudyClassRoom.DoesNotExist as ex:
+            return Response({"message": "Không có lớp học nào mở để đăng ký: " + str(ex)},
+                            status=status.HTTP_404_NOT_FOUND)
+        except ValueError as ex:
+            return Response({"message": "Invalid value: " + str(ex)}, status=status.HTTP_400_BAD_REQUEST)
+        except Exception as ex:
+            # Log the exception (if logging is set up in the project)
+            # logger.error(f"Unexpected error: {ex}")
+            return Response({"message": "An unexpected error occurred: " + str(ex)},
+                            status=status.HTTP_500_INTERNAL_SERVER_ERROR)

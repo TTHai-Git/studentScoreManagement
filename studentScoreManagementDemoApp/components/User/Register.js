@@ -6,70 +6,55 @@ import {
   ScrollView,
   KeyboardAvoidingView,
   Platform,
-  Image,
+  StyleSheet,
+  Animated,
 } from "react-native";
 import { Button, HelperText, TextInput } from "react-native-paper";
-import MyStyle from "../../styles/MyStyle";
 import * as ImagePicker from "expo-image-picker";
 import React from "react";
 import APIs, { endpoints } from "../../configs/APIs";
 import { useNavigation } from "@react-navigation/native";
-import Styles from "../User/Styles";
-
 import { auth, database } from "../../configs/Firebase";
 import { createUserWithEmailAndPassword } from "firebase/auth";
 import { doc, setDoc } from "firebase/firestore";
 
 const Register = () => {
+  const generateRandomNumber = () => {
+    const currentYear = new Date().getFullYear();
+    const prefix = currentYear.toString().slice(-2);
+    const randomNumber = Math.floor(Math.random() * 100000000)
+      .toString()
+      .padStart(8, "0");
+    return prefix + randomNumber;
+  };
+  const fadeAnim = useState(new Animated.Value(0))[0];
   const [user, setUser] = useState({
     role: "student",
     first_name: "",
     last_name: "",
-    email: "@ou.edu.vn",
+    email: "...@ou.edu.vn",
     username: "",
     password: "1234567890",
     confirm: "1234567890",
     avatar: "",
+    code: generateRandomNumber(),
   });
-  const [errors, setErrors] = useState({
-    first_name: "",
-    last_name: "",
-    email: "",
-    username: "",
-    password: "",
-    confirm: "",
-    avatar: "",
-  });
-
+  const [errors, setErrors] = useState({});
   const [passwordVisible, setPasswordVisible] = useState(true);
   const [confirmPasswordVisible, setConfirmPasswordVisible] = useState(true);
   const [imageUploaded, setImageUploaded] = useState(false);
-
-  const fields = [
-    { label: "Tên", name: "first_name" },
-    { label: "Họ và tên lót", name: "last_name" },
-    { label: "Email", name: "email" },
-    { label: "Tên đăng nhập", name: "username" },
-    {
-      label: "Mật khẩu",
-      name: "password",
-      icon: passwordVisible ? "eye-off" : "eye",
-      secureTextEntry: passwordVisible,
-    },
-    {
-      label: "Xác nhận mật khẩu",
-      name: "confirm",
-      icon: confirmPasswordVisible ? "eye-off" : "eye",
-      secureTextEntry: confirmPasswordVisible,
-    },
-  ];
-
-  const nav = useNavigation();
   const [loading, setLoading] = useState(false);
+  const nav = useNavigation();
 
   useEffect(() => {
+    Animated.timing(fadeAnim, {
+      toValue: 1,
+      duration: 1000,
+      useNativeDriver: true,
+    }).start();
+
     if (user?.avatar) {
-      Alert.alert("Thành công", "Upload ảnh thành công!");
+      Alert.alert("Success", "Image uploaded successfully!");
       setImageUploaded(true);
     }
   }, [user?.avatar]);
@@ -86,7 +71,7 @@ const Register = () => {
         aspect: [1, 1],
         quality: 1,
       });
-      if (!res.canceled) {
+      if (!res.canceled && res.assets.length > 0) {
         updateState("avatar", res.assets[0].uri);
         setErrors((prev) => ({ ...prev, avatar: "" }));
       }
@@ -100,30 +85,21 @@ const Register = () => {
 
   const validateInputs = () => {
     let valid = true;
-    let newErrors = {
-      first_name: "",
-      last_name: "",
-      email: "",
-      username: "",
-      password: "",
-      confirm: "",
-      avatar: "",
-    };
+    let newErrors = {};
 
-    if (!user.first_name) newErrors.first_name = "Tên không được để trống";
-    if (!user.last_name)
-      newErrors.last_name = "Họ và tên lót không được để trống";
-    if (!user.email || !user.email.endsWith("@ou.edu.vn"))
+    if (!user.first_name) newErrors.first_name = "First name cannot be empty";
+    if (!user.last_name) newErrors.last_name = "Last name cannot be empty";
+    if (!user.email || !user.email.endsWith("@ou.edu.vn")) {
       newErrors.email =
-        'Sai định dạng email! Vui lòng sử dụng email trường cấp ("example@ou.edu.vn") hoặc không được bỏ trống email';
-    if (!user.username)
-      newErrors.username = "Tên đăng nhập không được để trống";
+        'Invalid email format! Please use an OU email ("example@ou.edu.vn") or do not leave it empty';
+    }
+    if (!user.username) newErrors.username = "Username cannot be empty";
     if (!user.password || user.password.length < 6)
       newErrors.password =
-        "Mật khẩu không được để trống hoặc phải có đủ 6 ký tự";
+        "Password cannot be empty or must be at least 6 characters long";
     if (user.password !== user.confirm)
-      newErrors.confirm = "Mật khẩu không khớp";
-    if (!user.avatar) newErrors.avatar = "Vui lòng cập nhật ảnh đại diện";
+      newErrors.confirm = "Passwords do not match";
+    if (!user.avatar) newErrors.avatar = "Please upload a profile picture";
 
     setErrors(newErrors);
     valid = Object.values(newErrors).every((error) => error === "");
@@ -151,22 +127,21 @@ const Register = () => {
 
     setLoading(true);
     try {
-      let res = await APIs.post(endpoints["register"], form, {
+      let res = await APIs.post(endpoints["student-register"], form, {
         headers: {
           "Content-Type": "multipart/form-data",
         },
       });
-      console.log(res.data);
       if (res.status === 201) {
-        // Đăng ký thành công, tiến hành đăng ký với Firebase
+        // Successful registration, proceed with Firebase registration
         try {
           if (user.email !== "" && user.password !== "") {
-            const userCredentital = await createUserWithEmailAndPassword(
+            const userCredential = await createUserWithEmailAndPassword(
               auth,
               user.email,
               user.password
             );
-            const userFire = userCredentital.user;
+            const userFire = userCredential.user;
 
             await setDoc(doc(database, "users", userFire.uid), {
               email: userFire.email,
@@ -177,27 +152,46 @@ const Register = () => {
             });
           }
 
-          // Hiển thị thông báo thành công và điều hướng sau khi Firebase đăng ký thành công
-          Alert.alert("Đăng ký thành công!!!");
+          // Display success message and navigate after Firebase registration
+          Alert.alert("Registration successful!");
           nav.navigate("Login");
         } catch (error) {
-          console.error("Đăng ký Firebase thất bại:", error);
+          console.error("Firebase registration failed:", error);
           Alert.alert(
-            "Đăng ký thành công, nhưng không thể đăng ký với Firebase. Vui lòng thử lại!"
+            "Registration successful, but failed to register with Firebase. Please try again!"
           );
         }
       } else {
-        Alert.alert("Đăng ký thất bại!!!");
+        Alert.alert("Registration failed!");
       }
     } catch (ex) {
-      Alert.alert("Có lỗi xảy ra. Vui lòng thử lại!");
+      Alert.alert("An error occurred. Please try again!");
     } finally {
       setLoading(false);
     }
   };
 
+  const fields = [
+    { label: "First Name", name: "first_name" },
+    { label: "Last Name", name: "last_name" },
+    { label: "Email", name: "email" },
+    { label: "Username", name: "username" },
+    {
+      label: "Password",
+      name: "password",
+      icon: passwordVisible ? "eye-off" : "eye",
+      secureTextEntry: passwordVisible,
+    },
+    {
+      label: "Confirm Password",
+      name: "confirm",
+      icon: confirmPasswordVisible ? "eye-off" : "eye",
+      secureTextEntry: confirmPasswordVisible,
+    },
+  ];
+
   return (
-    <View style={[MyStyle.container]}>
+    <Animated.View style={[styles.container, { opacity: fadeAnim }]}>
       <KeyboardAvoidingView
         behavior={Platform.OS === "ios" ? "padding" : "height"}
         style={{ flex: 1 }}
@@ -209,27 +203,27 @@ const Register = () => {
             alignItems: "center",
           }}
         >
-          <View style={Styles.log_items}>
-            {fields.map((c) => (
+          <View style={styles.formContainer}>
+            {fields.map((field) => (
               <View
-                key={c.name}
+                key={field.name}
                 style={{ width: "100%", position: "relative" }}
               >
                 <TextInput
-                  secureTextEntry={c.secureTextEntry}
-                  value={user[c.name]}
-                  onChangeText={(t) => updateState(c.name, t)}
+                  secureTextEntry={field.secureTextEntry}
+                  value={user[field.name]}
+                  onChangeText={(text) => updateState(field.name, text)}
                   style={[
-                    MyStyle.input,
-                    errors[c.name] ? { borderColor: "red" } : {},
+                    styles.input,
+                    errors[field.name] ? { borderColor: "#f44336" } : {},
                   ]}
-                  label={c.label}
+                  label={field.label}
                   right={
-                    (c.name === "password" || c.name === "confirm") && (
+                    (field.name === "password" || field.name === "confirm") && (
                       <TextInput.Icon
-                        icon={c.icon}
+                        icon={field.icon}
                         onPress={() =>
-                          c.name === "password"
+                          field.name === "password"
                             ? setPasswordVisible(!passwordVisible)
                             : setConfirmPasswordVisible(!confirmPasswordVisible)
                         }
@@ -237,47 +231,82 @@ const Register = () => {
                     )
                   }
                 />
-                <HelperText type="error" visible={!!errors[c.name]}>
-                  {errors[c.name]}
+                <HelperText type="error" visible={!!errors[field.name]}>
+                  {errors[field.name]}
                 </HelperText>
               </View>
             ))}
             <Button
-              style={{
-                ...MyStyle.input,
-                borderRadius: 5,
-              }}
+              style={styles.imagePickerButton}
+              mode="outlined"
               onPress={picker}
             >
-              <Text style={{ color: "#000", fontSize: 15 }}>
-                Chọn ảnh đại diện
-              </Text>
+              <Text style={styles.imagePickerText}>Select Profile Picture</Text>
             </Button>
 
-            {/* {user?.avatar && (
-              <Image
-                source={{ uri: user.avatar }}
-                style={{ width: 100, height: 100 }}
-              />
-            )}
             <HelperText type="error" visible={!!errors.avatar}>
               {errors.avatar}
-            </HelperText> */}
+            </HelperText>
 
             <Button
-              style={{ marginTop: 30 }}
+              style={styles.submitButton}
               icon="account"
               loading={loading}
               mode="contained"
               onPress={register}
             >
-              ĐĂNG KÝ
+              Register
             </Button>
           </View>
         </ScrollView>
       </KeyboardAvoidingView>
-    </View>
+    </Animated.View>
   );
 };
+
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+    padding: 20,
+    backgroundColor: "#e3f2fd", // Light blue background
+  },
+  formContainer: {
+    width: "100%",
+    maxWidth: 400,
+    backgroundColor: "#ffffff",
+    padding: 20,
+    borderRadius: 15,
+    shadowColor: "#000000",
+    shadowOffset: { width: 0, height: 5 },
+    shadowOpacity: 0.4,
+    shadowRadius: 10,
+    elevation: 10,
+    borderWidth: 1,
+    borderColor: "#90caf9", // Light blue border
+  },
+  input: {
+    marginBottom: 15,
+    backgroundColor: "#ffffff",
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: "#bbdefb", // Light blue border
+    paddingHorizontal: 15,
+    paddingVertical: 10,
+  },
+  imagePickerButton: {
+    marginVertical: 15,
+    borderRadius: 10,
+    borderColor: "#1e88e5", // Blue border
+    borderWidth: 1,
+  },
+  imagePickerText: {
+    color: "#1e88e5", // Blue text
+    fontSize: 16,
+  },
+  submitButton: {
+    marginTop: 20,
+    borderRadius: 10,
+  },
+});
 
 export default Register;

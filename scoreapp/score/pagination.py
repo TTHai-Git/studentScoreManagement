@@ -5,6 +5,10 @@ class UserPaginator(pagination.PageNumberPagination):
     page_size = 10
 
 
+class SemesterPaginator(pagination.PageNumberPagination):
+    page_size = 4
+
+
 class TeacherPaginator(pagination.PageNumberPagination):
     page_size = 10
 

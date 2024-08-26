@@ -6,25 +6,35 @@ import {
   TouchableOpacity,
   SafeAreaView,
   Alert,
+  ActivityIndicator,
 } from "react-native";
 import { Agenda } from "react-native-calendars";
+import Icon from "react-native-vector-icons/FontAwesome";
 import { authApi, endpoints } from "../../configs/APIs";
 
 const ScheduleStudyClassrooms = ({ navigation, route }) => {
-  let user = route.params?.user;
-  let token = route.params?.token;
+  const user = route.params?.user;
+  const token = route.params?.token;
   const [schedule, setSchedule] = useState({});
   const [loading, setLoading] = useState(false);
+  const [selectedDate, setSelectedDate] = useState("");
+  const [markedDates, setMarkedDates] = useState({});
 
   const loadSchedule = async () => {
     setLoading(true);
     try {
-      const url = `${endpoints["get-schedule"]}`;
+      const url = endpoints["get-schedule"];
       const res = await authApi(token).get(url);
       const formattedData = formatScheduleData(res.data.data);
       setSchedule(formattedData);
-    } catch (ex) {
-      console.log(ex.response);
+      setMarkedDates(generateMarkedDates(formattedData));
+    } catch (error) {
+      console.error(error.response);
+      if (error.response && error.response.data) {
+        Alert.alert("Error", error.response.data.message);
+      } else {
+        Alert.alert("Error", "An unexpected error occurred.");
+      }
     } finally {
       setLoading(false);
     }
@@ -41,6 +51,7 @@ const ScheduleStudyClassrooms = ({ navigation, route }) => {
         id: item.id,
         subject_name: item.subject_name,
         studyclassroom_name: item.studyclassroom_name,
+        studyclassroom_group: item.studyclassroom_group,
         teacher_name: item.teacher_name,
         started_time: item.started_time.split("T")[1].split("Z")[0],
         ended_time: item.ended_time.split("T")[1].split("Z")[0],
@@ -50,18 +61,26 @@ const ScheduleStudyClassrooms = ({ navigation, route }) => {
     return formattedData;
   };
 
+  const generateMarkedDates = (data) => {
+    const marked = {};
+    Object.keys(data).forEach((date) => {
+      marked[date] = { marked: true, dotColor: "#007bff" };
+    });
+    return marked;
+  };
+
   useEffect(() => {
     loadSchedule();
   }, []);
 
-  const deleteSchedule = async (item) => {
+  const deleteSchedule = async (item_id) => {
     try {
-      const url = `${endpoints["del-schedule"](item.id)}`;
+      const url = `${endpoints["del-schedule"](item_id)}`;
       const res = await authApi(token).delete(url);
 
       if (res.status === 204) {
         Alert.alert("Xoá lịch học thành công");
-        navigation.navigate("ScheduleStudyClassrooms", {
+        navigation.navigate("Home", {
           user: user,
           token: token,
         });
@@ -73,23 +92,39 @@ const ScheduleStudyClassrooms = ({ navigation, route }) => {
 
   const renderItem = (item, isFirst) => {
     return (
-      <TouchableOpacity
+      <View
         key={item.id}
         style={[styles.item, isFirst ? styles.firstItem : null]}
-        onPress={() => console.log(item)}
       >
-        <Text style={styles.itemText}>{item.subject_name}</Text>
+        <Text style={styles.itemTitle}>{item.subject_name}</Text>
         <Text style={styles.itemText}>
-          Classroom: {item.studyclassroom_name}
+          <Icon name="building" size={16} color="#007bff" /> Classroom:{" "}
+          {item.studyclassroom_name}
         </Text>
-        <Text style={styles.itemText}>Teacher: {item.teacher_name}</Text>
-        <Text style={styles.itemText}>Start: {item.started_time}</Text>
-        <Text style={styles.itemText}>End: {item.ended_time}</Text>
-        <Text style={styles.itemText}>Descriptions: {item.descriptions}</Text>
+        <Text style={styles.itemText}>
+          <Icon name="group" size={16} color="#007bff" /> Group:{" "}
+          {item.studyclassroom_group}
+        </Text>
+        <Text style={styles.itemText}>
+          <Icon name="user" size={16} color="#007bff" /> Teacher:{" "}
+          {item.teacher_name}
+        </Text>
+        <Text style={styles.itemText}>
+          <Icon name="clock-o" size={16} color="#007bff" /> Start:{" "}
+          {item.started_time}
+        </Text>
+        <Text style={styles.itemText}>
+          <Icon name="clock-o" size={16} color="#007bff" /> End:{" "}
+          {item.ended_time}
+        </Text>
+        <Text style={styles.itemText}>
+          <Icon name="info-circle" size={16} color="#007bff" /> Descriptions:{" "}
+          {item.descriptions}
+        </Text>
         {user.role === "teacher" && (
-          <>
+          <View style={styles.buttonContainer}>
             <TouchableOpacity
-              style={styles.button}
+              style={styles.button_up}
               onPress={() =>
                 navigation.navigate("UpdateSchedule", {
                   user: user,
@@ -98,24 +133,78 @@ const ScheduleStudyClassrooms = ({ navigation, route }) => {
                 })
               }
             >
-              <Text style={styles.buttonText}>Sửa</Text>
+              <Icon name="edit" size={16} color="#fff" />
+              <Text style={styles.buttonText_up}>Sửa</Text>
             </TouchableOpacity>
 
             <TouchableOpacity
-              style={styles.button}
-              onPress={() => deleteSchedule(item)}
+              style={styles.button_del}
+              onPress={() =>
+                Alert.alert(
+                  "Delete Confirmation",
+                  "Are you sure you want to delete this schedule?",
+                  [
+                    {
+                      text: "Cancel",
+                      style: "cancel",
+                    },
+                    {
+                      text: "Delete",
+                      onPress: () => deleteSchedule(item.id),
+                      style: "destructive",
+                    },
+                  ]
+                )
+              }
             >
-              <Text style={styles.buttonText}>Xoá</Text>
+              <Icon name="trash" size={16} color="#fff" />
+              <Text style={styles.buttonText_del}>Xoá</Text>
             </TouchableOpacity>
-          </>
+          </View>
         )}
-      </TouchableOpacity>
+      </View>
     );
+  };
+
+  const onDayPress = (day) => {
+    const selectedDate = day.dateString;
+    setSelectedDate(selectedDate);
+
+    const hasDot = markedDates[selectedDate]?.marked;
+
+    if (!hasDot) {
+      if (user.role === "teacher") {
+        const formattedDate = new Date(selectedDate).toLocaleDateString(
+          "en-GB",
+          {
+            day: "2-digit",
+            month: "2-digit",
+            year: "numeric",
+          }
+        );
+
+        navigation.navigate("NewSchedule", {
+          user: user,
+          token: token,
+          startedDate: formattedDate,
+          endedDate: formattedDate,
+        });
+      }
+    }
   };
 
   return (
     <SafeAreaView style={styles.container}>
-      <Agenda items={schedule} renderItem={renderItem} />
+      {loading ? (
+        <ActivityIndicator size="large" color="#007bff" />
+      ) : (
+        <Agenda
+          items={schedule}
+          renderItem={renderItem}
+          onDayPress={onDayPress}
+          markedDates={markedDates}
+        />
+      )}
     </SafeAreaView>
   );
 };
@@ -125,27 +214,60 @@ export default ScheduleStudyClassrooms;
 const styles = StyleSheet.create({
   container: {
     flex: 1,
+    backgroundColor: "#f5f5f5",
   },
   item: {
-    backgroundColor: "#e3f2fd",
-    padding: 10,
+    backgroundColor: "#fff",
+    padding: 15,
     marginRight: 10,
     marginTop: 17,
-    borderRadius: 5,
+    borderRadius: 10,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 5,
+    elevation: 2,
   },
-  itemText: {
-    color: "#000",
-    fontSize: 16,
+  itemTitle: {
+    fontSize: 18,
+    fontWeight: "bold",
+    color: "#007bff",
     marginBottom: 5,
   },
-  button: {
-    backgroundColor: "#007bff",
-    padding: 8,
-    borderRadius: 5,
-    marginTop: 5,
+  itemText: {
+    color: "#333",
+    fontSize: 14,
+    marginBottom: 5,
   },
-  buttonText: {
+  buttonContainer: {
+    flexDirection: "row",
+    marginTop: 10,
+  },
+  button_up: {
+    backgroundColor: "#00bfff",
+    paddingVertical: 8,
+    paddingHorizontal: 12,
+    borderRadius: 5,
+    flexDirection: "row",
+    alignItems: "center",
+    marginRight: 10,
+  },
+  buttonText_up: {
     color: "#fff",
     textAlign: "center",
+    marginLeft: 5,
+  },
+  button_del: {
+    backgroundColor: "#ff0000",
+    paddingVertical: 8,
+    paddingHorizontal: 12,
+    borderRadius: 5,
+    flexDirection: "row",
+    alignItems: "center",
+  },
+  buttonText_del: {
+    color: "#fff",
+    textAlign: "center",
+    marginLeft: 5,
   },
 });

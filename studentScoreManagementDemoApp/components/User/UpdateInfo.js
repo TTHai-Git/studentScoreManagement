@@ -130,8 +130,13 @@ const UpdateInfo = ({ navigation, route }) => {
       console.log(res.data.message);
       Alert.alert(res.data.message);
       logOutFireBaseUser(dispatch);
-    } catch (ex) {
-      Alert.alert("Có lỗi xảy ra. Vui lòng thử lại!");
+    } catch (error) {
+      if (error.response && error.response.status === 400) {
+        Alert.alert("Error", error.response.data.message);
+      } else {
+        console.log("Unexpected error: ", error);
+        Alert.alert("Error", "Failed to register study.");
+      }
     } finally {
       setLoading(false);
     }

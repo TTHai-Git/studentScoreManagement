@@ -19,6 +19,7 @@ import {
 } from "react-native-paper";
 import MyStyle from "../../styles/MyStyle";
 import Styles from "../General/Styles";
+import Icon from "react-native-vector-icons/FontAwesome"; // Import FontAwesome icons
 
 const StudyClassRooms = ({ navigation, route }) => {
   let token = route.params?.token;
@@ -39,7 +40,7 @@ const StudyClassRooms = ({ navigation, route }) => {
         setLoading(true);
         let url = "";
         if (user.role === "teacher") {
-          url = `${endpoints["studyclassrooms"]}?page=${page}`;
+          url = `${endpoints["studyclassrooms"](user.id)}?page=${page}`;
         } else {
           url = `${endpoints["studyclassroomsofstudent"](
             user.id
@@ -54,8 +55,13 @@ const StudyClassRooms = ({ navigation, route }) => {
         if (res.data.next === null) {
           setPage(0);
         }
-      } catch (ex) {
-        console.error(ex);
+      } catch (error) {
+        console.log(error.response);
+        if (error.response && error.response.data) {
+          Alert.alert("Error", error.response.data.message);
+        } else {
+          Alert.alert("Error", "An unexpected error occurred.");
+        }
       } finally {
         setLoading(false);
       }
@@ -104,14 +110,6 @@ const StudyClassRooms = ({ navigation, route }) => {
     });
   };
 
-  const goNewSchedule = () => {
-    navigation.navigate("Schedule", {
-      studyclassroom_id: studyclassroom_id,
-      token: token,
-      user: user,
-    });
-  };
-
   useEffect(() => {
     loadStudyClassRooms();
   }, [page]);
@@ -129,6 +127,7 @@ const StudyClassRooms = ({ navigation, route }) => {
               {user.role === "teacher" ? (
                 <>
                   <Button
+                    icon={() => <Icon name="users" size={20} color="white" />} // Icon for "View Student List"
                     style={MyStyle.button_user}
                     mode="contained"
                     onPress={goListStudents}
@@ -136,6 +135,9 @@ const StudyClassRooms = ({ navigation, route }) => {
                     Xem danh sách sinh viên
                   </Button>
                   <Button
+                    icon={() => (
+                      <Icon name="check-square" size={20} color="white" />
+                    )} // Icon for "Manage Scores"
                     style={MyStyle.button_user}
                     mode="contained"
                     onPress={goListStudentScores}
@@ -143,23 +145,22 @@ const StudyClassRooms = ({ navigation, route }) => {
                     Quản lý điểm
                   </Button>
                   <Button
+                    icon={() => (
+                      <Icon name="comments" size={20} color="white" />
+                    )} // Icon for "Forum"
                     style={MyStyle.button_user}
                     mode="contained"
                     onPress={goTopics}
                   >
                     Diễn đàn
                   </Button>
-                  <Button
-                    style={MyStyle.button_user}
-                    mode="contained"
-                    onPress={goNewSchedule}
-                  >
-                    Tạo Lịch học
-                  </Button>
                 </>
               ) : (
                 <>
                   <Button
+                    icon={() => (
+                      <Icon name="comments" size={20} color="white" />
+                    )} // Icon for "Forum"
                     style={MyStyle.button_user}
                     mode="contained"
                     onPress={goTopics}

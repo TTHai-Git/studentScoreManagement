@@ -1,5 +1,5 @@
 import React, { useContext, useState } from "react";
-import { View, Text, Alert, Image, ActivityIndicator } from "react-native";
+import { View, Text, Alert, ActivityIndicator } from "react-native";
 import { Button, Avatar } from "react-native-paper";
 import Icon from "react-native-vector-icons/FontAwesome";
 import * as ImagePicker from "expo-image-picker";
@@ -64,9 +64,13 @@ const Home = ({ navigation, route }) => {
         } else {
           Alert.alert("Failed to upload avatar. Please try again!");
         }
-      } catch (ex) {
-        console.error(ex);
-        Alert.alert("An error occurred. Please try again later!");
+      } catch (error) {
+        console.log(error.response);
+        if (error.response && error.response.data) {
+          Alert.alert("Error", error.response.data.message);
+        } else {
+          Alert.alert("Error", "An unexpected error occurred.");
+        }
       } finally {
         setLoading(false);
       }
@@ -88,6 +92,7 @@ const Home = ({ navigation, route }) => {
       button_user = (
         <>
           <Button
+            icon={() => <Icon name="book" size={20} color="#fff" />}
             style={MyStyle.button_user}
             mode="contained"
             onPress={() =>
@@ -100,6 +105,7 @@ const Home = ({ navigation, route }) => {
             Xem danh sách lớp học
           </Button>
           <Button
+            icon={() => <Icon name="calendar" size={20} color="#fff" />}
             style={MyStyle.button_user}
             mode="contained"
             onPress={() =>
@@ -112,6 +118,7 @@ const Home = ({ navigation, route }) => {
             Xem lịch học
           </Button>
           <Button
+            icon={() => <Icon name="pencil" size={20} color="#fff" />}
             style={MyStyle.button_user}
             mode="contained"
             onPress={() =>
@@ -124,13 +131,27 @@ const Home = ({ navigation, route }) => {
             Đăng Ký Lớp Học
           </Button>
           <Button
+            icon={() => <Icon name="line-chart" size={20} color="#fff" />}
             style={MyStyle.button_user}
             mode="contained"
             onPress={() =>
               navigation.navigate("ScoreDetails", { token: token, user: user })
             }
           >
-            Xem điểm
+            Theo dõi kết quả học tập
+          </Button>
+          <Button
+            icon={() => <Icon name="line-chart" size={20} color="#fff" />}
+            style={MyStyle.button_user}
+            mode="contained"
+            onPress={() =>
+              navigation.navigate("EvaluateLearningResults", {
+                token: token,
+                user: user,
+              })
+            }
+          >
+            Đánh giá kết quả học tập
           </Button>
         </>
       );
@@ -147,6 +168,7 @@ const Home = ({ navigation, route }) => {
       button_user = (
         <>
           <Button
+            icon={() => <Icon name="book" size={20} color="#fff" />}
             style={MyStyle.button_user}
             mode="contained"
             onPress={() =>
@@ -159,6 +181,7 @@ const Home = ({ navigation, route }) => {
             Xem danh sách lớp học
           </Button>
           <Button
+            icon={() => <Icon name="calendar" size={20} color="#fff" />}
             style={MyStyle.button_user}
             mode="contained"
             onPress={() =>
@@ -179,9 +202,10 @@ const Home = ({ navigation, route }) => {
       button_user = (
         <>
           <Button
+            icon={() => <Icon name="user-plus" size={20} color="#fff" />}
             style={MyStyle.button_user}
             mode="contained"
-            onPress={() => navigation.navigate("Admin")}
+            onPress={() => navigation.navigate("RegisterForTeacher")}
           >
             Đăng ký tài khoản
           </Button>
@@ -211,11 +235,12 @@ const Home = ({ navigation, route }) => {
               )
             )}
             <Button
+              icon={() => <Icon name="camera" size={20} color="#000" />}
               style={Styles.avatar_button}
               mode="contained"
               onPress={picker}
             >
-              <Icon name="camera" size={20} color="#000" />
+              Chọn ảnh
             </Button>
           </>
         )}
@@ -228,6 +253,7 @@ const Home = ({ navigation, route }) => {
       </View>
       <ScrollView style={Styles.log_items}>
         <Button
+          icon={() => <Icon name="user" size={20} color="#fff" />}
           style={MyStyle.button_user}
           mode="contained"
           onPress={() =>
@@ -238,6 +264,7 @@ const Home = ({ navigation, route }) => {
         </Button>
         {button_user}
         <Button
+          icon={() => <Icon name="sign-out" size={20} color="#fff" />}
           style={MyStyle.button_user}
           mode="contained"
           onPress={() => logOutFireBaseUser(dispatch)}

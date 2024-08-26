@@ -1,12 +1,8 @@
 import { createBottomTabNavigator } from "@react-navigation/bottom-tabs";
 import { NavigationContainer } from "@react-navigation/native";
-import React, { useContext, useEffect, useReducer } from "react";
-import { Icon } from "react-native-paper";
-import {
-  AuthenticatedUserContext,
-  MyDispatchContext,
-  MyUserContext,
-} from "./configs/Contexts";
+import React, { useContext, useReducer } from "react";
+import Icon from "react-native-vector-icons/MaterialCommunityIcons"; // Import from react-native-vector-icons
+import { MyDispatchContext, MyUserContext } from "./configs/Contexts";
 import { MyUserReducer } from "./configs/Reducers";
 import Register from "./components/User/Register";
 import Login from "./components/User/Login";
@@ -17,17 +13,19 @@ import ScoreDetails from "./components/Student/ScoreDetails";
 import { createStackNavigator } from "@react-navigation/stack";
 import ListStudents from "./components/Teacher/ListStudents";
 import Comments from "./components/General/Comments";
-import { auth } from "./configs/Firebase";
+
 import ChatList from "./components/General/ChatList";
 import ChatRoom from "./components/General/ChatRoom";
 import StudyClassRooms from "./components/General/Studyclassrooms";
-import Admin from "./components/Admin/Admin";
+
 import ForgotPassword from "./components/User/ForgotPassword";
 import RegisterStudy from "./components/Student/RegisterStudy";
 import UpdateInfo from "./components/User/UpdateInfo";
 import ScheduleStudyClassrooms from "./components/General/ScheduleStudyClassrooms";
-import Schedule from "./components/Admin/Schedule";
 import UpdateSchedule from "./components/General/UpdateSchedule";
+import RegisterForTeacher from "./components/Admin/RegisterForTeacher";
+import NewSchedule from "./components/Admin/NewSchedule";
+import EvaluateLearningResults from "./components/Student/EvaluateLearningResults";
 
 const Tab = createBottomTabNavigator();
 const Stack = createStackNavigator();
@@ -35,11 +33,7 @@ const Stack = createStackNavigator();
 const MyStack = () => {
   return (
     <Stack.Navigator>
-      <Stack.Screen
-        name="Home"
-        options={{ title: "Trang chủ" }}
-        component={Home}
-      />
+      <Stack.Screen name="Home" options={{ title: "Home" }} component={Home} />
       <Stack.Screen
         name="UpdateInfo"
         options={{ title: "Thông Tin Người Dùng" }}
@@ -51,14 +45,22 @@ const MyStack = () => {
         component={ScheduleStudyClassrooms}
       />
       <Stack.Screen
-        name="Schedule"
-        options={{ title: "Lập Lịch Học" }}
-        component={Schedule}
+        name="NewSchedule"
+        component={NewSchedule}
+        options={{
+          title: "Form Lập Lịch Học",
+          presentation: "transparentModal",
+          headerShown: true,
+        }}
       />
       <Stack.Screen
         name="UpdateSchedule"
-        options={{ title: "Cập Nhật Lịch Học" }}
         component={UpdateSchedule}
+        options={{
+          title: "Form Tạo Lịch Học",
+          presentation: "transparentModal",
+          headerShown: true,
+        }}
       />
 
       <Stack.Screen
@@ -83,8 +85,13 @@ const MyStack = () => {
       />
       <Stack.Screen
         name="ScoreDetails"
-        options={{ title: "Điểm các môn học" }}
+        options={{ title: "Theo dõi kết quả học tập" }}
         component={ScoreDetails}
+      />
+      <Stack.Screen
+        name="EvaluateLearningResults"
+        options={{ title: "Đánh giá kết quả học tập" }}
+        component={EvaluateLearningResults}
       />
       <Stack.Screen
         name="ListStudents"
@@ -97,9 +104,9 @@ const MyStack = () => {
         component={ListStudentScores}
       />
       <Stack.Screen
-        name="Admin"
+        name="RegisterForTeacher"
         options={{ title: "Đăng ký tài khoản giảng viên" }}
-        component={Admin}
+        component={RegisterForTeacher}
       />
     </Stack.Navigator>
   );
@@ -136,7 +143,7 @@ const MyTab = () => {
             options={{
               title: "Đăng nhập",
               tabBarIcon: ({ color, size }) => (
-                <Icon name="login" size={size} color={color} />
+                <Icon name="home" size={size} color={color} />
               ),
             }}
           />
@@ -147,14 +154,20 @@ const MyTab = () => {
             options={{
               title: "Đăng ký",
               tabBarIcon: ({ color, size }) => (
-                <Icon name="account" size={size} color={color} />
+                <Icon name="account-plus" size={size} color={color} />
               ),
             }}
           />
           <Tab.Screen
+            key="ForgotPassword"
             name="ForgotPassword"
-            options={{ title: "Quên Mật Khẩu" }}
             component={ForgotPassword}
+            options={{
+              title: "Quên mật khẩu",
+              tabBarIcon: ({ color, size }) => (
+                <Icon name="lock-reset" size={size} color={color} />
+              ),
+            }}
           />
         </>
       ) : (
@@ -164,7 +177,7 @@ const MyTab = () => {
             name="MyStack"
             component={MyStack}
             options={{
-              title: "Trang chủ",
+              title: "Home",
               tabBarIcon: ({ color, size }) => (
                 <Icon name="home" size={size} color={color} />
               ),

@@ -51,8 +51,13 @@ const Comments = ({ navigation, route }) => {
           setComments((current) => [...current, ...res.data.results]);
         }
         if (res.data.next === null) setPage(0);
-      } catch (ex) {
-        console.error(ex);
+      } catch (error) {
+        console.log(error.response);
+        if (error.response && error.response.data) {
+          Alert.alert("Error", error.response.data.message);
+        } else {
+          Alert.alert("Error", "An unexpected error occurred.");
+        }
       } finally {
         setLoading(false);
       }
@@ -78,8 +83,13 @@ const Comments = ({ navigation, route }) => {
           setCommentFiles((current) => [...current, ...res.data.results]);
         }
         if (res.data.next === null) setPage(0);
-      } catch (ex) {
-        console.error(ex);
+      } catch (error) {
+        console.log(error.response);
+        if (error.response && error.response.data) {
+          Alert.alert("Error", error.response.data.message);
+        } else {
+          Alert.alert("Error", "An unexpected error occurred.");
+        }
       } finally {
         setLoading(false);
       }
@@ -102,7 +112,7 @@ const Comments = ({ navigation, route }) => {
           const fileSizeInMB = file.size / (1024 * 1024); // Convert bytes to MB
           if (fileSizeInMB > 2) {
             Alert.alert(
-              "Dung lượng File quá lớn",
+              "Upload file thất bại. Dung lượng File quá lớn",
               `${file.name} lớn hơn 2MB và sẽ không được chọn!!!`
             );
             return false;
@@ -141,11 +151,12 @@ const Comments = ({ navigation, route }) => {
       setContent("");
       setSelectedFiles([]);
       loadComments(true);
-    } catch (ex) {
-      if (ex.response && ex.response.status === 400) {
-        Alert.alert("Error", ex.response.data.message);
+    } catch (error) {
+      console.log(error.response);
+      if (error.response && error.response.data) {
+        Alert.alert("Error", error.response.data.message);
       } else {
-        console.log("Unexpected error: ", ex);
+        Alert.alert("Error", "An unexpected error occurred.");
       }
     } finally {
       setLoading(false);
@@ -256,18 +267,22 @@ const Comments = ({ navigation, route }) => {
               />
               <Card.Content>
                 <Text style={{ marginBottom: 10 }}>{c.content}</Text>
-                {commentfiles
-                  .filter((cf) => cf.comment_id === c.id)
-                  .map((cf) => (
-                    <Button
-                      key={cf.id}
-                      icon="file-download"
-                      mode="outlined"
-                      onPress={() => downloadFile(cf.file_url, cf.file_name)}
-                    >
-                      {cf.file_name}
-                    </Button>
-                  ))}
+                {commentfiles.length === 0 ? (
+                  <Text>Files: No files attached</Text>
+                ) : (
+                  commentfiles
+                    .filter((cf) => cf.comment_id === c.id)
+                    .map((cf) => (
+                      <Button
+                        key={cf.id}
+                        icon="file-download"
+                        mode="outlined"
+                        onPress={() => downloadFile(cf.file_url, cf.file_name)}
+                      >
+                        {cf.file_name}
+                      </Button>
+                    ))
+                )}
               </Card.Content>
             </Card>
           ))}

@@ -85,13 +85,12 @@ const ForgotPassword = ({ navigation }) => {
       );
       Alert.alert("Success", res.data.message);
       navigation.navigate("Login");
-    } catch (ex) {
-      if (ex.response && ex.response.status === 400) {
-        // Handle the 400 error
-        Alert.alert("Error", ex.response.data.message);
+    } catch (error) {
+      console.log(error.response);
+      if (error.response && error.response.data) {
+        Alert.alert("Error", error.response.data.message);
       } else {
-        // Handle other errors
-        console.log("Unexpected error: ", ex);
+        Alert.alert("Error", "An unexpected error occurred.");
       }
     } finally {
       setLoading(false);

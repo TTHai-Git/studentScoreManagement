@@ -16,10 +16,11 @@ import { signInWithEmailAndPassword } from "firebase/auth";
 import { auth } from "../../configs/Firebase";
 import Styles from "../User/Styles";
 import { CLIENT_ID_HAI, CLIENT_SECRET_HAI } from "@env";
+import Icon from "react-native-vector-icons/FontAwesome";
 
 const Login = () => {
   const [user, setUser] = useState({
-    username: "DHThanh",
+    username: "Demo",
     password: "1234567890",
   });
   const [passwordVisible, setPasswordVisible] = useState(true);
@@ -40,7 +41,7 @@ const Login = () => {
     {
       label: "Mật khẩu",
       name: "password",
-      icon: passwordVisible ? "eye-off" : "eye",
+      icon: passwordVisible ? "eye-slash" : "eye",
       secureTextEntry: passwordVisible,
     },
   ];
@@ -94,22 +95,6 @@ const Login = () => {
         payload: userRes.data,
       });
 
-      if (userRes.data.email && user.password) {
-        try {
-          await signInWithEmailAndPassword(
-            auth,
-            userRes.data.email,
-            user.password
-          );
-          console.log("Đăng nhập Firebase thành công");
-        } catch (err) {
-          console.error("Đăng nhập Firebase thất bại: ", err);
-          Alert.alert("Đăng Nhập Thất Bại", "Đăng nhập Firebase thất bại");
-        }
-      } else {
-        Alert.alert("Đăng Nhập Thất Bại", "Sai username hoặc password");
-      }
-
       nav.navigate("Home", {
         token: res.data.access_token,
         user: userRes.data,
@@ -141,19 +126,17 @@ const Login = () => {
           },
         }
       );
-
-      if (
-        res.data.message ===
-        "GỬI TOKEN RESET PASSWORD THẤT BẠI!!! NGƯỜI DÙNG KHÔNG TỒN TẠI"
-      ) {
-        Alert.alert("Fail", res.data.message);
+      Alert.alert("Success", res.data.message);
+      nav.navigate("ForgotPassword");
+    } catch (error) {
+      console.log(error.response);
+      if (error.response && error.response.data) {
+        Alert.alert("Error", error.response.data.message);
       } else {
-        Alert.alert("Success", res.data.message);
-        nav.navigate("ForgotPassword");
+        Alert.alert("Error", "An unexpected error occurred.");
       }
-    } catch (ex) {
-      console.error("Gửi OTP thất bại: ", ex);
-      Alert.alert("Gửi OTP Thất Bại", "Vui lòng thử lại sau.");
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -188,8 +171,13 @@ const Login = () => {
                   right={
                     c.name === "password" && (
                       <TextInput.Icon
-                        icon={c.icon}
-                        onPress={() => setPasswordVisible(!passwordVisible)}
+                        icon={() => (
+                          <Icon
+                            name={c.icon}
+                            size={20}
+                            onPress={() => setPasswordVisible(!passwordVisible)}
+                          />
+                        )}
                       />
                     )
                   }

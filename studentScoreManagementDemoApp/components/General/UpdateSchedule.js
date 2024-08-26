@@ -6,6 +6,7 @@ import {
   View,
   StyleSheet,
   TextInput,
+  KeyboardAvoidingView,
 } from "react-native";
 import { Button, Text, Surface } from "react-native-paper";
 import { authApi, endpoints } from "../../configs/APIs";
@@ -104,7 +105,7 @@ const UpdateSchedule = ({ navigation, route }) => {
           style={styles.pickerContainer}
           onPress={() => setShowStartDatePicker(true)}
         >
-          <Text style={styles.pickerLabel}>Start Date</Text>
+          <Text style={styles.pickerLabel}>Ngày bắt đầu (dd/MM/YYY):</Text>
           <Text style={styles.pickerValue}>
             {new Intl.DateTimeFormat("en-GB", {
               day: "2-digit",
@@ -125,7 +126,7 @@ const UpdateSchedule = ({ navigation, route }) => {
           style={styles.pickerContainer}
           onPress={() => setShowStartTimePicker(true)}
         >
-          <Text style={styles.pickerLabel}>Start Time</Text>
+          <Text style={styles.pickerLabel}>Thời gian bắt đầu (HH:mm:sss):</Text>
           <Text style={styles.pickerValue}>
             {startedTime.toLocaleTimeString()}
           </Text>
@@ -142,7 +143,7 @@ const UpdateSchedule = ({ navigation, route }) => {
           style={styles.pickerContainer}
           onPress={() => setShowEndDatePicker(true)}
         >
-          <Text style={styles.pickerLabel}>End Date</Text>
+          <Text style={styles.pickerLabel}>Ngày kết thúc (dd/MM/YYY):</Text>
           <Text style={styles.pickerValue}>
             {new Intl.DateTimeFormat("en-GB", {
               day: "2-digit",
@@ -163,7 +164,9 @@ const UpdateSchedule = ({ navigation, route }) => {
           style={styles.pickerContainer}
           onPress={() => setShowEndTimePicker(true)}
         >
-          <Text style={styles.pickerLabel}>End Time</Text>
+          <Text style={styles.pickerLabel}>
+            Thời gian kết thúc (HH:mm:sss):
+          </Text>
           <Text style={styles.pickerValue}>
             {endedTime.toLocaleTimeString()}
           </Text>
@@ -178,7 +181,7 @@ const UpdateSchedule = ({ navigation, route }) => {
 
         <TextInput
           style={styles.input}
-          placeholder="Enter descriptions"
+          placeholder="Hãy mô tả..."
           value={descriptions}
           onChangeText={setDescriptions}
           multiline={true}
@@ -186,6 +189,7 @@ const UpdateSchedule = ({ navigation, route }) => {
 
         <Button
           style={styles.submitButton}
+          icon="account"
           mode="contained"
           onPress={setSchedule}
           loading={loading}

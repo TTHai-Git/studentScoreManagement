@@ -54,6 +54,17 @@ class TeacherSerializer(serializers.ModelSerializer):
             }
         }
 
+    def create(self, validated_data, request=None):
+        data = validated_data.copy()
+        avatar_file = request.data.get('avatar', None) if request else None
+        if avatar_file:
+            new_avatar = cloudinary.uploader.upload(avatar_file)
+            data['avatar'] = new_avatar['secure_url']
+        user = User(**data)
+        user.set_password(data["password"])
+        user.save()
+        return user
+
     def to_representation(self, instance):
         rep = super().to_representation(instance)
         rep['avatar'] = instance.avatar.url
@@ -69,6 +80,17 @@ class StudentSerializer(serializers.ModelSerializer):
                 'write_only': True
             }
         }
+
+    def create(self, validated_data, request=None):
+        data = validated_data.copy()
+        avatar_file = request.data.get('avatar', None) if request else None
+        if avatar_file:
+            new_avatar = cloudinary.uploader.upload(avatar_file)
+            data['avatar'] = new_avatar['secure_url']
+        user = User(**data)
+        user.set_password(data["password"])
+        user.save()
+        return user
 
     def to_representation(self, instance):
         rep = super().to_representation(instance)
@@ -118,6 +140,7 @@ class StudentClassRoom(serializers.ModelSerializer):
 class ScheduleSerializer(serializers.ModelSerializer):
     subject_name = serializers.CharField(source='studyclassroom.subject.name')
     studyclassroom_name = serializers.CharField(source='studyclassroom.name')
+    studyclassroom_group = serializers.CharField(source='studyclassroom.group.name')
     teacher_name = serializers.SerializerMethodField()
 
     def get_teacher_name(self, obj):
@@ -125,7 +148,8 @@ class ScheduleSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Schedule
-        fields = ['id', 'started_time', 'ended_time', 'descriptions', 'subject_name', 'studyclassroom_name', 'teacher_name']
+        fields = ['id', 'started_time', 'ended_time', 'descriptions', 'subject_name', 'studyclassroom_name',
+                  'studyclassroom_group', 'teacher_name']
 
 
 class StudyClassRoomSerializer(serializers.ModelSerializer):
@@ -238,10 +262,15 @@ class SDSerializer(serializers.Serializer):
     col_type = serializers.CharField()
     score = serializers.FloatField()
 
+
 class StudyResultSerializer(serializers.Serializer):
     subject_name = serializers.CharField()
     semester_name = serializers.CharField()
     semester_year = serializers.CharField()
+    ten_point_scale = serializers.DecimalField(max_digits=3, decimal_places=1)
+    four_point_scale = serializers.DecimalField(max_digits=3, decimal_places=1)
+    grade = serializers.CharField()
+    result = serializers.BooleanField()
     scoredetails = SDSerializer(many=True)
 
 
@@ -261,9 +290,6 @@ class ScoresSerializer(serializers.Serializer):
     score_cols = ScoreColumnSerializer(many=True)
     score_details = ScoreDetailsSerializer(many=True)
 
-
-
-
     def get_teacher_name(self, obj):
         return obj.study.studyclassroom.teacher.last_name + ' ' + obj.study.studyclassroom.teacher.first_name
 
@@ -271,9 +297,3 @@ class ScoresSerializer(serializers.Serializer):
         model = ScoreDetails
         fields = ['id', 'group_name', 'subject_name', 'teacher_name', 'semester_name', 'semester_year',
                   'scorecolumn_type', 'scorecolumn_percent', 'score']
-
-
-class studyclassroominfo(serializers.Serializer):
-    subject_name = serializers.CharField()
-    semester_name = serializers.CharField()
-    semester_year = serializers.CharField()
