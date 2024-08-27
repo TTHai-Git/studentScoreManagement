@@ -68,11 +68,7 @@ const NewSchedule = ({ navigation, route }) => {
         descriptions: descriptions,
       };
 
-      const res = await authApi(token).post(url, data, {
-        headers: {
-          "Content-Type": "multipart/form-data",
-        },
-      });
+      const res = await authApi(token).post(url, data);
 
       if (res.status === 201) {
         Alert.alert("Success", res.data.message);

@@ -163,7 +163,9 @@ const ListStudentScores = ({ navigation, route }) => {
     setLoading(true);
     try {
       let url = `${endpoints["save-scores"](studyclassroom_id)}`;
-      let res = await authApi(token).post(url, { scores: scores });
+      let res = await authApi(token).post(url, {
+        scores: scores,
+      });
       console.log(res.data);
       Alert.alert("Success", res.data.message);
     } catch (error) {
@@ -230,13 +232,13 @@ const ListStudentScores = ({ navigation, route }) => {
                               key={col.id}
                               value={s ? s.toString() : ""}
                               style={{ fontSize: 15, textAlign: "center" }}
-                              onEndEditing={(e) =>
+                              onChangeText={(text) => {
                                 handleChangeScore(
                                   score.student_id,
                                   col.id,
-                                  e.nativeEvent.text
-                                )
-                              }
+                                  text
+                                );
+                              }}
                               keyboardType="numeric"
                             />
                           );

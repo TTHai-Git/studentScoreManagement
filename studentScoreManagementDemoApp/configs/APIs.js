@@ -7,8 +7,6 @@ export const endpoints = {
   "current-user": "/users/current-user/",
 
   register: "/users/",
-  "student-register": "/students/",
-  "teacher-register": "/teachers/",
   "send-otp": "/users/send-otp/",
   "change-password": "/users/change-password/",
 

@@ -2,7 +2,6 @@ import csv
 import os
 from datetime import timedelta, datetime
 from decimal import Decimal, ROUND_HALF_UP
-
 import jwt
 from django.utils import timezone
 import cloudinary
@@ -23,6 +22,7 @@ from django.http import HttpResponse
 from scoreapp import settings
 from django.db.models import Q, Value
 # from scoreapp.settings import creds
+from rest_framework.parsers import MultiPartParser, FormParser
 from googleapiclient.discovery import build
 
 
@@ -114,11 +114,10 @@ class UserViewSet(viewsets.ViewSet, generics.CreateAPIView, generics.ListAPIView
                             , status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 
-class TeacherViewSet(viewsets.ViewSet, generics.ListAPIView, generics.CreateAPIView):
+class TeacherViewSet(viewsets.ViewSet, generics.ListAPIView):
     queryset = Teacher.objects.all()
     serializer_class = serializers.TeacherSerializer
     pagination_class = pagination.TeacherPaginator
-    parser_classes = [parsers.MultiPartParser]
 
     @action(methods=['get'], url_path='studyclassrooms', detail=True)
     def get_studyclassrooms(self, request, pk: None):
@@ -137,7 +136,6 @@ class TopicViewSet(viewsets.ViewSet, generics.ListAPIView):
     queryset = Topic.objects.all()
     serializer_class = serializers.TopicSerializer
     pagination_class = pagination.TopicPaginator
-    parser_classes = [parsers.MultiPartParser]
 
     def get_permissions(self):
         if self.action == 'add_comment':
@@ -161,7 +159,7 @@ class TopicViewSet(viewsets.ViewSet, generics.ListAPIView):
         else:
             return Response({"message": f'Khóa topic {topic.title} thành công'}, status=status.HTTP_200_OK)
 
-    @action(methods=['post'], url_path='add-comment', detail=True)
+    @action(methods=['post'], url_path='add-comment', parser_classes=[MultiPartParser, FormParser], detail=True)
     def add_comment(self, request, pk):
         try:
             topic = self.get_object()
@@ -268,8 +266,6 @@ class CommentFileViewSet(viewsets.ViewSet, viewsets.generics.ListAPIView):
 class ScheduleViewSet(viewsets.ViewSet, viewsets.generics.ListAPIView, viewsets.generics.DestroyAPIView):
     queryset = Schedule.objects.filter(active=True)
     serializer_class = serializers.ScheduleSerializer
-
-    # parser_classes = [parsers.MultiPartParser]
 
     @action(methods=['patch'], url_path='update-schedule', detail=True)
     def update_schedule(self, request, pk):
@@ -447,7 +443,6 @@ class StudyClassRoomViewSet(viewsets.ViewSet, viewsets.generics.ListAPIView, vie
     queryset = StudyClassRoom.objects.filter(active=True)
     serializer_class = serializers.StudyClassRoomSerializer
     pagination_class = pagination.StudyClassRoomPaginator
-    parser_classes = [parsers.MultiPartParser]
 
     def get_queryset(self):
         teacher = self.request.user
@@ -640,7 +635,7 @@ class StudyClassRoomViewSet(viewsets.ViewSet, viewsets.generics.ListAPIView, vie
                             if schedule.started_time == schedule_register.started_time and \
                                     schedule.ended_time == schedule_register.ended_time:
                                 return Response({
-                                    "message": f"Đăng ký lớp học thất bại!! Trùng lịch học {studyclassroom.subject.name} "
+                                    "message": f"Đăng ký lớp học thất bại!!! Trùng lịch học {studyclassroom.subject.name} "
                                                "đã đăng ký từ trước trong cùng một học kỳ"
                                 }, status=status.HTTP_400_BAD_REQUEST)
 
@@ -651,7 +646,7 @@ class StudyClassRoomViewSet(viewsets.ViewSet, viewsets.generics.ListAPIView, vie
 
             # No conflicts found, register the study
             study_register = Study.objects.create(student=student, studyclassroom=studyclassroom_register)
-            return Response({"message": "Đăng ký lớp học thành công!!!"}, status=status.HTTP_201_CREATED)
+            return Response({"message": "Đăng ký lớp học thành công!"}, status=status.HTTP_201_CREATED)
 
         except Student.DoesNotExist:
             return Response({"message": "Student not found"}, status=status.HTTP_404_NOT_FOUND)
@@ -1073,11 +1068,10 @@ class StudyClassRoomViewSet(viewsets.ViewSet, viewsets.generics.ListAPIView, vie
             return Response({"message": str(ex)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 
-class StudentViewSet(viewsets.ViewSet, generics.ListAPIView, generics.CreateAPIView):
+class StudentViewSet(viewsets.ViewSet, generics.ListAPIView):
     queryset = Student.objects.all()
     serializer_class = serializers.StudentSerializer
     pagination_class = pagination.StudentPaginator
-    parser_classes = [parsers.MultiPartParser]
 
     def get_permissions(self):
         if self.action in ['get_study_class_rooms', 'get_details_study', 'list_studyclassrooms_for_register']:
@@ -1185,7 +1179,7 @@ class StudentViewSet(viewsets.ViewSet, generics.ListAPIView, generics.CreateAPIV
             studies = studies.filter(studyclassroom__semester__year=kw)
 
         if not studies.exists():
-            return Response({"message": "Bạn không có kết quả học tập để tổng hợp GPA trong năm học này!!!"},
+            return Response({"message": "Bạn không có kết quả học tập nào để tổng hợp GPA tích luỹ trong năm học này!!!"},
                             status=status.HTTP_400_BAD_REQUEST)
 
         # Fetch score details
