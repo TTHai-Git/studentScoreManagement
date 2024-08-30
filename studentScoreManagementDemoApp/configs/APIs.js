@@ -7,10 +7,13 @@ export const endpoints = {
   "current-user": "/users/current-user/",
 
   register: "/users/",
+  register_teacher: "/teachers/",
+  register_student: "/students/",
   "send-otp": "/users/send-otp/",
   "change-password": "/users/change-password/",
 
   "list-semester": "/semesters/list/",
+  roles: "/roles/",
   years: "/semesters/years",
 
   studyclassrooms: (teacher_id) => `/teachers/${teacher_id}/studyclassrooms`,
@@ -58,6 +61,8 @@ export const endpoints = {
   "add-comment": (topic_id) => `/topics/${topic_id}/add-comment/`,
   "lock-or-unlock-topic": (topic_id) =>
     `/topics/${topic_id}/lock_or_unlock_topic/`,
+  "del-comment": (comment_id) => `/comments/${comment_id}/del-comment/`,
+  "del-topic": (topic_id) => `/topics/${topic_id}/del-topic/`,
 
   studies: (student_id) => `/students/${student_id}/studies/`,
   "evaluate-learning-results": (student_id) =>

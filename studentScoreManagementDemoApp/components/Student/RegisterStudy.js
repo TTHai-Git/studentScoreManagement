@@ -29,10 +29,8 @@ const RegisterStudy = ({ navigation, route }) => {
   const [page, setPage] = useState(1);
   const [kw, setKw] = useState("");
   const [semester, setSemester] = useState("");
-  const [error, setError] = useState(false);
   const [data, setData] = useState([]);
   const [value, setValue] = useState(null);
-  const [isFocus, setIsFocus] = useState(false);
 
   const loadSemester = async () => {
     try {
@@ -59,14 +57,21 @@ const RegisterStudy = ({ navigation, route }) => {
     }
   };
 
-  const renderItem = (item) => (
-    <View style={styles.item}>
-      <Text style={styles.textItem}>{item.label}</Text>
-      {item.value === value && (
-        <AntDesign style={styles.icon} color="black" name="Safety" size={20} />
-      )}
-    </View>
-  );
+  const renderItem = (item) => {
+    return (
+      <View style={styles.item}>
+        <Text style={styles.textItem}>{item.label}</Text>
+        {item.value === value && (
+          <AntDesign
+            style={styles.icon}
+            color="black"
+            name="Safety"
+            size={20}
+          />
+        )}
+      </View>
+    );
+  };
 
   const loadStudyClassRooms = async () => {
     if (page <= 0) return;
@@ -173,7 +178,7 @@ const RegisterStudy = ({ navigation, route }) => {
           maxHeight={300}
           labelField="label"
           valueField="value"
-          placeholder="Select item"
+          placeholder={"Chọn học kỳ..."}
           searchPlaceholder="Search..."
           value={value}
           onChange={(item) => {

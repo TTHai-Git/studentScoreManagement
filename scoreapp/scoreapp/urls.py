@@ -26,6 +26,7 @@ router.register('studyclassrooms', views.StudyClassRoomViewSet, basename='studyc
 router.register('teachers', views.TeacherViewSet, basename='teachers')
 router.register('students', views.StudentViewSet, basename='students')
 router.register('users', views.UserViewSet, basename='users')
+router.register('roles', views.RoleViewSet, basename='roles')
 router.register('topics', views.TopicViewSet, basename='topics')
 router.register('schedules', views.ScheduleViewSet, basename='schedules')
 router.register('comments', views.CommentViewSet, basename='comments')

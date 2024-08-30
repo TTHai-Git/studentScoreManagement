@@ -77,92 +77,94 @@ const ScheduleStudyClassrooms = ({ navigation, route }) => {
     try {
       const url = `${endpoints["del-schedule"](item_id)}`;
       const res = await authApi(token).delete(url);
-
-      if (res.status === 204) {
-        Alert.alert("Xoá lịch học thành công");
-        navigation.navigate("Home", {
-          user: user,
-          token: token,
-        });
-      }
+      Alert.alert("Success", res.data.message);
+      loadSchedule();
     } catch (ex) {
       console.log(ex.response);
     }
   };
 
   const renderItem = (item, isFirst) => {
-    return (
-      <View
-        key={item.id}
-        style={[styles.item, isFirst ? styles.firstItem : null]}
-      >
-        <Text style={styles.itemTitle}>{item.subject_name}</Text>
-        <Text style={styles.itemText}>
-          <Icon name="building" size={16} color="#007bff" /> Classroom:{" "}
-          {item.studyclassroom_name}
-        </Text>
-        <Text style={styles.itemText}>
-          <Icon name="group" size={16} color="#007bff" /> Group:{" "}
-          {item.studyclassroom_group}
-        </Text>
-        <Text style={styles.itemText}>
-          <Icon name="user" size={16} color="#007bff" /> Teacher:{" "}
-          {item.teacher_name}
-        </Text>
-        <Text style={styles.itemText}>
-          <Icon name="clock-o" size={16} color="#007bff" /> Start:{" "}
-          {item.started_time}
-        </Text>
-        <Text style={styles.itemText}>
-          <Icon name="clock-o" size={16} color="#007bff" /> End:{" "}
-          {item.ended_time}
-        </Text>
-        <Text style={styles.itemText}>
-          <Icon name="info-circle" size={16} color="#007bff" /> Descriptions:{" "}
-          {item.descriptions}
-        </Text>
-        {user.role === "teacher" && (
-          <View style={styles.buttonContainer}>
-            <TouchableOpacity
-              style={styles.button_up}
-              onPress={() =>
-                navigation.navigate("UpdateSchedule", {
-                  user: user,
-                  token: token,
-                  item_id: item.id,
-                })
-              }
-            >
-              <Icon name="edit" size={16} color="#fff" />
-              <Text style={styles.buttonText_up}>Sửa</Text>
-            </TouchableOpacity>
+    return item ? (
+      <>
+        <View
+          key={item.id}
+          style={[styles.item, isFirst ? styles.firstItem : null]}
+        >
+          <Text style={styles.itemTitle}>{item.subject_name}</Text>
+          <Text style={styles.itemText}>
+            <Icon name="building" size={16} color="#007bff" /> Classroom:{" "}
+            {item.studyclassroom_name}
+          </Text>
+          <Text style={styles.itemText}>
+            <Icon name="group" size={16} color="#007bff" /> Group:{" "}
+            {item.studyclassroom_group}
+          </Text>
+          <Text style={styles.itemText}>
+            <Icon name="user" size={16} color="#007bff" /> Teacher:{" "}
+            {item.teacher_name}
+          </Text>
+          <Text style={styles.itemText}>
+            <Icon name="clock-o" size={16} color="#007bff" /> Start:{" "}
+            {item.started_time}
+          </Text>
+          <Text style={styles.itemText}>
+            <Icon name="clock-o" size={16} color="#007bff" /> End:{" "}
+            {item.ended_time}
+          </Text>
+          <Text style={styles.itemText}>
+            <Icon name="info-circle" size={16} color="#007bff" /> Descriptions:{" "}
+            {item.descriptions}
+          </Text>
+          {user.role === "teacher" && (
+            <View style={styles.buttonContainer}>
+              <TouchableOpacity
+                style={styles.button_up}
+                onPress={() =>
+                  navigation.navigate("UpdateSchedule", {
+                    user: user,
+                    token: token,
+                    item_id: item.id,
+                  })
+                }
+              >
+                <Icon name="edit" size={16} color="#fff" />
+                <Text style={styles.buttonText_up}>Sửa</Text>
+              </TouchableOpacity>
 
-            <TouchableOpacity
-              style={styles.button_del}
-              onPress={() =>
-                Alert.alert(
-                  "Delete Confirmation",
-                  "Are you sure you want to delete this schedule?",
-                  [
-                    {
-                      text: "Cancel",
-                      style: "cancel",
-                    },
-                    {
-                      text: "Delete",
-                      onPress: () => deleteSchedule(item.id),
-                      style: "destructive",
-                    },
-                  ]
-                )
-              }
-            >
-              <Icon name="trash" size={16} color="#fff" />
-              <Text style={styles.buttonText_del}>Xoá</Text>
-            </TouchableOpacity>
-          </View>
-        )}
-      </View>
+              <TouchableOpacity
+                style={styles.button_del}
+                onPress={() =>
+                  Alert.alert(
+                    "Delete Confirmation",
+                    "Bạn có muốn xoá lịch học này hay không?",
+                    [
+                      {
+                        text: "Cancel",
+                        style: "cancel",
+                      },
+                      {
+                        text: "Delete",
+                        onPress: () => deleteSchedule(item.id),
+                        style: "destructive",
+                      },
+                    ]
+                  )
+                }
+              >
+                <Icon name="trash" size={16} color="#fff" />
+                <Text style={styles.buttonText_del}>Xoá</Text>
+              </TouchableOpacity>
+            </View>
+          )}
+        </View>
+      </>
+    ) : (
+      <>
+        <Text style={styles.itemText}>
+          Bạn không có lịch học nào vào ngày hôm nay
+        </Text>
+      </>
     );
   };
 

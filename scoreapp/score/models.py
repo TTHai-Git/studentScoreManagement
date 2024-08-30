@@ -113,6 +113,7 @@ class Subject(BaseModel):
 class StudyClassRoom(BaseModel):
     name = models.CharField(max_length=10)
     islock = models.BooleanField(default=False)
+    isregister = models.BooleanField(default=True)
     subject = models.ForeignKey(Subject, on_delete=models.RESTRICT)
     teacher = models.ForeignKey(Teacher, on_delete=models.RESTRICT)
     group = models.ForeignKey(Group, on_delete=models.RESTRICT)
@@ -169,6 +170,10 @@ class Comment(Interaction):
 class CommentFile(models.Model):
     file_url = models.URLField(max_length=200, null=True)
     file_name = models.CharField(max_length=100, null=True)
+    file_public_id = models.CharField(max_length=100, null=True)
+    file_asset_id = models.CharField(max_length=100, null=True)
+    file_resource_type = models.CharField(max_length=50, null=True)
+    file_type = models.CharField(max_length=50, null=True)
     comment = models.ForeignKey(Comment, on_delete=models.CASCADE, related_name='files')
 
 

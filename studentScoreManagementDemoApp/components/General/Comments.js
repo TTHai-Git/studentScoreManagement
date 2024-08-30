@@ -6,7 +6,6 @@ import {
   RefreshControl,
   ScrollView,
   Text,
-  TouchableOpacity,
   View,
 } from "react-native";
 import { authApi, endpoints } from "../../configs/APIs";
@@ -27,6 +26,7 @@ import { shareAsync } from "expo-sharing";
 const Comments = ({ navigation, route }) => {
   const topic_id = route.params?.topic_id;
   const token = route.params?.token;
+  const user = route.params?.user;
 
   const [loading, setLoading] = useState(false);
   const [comments, setComments] = useState([]);
@@ -163,13 +163,31 @@ const Comments = ({ navigation, route }) => {
     }
   };
 
+  const delComment = async (comment_id) => {
+    try {
+      setLoading(true);
+      const url = `${endpoints["del-comment"](comment_id)}`;
+      const res = await authApi(token).delete(url);
+      loadComments(true);
+      Alert.alert("Success", res.data.message);
+    } catch (error) {
+      console.log(error.response);
+      if (error.response && error.response.data) {
+        Alert.alert("Error", error.response.data.message);
+      } else {
+        Alert.alert("Error", "An unexpected error occurred.");
+      }
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const downloadFile = async (url, fileName) => {
     try {
       const result = await FileSystem.downloadAsync(
         url,
         FileSystem.documentDirectory + fileName
       );
-      console.log(result);
       await saveFile(result.uri, fileName, result.headers["content-type"]);
     } catch (error) {
       console.log("Error downloading file:", error);
@@ -264,6 +282,37 @@ const Comments = ({ navigation, route }) => {
                     source={{ uri: c.user.avatar }}
                   />
                 )}
+                right={(props) =>
+                  user.id === c.user.id ? (
+                    <>
+                      <IconButton
+                        {...props}
+                        icon="close"
+                        color="red"
+                        size={20}
+                        onPress={() =>
+                          Alert.alert(
+                            "Delete Confirmation",
+                            "Bạn có chắc muốn xoá bình luận này?",
+                            [
+                              {
+                                text: "Cancel",
+                                style: "cancel",
+                              },
+                              {
+                                text: "Delete",
+                                onPress: () => delComment(c.id),
+                                style: "destructive",
+                              },
+                            ]
+                          )
+                        }
+                      />
+                    </>
+                  ) : (
+                    <></>
+                  )
+                }
               />
               <Card.Content>
                 <Text style={{ marginBottom: 10 }}>{c.content}</Text>
@@ -328,7 +377,16 @@ const Comments = ({ navigation, route }) => {
             {selectedFiles.map((file) => file.name).join(", ")}
           </Text>
         )}
-        <Button mode="contained" onPress={addComment}>
+        <Button
+          mode="contained"
+          onPress={addComment}
+          icon={
+            loading
+              ? () => <ActivityIndicator size="small" color="#fff" />
+              : "send"
+          }
+          disabled={loading}
+        >
           Bình luận
         </Button>
       </View>

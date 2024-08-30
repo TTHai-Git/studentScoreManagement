@@ -1,26 +1,27 @@
-import { useEffect, useState } from "react";
+import React, { useEffect, useState } from "react";
 import {
-  ScrollView,
-  TouchableOpacity,
-  View,
-  Text,
-  RefreshControl,
   ActivityIndicator,
   Alert,
+  RefreshControl,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
 } from "react-native";
 import { authApi, endpoints } from "../../configs/APIs";
-import MyStyle from "../../styles/MyStyle";
+import moment from "moment";
 import {
-  Button,
-  Portal,
-  Provider,
   TextInput,
+  Card,
   Dialog,
   Paragraph,
+  Portal,
+  Provider,
+  Button,
 } from "react-native-paper";
-import Styles from "../General/Styles";
 import Icon from "react-native-vector-icons/FontAwesome";
-import moment from "moment";
+import MyStyle from "../../styles/MyStyle";
 
 const Topics = ({ navigation, route }) => {
   const studyclassroom_id = route.params?.studyclassroom_id;
@@ -50,15 +51,93 @@ const Topics = ({ navigation, route }) => {
         if (res.data.next === null) setPage(0);
       } catch (error) {
         console.log(error.response);
-        if (error.response && error.response.data) {
-          Alert.alert("Error", error.response.data.message);
-        } else {
-          Alert.alert("Error", "An unexpected error occurred.");
-        }
+        Alert.alert(
+          "Error",
+          error.response?.data?.message || "Unexpected error occurred."
+        );
       } finally {
         setLoading(false);
       }
     }
+  };
+
+  useEffect(() => {
+    loadTopics();
+  }, [page]);
+
+  const confirmAction = (topic_id, action) => {
+    setDialogState({ topicId: topic_id, action: action });
+    setConfirmVisible(true);
+  };
+
+  const handleConfirmAction = async () => {
+    setConfirmVisible(false);
+    const { topicId, action } = dialogState;
+    if (action === "lockUnlock") {
+      await lockOrUnlockTopic(topicId);
+    } else if (action === "add") {
+      await addTopic();
+    }
+  };
+
+  const lockOrUnlockTopic = async (topic_id) => {
+    try {
+      let url = `${endpoints["lock-or-unlock-topic"](topic_id)}`;
+      let res = await authApi(token).patch(url);
+      Alert.alert(res.data.message);
+      setPage(1);
+    } catch (error) {
+      console.log(error.response);
+      Alert.alert(
+        "Error",
+        error.response?.data?.message || "Unexpected error occurred."
+      );
+    }
+  };
+
+  const addTopic = async () => {
+    if (title.trim().length === 0) {
+      Alert.alert("Error", "Topic title cannot be empty");
+      return;
+    }
+    try {
+      let url = `${endpoints["add-topic"](studyclassroom_id)}`;
+      let res = await authApi(token).post(url, { title });
+      Alert.alert(res.data.message);
+      setTitle("");
+      setPage(1);
+    } catch (error) {
+      console.log(error.response);
+      Alert.alert(
+        "Error",
+        error.response?.data?.message || "Unexpected error occurred."
+      );
+    }
+  };
+
+  const delTopic = async (topic_id) => {
+    try {
+      setLoading(true);
+      let url = `${endpoints["del-topic"](topic_id)}`;
+      let res = await authApi(token).delete(url);
+      Alert.alert("Success", res.data.message);
+      setPage(1);
+    } catch (error) {
+      console.log(error.response);
+      Alert.alert(
+        "Error",
+        error.response?.data?.message || "Unexpected error occurred."
+      );
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const onRefresh = async () => {
+    setRefreshing(true);
+    setPage(1);
+    await loadTopics();
+    setRefreshing(false);
   };
 
   const isCloseToBottom = ({
@@ -79,147 +158,117 @@ const Topics = ({ navigation, route }) => {
     }
   };
 
-  useEffect(() => {
-    loadTopics();
-  }, [page]);
-
-  const confirmAction = (topic_id, action) => {
-    setDialogState({ topicId: topic_id, action: action });
-    setConfirmVisible(true);
-  };
-
-  const handleConfirmAction = async () => {
-    setConfirmVisible(false);
-    const { topicId, action } = dialogState;
-    if (action === "lockUnlock") {
-      await LockOrUnlockTopic(topicId);
-    } else if (action === "add") {
-      await addTopic();
-    }
-  };
-
-  const LockOrUnlockTopic = async (topic_id) => {
-    try {
-      let url = `${endpoints["lock-or-unlock-topic"](topic_id)}`;
-      let res = await authApi(token).patch(url);
-      console.log(res.data.message);
-      Alert.alert(res.data.message);
-      setPage(1);
-    } catch (error) {
-      console.log(error.response);
-      if (error.response && error.response.data) {
-        Alert.alert("Error", error.response.data.message);
-      } else {
-        Alert.alert("Error", "An unexpected error occurred.");
-      }
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const addTopic = async () => {
-    if (title.trim().length === 0) {
-      Alert.alert("Error", "Topic title cannot be empty");
-      return;
-    }
-    try {
-      let url = `${endpoints["add-topic"](studyclassroom_id)}`;
-      let res = await authApi(token).post(url, { title });
-      console.log(res.data.message);
-      Alert.alert(res.data.message);
-      setTitle("");
-      setPage(1);
-    } catch (error) {
-      console.log(error.response);
-      if (error.response && error.response.data) {
-        Alert.alert("Error", error.response.data.message);
-      } else {
-        Alert.alert("Error", "An unexpected error occurred.");
-      }
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const onRefresh = async () => {
-    setRefreshing(true);
-    setPage(1);
-    await loadTopics();
-    setRefreshing(false);
+  const goComments = (topic_id) => {
+    navigation.navigate("Comments", {
+      topic_id: topic_id,
+      token: token,
+      user: user,
+    });
   };
 
   return (
     <Provider>
-      <View style={[MyStyle.container, MyStyle.centerContainer]}>
+      <View style={[MyStyle.container, { padding: 10 }]}>
         {topics.length === 0 ? (
-          <>
-            <Text>Chưa có diễn đàn nào được tạo</Text>
-          </>
+          <Text>Chưa có diễn đàn nào được tạo</Text>
         ) : (
           <ScrollView
-            style={{ width: "100%", padding: 10 }}
             onScroll={loadMore}
             refreshControl={
               <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
             }
           >
-            {loading && page === 1 && <ActivityIndicator />}
             {topics.map((c) => (
-              <TouchableOpacity
-                key={c.id}
-                onPress={() =>
-                  navigation.navigate("Comments", {
-                    token: token,
-                    topic_id: c.id,
-                  })
-                }
-              >
-                <View style={[Styles.topic, Styles.card]}>
-                  <View style={Styles.topicHeader}>
-                    <Text style={Styles.topicTitle}>
-                      <Icon name="comments" size={20} color="#4CAF50" />{" "}
-                      {c.title}
-                    </Text>
-                  </View>
-                  <Text style={Styles.topicDate}>
-                    <Icon name="clock-o" size={16} color="#888" />{" "}
-                    {moment(c.created_date).fromNow()}
-                  </Text>
-                  <Text style={Styles.topicStatus}>
-                    <Icon
-                      name={c.active ? "unlock" : "lock"}
-                      size={16}
-                      color={c.active ? "#4CAF50" : "#F44336"}
-                    />{" "}
-                    Tình trạng: {c.active ? "Đang mở khóa" : "Đang khóa"}
-                  </Text>
+              <TouchableOpacity key={c.id} onPress={() => goComments(c.id)}>
+                <Card key={c.id} style={{ marginBottom: 10 }}>
+                  <Card.Title
+                    title={c.title}
+                    subtitle={moment(c.created_date).fromNow()}
+                    left={(props) => (
+                      <Icon
+                        {...props}
+                        name="comments"
+                        size={24}
+                        color="#4CAF50"
+                      />
+                    )}
+                  />
                   {user.role === "teacher" && (
-                    <Button
-                      style={Styles.button_topic}
-                      mode="outlined"
-                      icon={c.active ? "lock-open-outline" : "lock-outline"}
-                      onPress={() => confirmAction(c.id, "lockUnlock")}
+                    <TouchableOpacity
+                      style={Styles.button_del}
+                      onPress={() =>
+                        Alert.alert(
+                          "Delete Confirmation",
+                          "Bạn có chắc muốn xoá diễn đàn này?",
+                          [
+                            {
+                              text: "Cancel",
+                              style: "cancel",
+                            },
+                            {
+                              text: "Delete",
+                              onPress: () => delTopic(c.id),
+                              style: "destructive",
+                            },
+                          ]
+                        )
+                      }
                     >
-                      {c.active ? "Khóa" : "Mở khóa"}
-                    </Button>
+                      <Icon name="trash" size={16} color="#fff" />
+                      <Text style={Styles.buttonText_del}>Xoá</Text>
+                    </TouchableOpacity>
                   )}
-                </View>
+                  <Card.Content>
+                    <Text style={Styles.topicStatus}>
+                      <Icon
+                        name={c.active ? "unlock" : "lock"}
+                        size={16}
+                        color={c.active ? "#4CAF50" : "#F44336"}
+                      />{" "}
+                      Tình trạng: {c.active ? "Đang mở khóa" : "Đang khóa"}
+                    </Text>
+                    {user.role === "teacher" && (
+                      <Button
+                        mode="outlined"
+                        icon={c.active ? "lock-outline" : "lock-open-outline"}
+                        onPress={() => confirmAction(c.id, "lockUnlock")}
+                        style={{ marginTop: 10 }}
+                      >
+                        {c.active ? "Khóa" : "Mở khóa"}
+                      </Button>
+                    )}
+                  </Card.Content>
+                </Card>
               </TouchableOpacity>
             ))}
             {loading && page > 1 && <ActivityIndicator />}
           </ScrollView>
         )}
         {user.role === "teacher" && (
-          <View style={Styles.addTopic_Comment}>
+          <View
+            style={[
+              Styles.addTopic_Comment,
+              {
+                padding: 10,
+                borderTopWidth: 1,
+                borderColor: "#ddd",
+                backgroundColor: "#fff",
+                elevation: 2,
+              },
+            ]}
+          >
             <TextInput
               placeholder="Nhập tên diễn đàn"
               value={title}
               onChangeText={(t) => setTitle(t)}
-              style={[MyStyle.input, Styles.inputWithIcon]}
+              style={{
+                marginBottom: 10,
+                backgroundColor: "#f4f4f4",
+                borderRadius: 5,
+              }}
               left={<TextInput.Icon name={() => <Icon name="edit" />} />}
             />
             <Button
-              style={MyStyle.button_user}
               mode="contained"
               icon={() => <Icon name="plus" size={16} color="#FFF" />}
               onPress={() => confirmAction(null, "add")}
@@ -252,5 +301,80 @@ const Topics = ({ navigation, route }) => {
     </Provider>
   );
 };
+
+const Styles = StyleSheet.create({
+  button_del: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "#F44336",
+    paddingVertical: 8,
+    paddingHorizontal: 16,
+    borderRadius: 5,
+    alignSelf: "flex-end",
+    marginTop: 10,
+  },
+  buttonText_del: {
+    color: "#fff",
+    marginLeft: 8,
+    fontWeight: "bold",
+  },
+  topicStatus: {
+    marginTop: 10,
+    fontSize: 16,
+    color: "#757575",
+  },
+  addTopic_Comment: {
+    flexDirection: "column",
+    paddingHorizontal: 15,
+    paddingVertical: 20,
+    borderRadius: 8,
+    backgroundColor: "#f9f9f9",
+    elevation: 3,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.3,
+    shadowRadius: 4,
+  },
+  cardContainer: {
+    backgroundColor: "#fff",
+    borderRadius: 8,
+    padding: 15,
+    marginBottom: 10,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 3,
+  },
+  cardTitle: {
+    fontSize: 18,
+    fontWeight: "bold",
+    color: "#333",
+  },
+  cardSubtitle: {
+    fontSize: 14,
+    color: "#757575",
+  },
+  inputField: {
+    backgroundColor: "#f4f4f4",
+    borderRadius: 5,
+    padding: 10,
+    fontSize: 16,
+    marginBottom: 10,
+  },
+  addTopicButton: {
+    backgroundColor: "#4CAF50",
+    paddingVertical: 10,
+    paddingHorizontal: 15,
+    borderRadius: 5,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  addTopicButtonText: {
+    color: "#fff",
+    fontWeight: "bold",
+    fontSize: 16,
+  },
+});
 
 export default Topics;

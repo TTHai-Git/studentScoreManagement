@@ -3,6 +3,7 @@ import os
 from datetime import timedelta, datetime
 from decimal import Decimal, ROUND_HALF_UP
 import jwt
+from cloudinary.uploader import destroy
 from django.utils import timezone
 import cloudinary
 from django.core.mail import send_mail, EmailMessage
@@ -24,10 +25,17 @@ from django.db.models import Q, Value
 # from scoreapp.settings import creds
 from rest_framework.parsers import MultiPartParser, FormParser
 from googleapiclient.discovery import build
+# from cloudinary.api import delete_resources
 
 
 def index(request):
     return HttpResponse("ScoreApp")
+
+
+class RoleViewSet(viewsets.ViewSet, generics.ListAPIView):
+    queryset = Role.objects.all()
+    serializer_class = serializers.RoleSerializer
+    pagination_class = pagination.RolePaginator
 
 
 class UserViewSet(viewsets.ViewSet, generics.CreateAPIView, generics.ListAPIView):
@@ -114,10 +122,11 @@ class UserViewSet(viewsets.ViewSet, generics.CreateAPIView, generics.ListAPIView
                             , status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 
-class TeacherViewSet(viewsets.ViewSet, generics.ListAPIView):
+class TeacherViewSet(viewsets.ViewSet, generics.ListAPIView, generics.CreateAPIView):
     queryset = Teacher.objects.all()
     serializer_class = serializers.TeacherSerializer
     pagination_class = pagination.TeacherPaginator
+    parser_classes = [MultiPartParser]
 
     @action(methods=['get'], url_path='studyclassrooms', detail=True)
     def get_studyclassrooms(self, request, pk: None):
@@ -167,20 +176,8 @@ class TopicViewSet(viewsets.ViewSet, generics.ListAPIView):
             content = request.data.get('content')
             files = request.FILES.getlist('files')  # Get multiple files from the request
 
-            allowed_mime_types = [
-                'application/pdf',
-                'application/msword',  # .docx
-                'application/vnd.ms-excel',  # .xla|xls|xlsx|xlt|xlw|xlam|xlsb|xlsm|xltm
-                'application/vnd.ms-powerpoint',
-                'application/zip',  # .zip
-                'application/rar',  # .rar
-                'text/plain',  # .txt
-                'image/jpeg',  # .jpg, .jpeg
-                'image/png',  # .png
-                'image/gif',  # .gif
-                'image/bmp',  # .bmp
-                'image/webp',  # .webp
-                'image/tiff',  # .tiff
+            not_allowed_mime_types = [
+                'application/x-msdownload',  # .exe
             ]
 
             if topic.active:
@@ -193,7 +190,7 @@ class TopicViewSet(viewsets.ViewSet, generics.ListAPIView):
                 for file in files:
                     # Check the MIME type of the uploaded file
                     # file_mime_type, _ = mimetypes.guess_type(file.name)
-                    if file.content_type not in allowed_mime_types:
+                    if file.content_type in not_allowed_mime_types:
                         return Response({"message": f"Loại tệp {file.name} không được phép!!!"},
                                         status=status.HTTP_400_BAD_REQUEST)
 
@@ -201,7 +198,12 @@ class TopicViewSet(viewsets.ViewSet, generics.ListAPIView):
                     upload_response = cloudinary.uploader.upload(file, resource_type='auto')
                     file_urls_names.append({
                         "url": upload_response['secure_url'],
-                        "name": file.name
+                        "name": file.name,
+                        "public_id": upload_response['public_id'],
+                        "asset_id": upload_response['asset_id'],
+                        "resource_type": upload_response['resource_type'],
+                        "type": upload_response['type'],
+
                     })
 
                 # Create the comment
@@ -209,7 +211,9 @@ class TopicViewSet(viewsets.ViewSet, generics.ListAPIView):
 
                 # Store the file URLs and names if present
                 for url_name in file_urls_names:
-                    CommentFile.objects.create(comment=comment, file_url=url_name["url"], file_name=url_name["name"])
+                    CommentFile.objects.create(comment=comment, file_url=url_name["url"], file_name=url_name["name"],
+                                               file_public_id=url_name["public_id"], file_asset_id=url_name["asset_id"],
+                                               file_resource_type=url_name["resource_type"], file_type=url_name["type"])
 
                 return Response({"message": f'Thêm bình luận vào {topic.title} thành công!'},
                                 status=status.HTTP_201_CREATED)
@@ -238,6 +242,19 @@ class TopicViewSet(viewsets.ViewSet, generics.ListAPIView):
             return Response({"message": str(ex)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
         return Response(serializers.CommentSerializer(comments, many=True).data, status=status.HTTP_200_OK)
 
+    @action(methods=['delete'], url_path='del-topic', detail=True)
+    def del_topic(self, request, pk=None):
+        try:
+            topic = self.get_object()
+            teacher = Teacher.objects.get(id=request.user.id)
+            if teacher == topic.studyclassroom.teacher:
+                topic.delete()
+                return Response({"message": f"Xoá diễn đàn {topic.title} thành công!"})
+            return Response({"message": "Bạn không có quyền xoá diễn đàn này!!!"},
+                            status=status.HTTP_400_BAD_REQUEST)
+        except Exception as ex:
+            return Response({"message": str(ex)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
 
 class CommentViewSet(viewsets.ViewSet, viewsets.generics.RetrieveAPIView):
     queryset = Comment.objects.filter(active=True)
@@ -255,6 +272,30 @@ class CommentViewSet(viewsets.ViewSet, viewsets.generics.RetrieveAPIView):
                 return Response({"message": "No files found for this comment."}, status=status.HTTP_204_NO_CONTENT)
         except Exception as ex:
             return Response({"message": str(ex)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+    @action(methods=['delete'], url_path='del-comment', detail=True)
+    def del_comment(self, request, pk=None):
+        comment = self.get_object()
+        comment_files = comment.files.all()
+        user = request.user
+
+        try:
+            if comment.user == user:
+                if comment_files:
+                    for comment_file in comment_files:
+                        result = destroy(comment_file.file_public_id,
+                                         resource_type=comment_file.file_resource_type,
+                                         type=comment_file.file_type)
+                        if result.get('result') != 'ok':
+                            return Response(
+                                {"message": f"Xoá file {comment_file.file_public_id} thất bại trên Cloudinary!!!"},
+                                status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+                comment.delete()
+                return Response({"message": "Xoá comment thành công!"})
+            return Response({"message": "Bạn không có quyền xoá comment này!!!"}, status=status.HTTP_400_BAD_REQUEST)
+        except Exception as e:
+            return Response({"message": f"An error occurred: {str(e)}"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 
 class CommentFileViewSet(viewsets.ViewSet, viewsets.generics.ListAPIView):
@@ -395,9 +436,7 @@ class ScheduleViewSet(viewsets.ViewSet, viewsets.generics.ListAPIView, viewsets.
             schedule.delete()
 
             return Response(
-                {"message": "Lịch học đã được xoá và đồng bộ với Google Calendar."},
-                status=status.HTTP_204_NO_CONTENT
-            )
+                {"message": "Lịch học đã được xoá và đồng bộ với Google Calendar."})
 
         except Exception as e:
             return Response(
@@ -1036,23 +1075,23 @@ class StudyClassRoomViewSet(viewsets.ViewSet, viewsets.generics.ListAPIView, vie
     def add_topic(self, request, pk):
         try:
             teacher = Teacher.objects.get(id=request.user.id)
+            title = request.data.get('title')
             studyclassroom = self.get_object()
             if studyclassroom.teacher == teacher:
-                title = request.data.get('title')
+
                 topic, created = Topic.objects.get_or_create(title=title, studyclassroom=studyclassroom)
-                if not created:
-                    topic.active = not topic.active
+                if created:
                     topic.save()
                     return Response({"message": f'Tạo diễn đàn {topic.title} thành công!'},
                                     status=status.HTTP_201_CREATED)
                 else:
                     return Response({"message": "Tạo diễn đàn thất bại!!! Trùng tên diễn đàn"},
-                                    status=status.HTTP_401_UNAUTHORIZED)
+                                    status=status.HTTP_400_BAD_REQUEST)
             else:
                 return Response({"message": "Bạn không có quyền để tạo topic cho lớp học này!!!"},
                                 status=status.HTTP_401_UNAUTHORIZED)
         except Teacher.DoesNotExist:
-            return Response({"message": "Không tìm thấy giáo viên tương ứng với tài khoản này.", },
+            return Response({"message": "Không tìm thấy giáo viên tương ứng với lớp này!!!", },
                             status=status.HTTP_404_NOT_FOUND)
 
     @action(methods=['get'], url_path='topics', detail=True)
@@ -1068,10 +1107,11 @@ class StudyClassRoomViewSet(viewsets.ViewSet, viewsets.generics.ListAPIView, vie
             return Response({"message": str(ex)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 
-class StudentViewSet(viewsets.ViewSet, generics.ListAPIView):
+class StudentViewSet(viewsets.ViewSet, generics.ListAPIView, generics.CreateAPIView):
     queryset = Student.objects.all()
     serializer_class = serializers.StudentSerializer
     pagination_class = pagination.StudentPaginator
+    parser_classes = [MultiPartParser]
 
     def get_permissions(self):
         if self.action in ['get_study_class_rooms', 'get_details_study', 'list_studyclassrooms_for_register']:
@@ -1179,8 +1219,9 @@ class StudentViewSet(viewsets.ViewSet, generics.ListAPIView):
             studies = studies.filter(studyclassroom__semester__year=kw)
 
         if not studies.exists():
-            return Response({"message": "Bạn không có kết quả học tập nào để tổng hợp GPA tích luỹ trong năm học này!!!"},
-                            status=status.HTTP_400_BAD_REQUEST)
+            return Response(
+                {"message": "Bạn không có kết quả học tập nào để tổng hợp GPA tích luỹ trong năm học này!!!"},
+                status=status.HTTP_400_BAD_REQUEST)
 
         # Fetch score details
         scoredetails = ScoreDetails.objects.filter(
@@ -1257,7 +1298,7 @@ class StudentViewSet(viewsets.ViewSet, generics.ListAPIView):
             return Response({"message": str(ex)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
     @action(methods=['get'], url_path='list-studyclassrooms-for-register', detail=True)
-    def list_studyclassrooms_for_register(self, request, pk):
+    def list_studyclassrooms_for_register(self, request, pk=None):
         student = self.get_object()
         studies = Study.objects.filter(student=student)
         kw = request.query_params.get('kw')
@@ -1265,7 +1306,7 @@ class StudentViewSet(viewsets.ViewSet, generics.ListAPIView):
         try:
             # Exclude study classrooms already registered by the student
             studyclassroom_ids = studies.values_list('studyclassroom', flat=True)
-            studyclassrooms_for_register = StudyClassRoom.objects.filter(~Q(id__in=studyclassroom_ids))
+            studyclassrooms_for_register = StudyClassRoom.objects.filter(~Q(id__in=studyclassroom_ids, isregister=True))
 
             # Filter by current year
             studyclassrooms_for_register = studyclassrooms_for_register.filter(

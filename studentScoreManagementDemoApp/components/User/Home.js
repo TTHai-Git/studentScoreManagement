@@ -205,9 +205,13 @@ const Home = ({ navigation, route }) => {
             icon={() => <Icon name="user-plus" size={20} color="#fff" />}
             style={MyStyle.button_user}
             mode="contained"
-            onPress={() => navigation.navigate("RegisterForTeacher")}
+            onPress={() =>
+              navigation.navigate("Register", {
+                token: token,
+              })
+            }
           >
-            Đăng ký tài khoản
+            Cấp tài khoản cho người dùng
           </Button>
         </>
       );

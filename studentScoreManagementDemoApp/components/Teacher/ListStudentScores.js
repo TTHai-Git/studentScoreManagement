@@ -68,7 +68,8 @@ const ListStudentScores = ({ navigation, route }) => {
         studyclassroom_id
       )}`;
       let res = await authApi(token).get(url);
-      setLockStatus(res.data.is_lock);
+      setLockStatus(res.data.islock);
+      // console.log(res.data.islock);
     } catch (ex) {
       console.error(ex);
       Alert.alert("Error", "Failed to check lock status.");

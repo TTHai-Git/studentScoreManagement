@@ -23,7 +23,6 @@ import RegisterStudy from "./components/Student/RegisterStudy";
 import UpdateInfo from "./components/User/UpdateInfo";
 import ScheduleStudyClassrooms from "./components/General/ScheduleStudyClassrooms";
 import UpdateSchedule from "./components/General/UpdateSchedule";
-import RegisterForTeacher from "./components/Admin/RegisterForTeacher";
 import NewSchedule from "./components/Admin/NewSchedule";
 import EvaluateLearningResults from "./components/Student/EvaluateLearningResults";
 
@@ -104,9 +103,15 @@ const MyStack = () => {
         component={ListStudentScores}
       />
       <Stack.Screen
-        name="RegisterForTeacher"
-        options={{ title: "Đăng ký tài khoản giảng viên" }}
-        component={RegisterForTeacher}
+        key="Register"
+        name="Register"
+        component={Register}
+        options={{
+          title: "Cấp tài khoản cho người dùng",
+          tabBarIcon: ({ color, size }) => (
+            <Icon name="account-plus" size={size} color={color} />
+          ),
+        }}
       />
     </Stack.Navigator>
   );
@@ -144,17 +149,6 @@ const MyTab = () => {
               title: "Đăng nhập",
               tabBarIcon: ({ color, size }) => (
                 <Icon name="home" size={size} color={color} />
-              ),
-            }}
-          />
-          <Tab.Screen
-            key="Register"
-            name="Register"
-            component={Register}
-            options={{
-              title: "Đăng ký",
-              tabBarIcon: ({ color, size }) => (
-                <Icon name="account-plus" size={size} color={color} />
               ),
             }}
           />

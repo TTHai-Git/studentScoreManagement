@@ -6,7 +6,7 @@ from score.models import *
 class RoleSerializer(serializers.ModelSerializer):
     class Meta:
         model = Role
-        fields = ['id', 'name']
+        fields = ['name']
 
 
 class UserSerializer(serializers.ModelSerializer):
@@ -165,7 +165,7 @@ class StudyClassRoomSerializer(serializers.ModelSerializer):
     class Meta:
         model = StudyClassRoom
         fields = ['id', 'name', 'subject_name', 'teacher_name', 'group_name', 'semester_name', 'semester_year',
-                  'started_date', 'ended_date', 'islock']
+                  'started_date', 'ended_date', 'islock', 'isregister']
 
 
 class TopicSerializer(serializers.ModelSerializer):

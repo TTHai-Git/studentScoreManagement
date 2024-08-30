@@ -13,8 +13,8 @@ export default StyleSheet.create({
   text_class: {
     fontSize: 18,
     fontWeight: "bold",
-    marginBottom: 5
-  }, 
+    marginBottom: 5,
+  },
   topic: {
     width: "100%",
     marginBottom: 10,
@@ -24,14 +24,27 @@ export default StyleSheet.create({
     borderRadius: 10,
   },
   button_topic: {
-    width: 200
-  }, 
+    width: 200,
+  },
   addTopic_Comment: {
     width: "100%",
     marginBottom: 10,
     padding: 10,
     backgroundColor: "#fff",
     borderWidth: 2,
-    borderColor: 'black',
-  }
+    borderColor: "black",
+  },
+  button_del: {
+    backgroundColor: "#ff0000",
+    paddingVertical: 8,
+    paddingHorizontal: 12,
+    borderRadius: 5,
+    flexDirection: "row",
+    alignItems: "center",
+  },
+  buttonText_del: {
+    color: "#fff",
+    textAlign: "center",
+    marginLeft: 5,
+  },
 });

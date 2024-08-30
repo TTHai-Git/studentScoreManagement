@@ -69,16 +69,11 @@ const NewSchedule = ({ navigation, route }) => {
       };
 
       const res = await authApi(token).post(url, data);
-
-      if (res.status === 201) {
-        Alert.alert("Success", res.data.message);
-        navigation.navigate("Home", {
-          token: token,
-          user: user,
-        });
-      } else {
-        Alert.alert("Error", res.data.message);
-      }
+      Alert.alert("Success", res.data.message);
+      navigation.navigate("Home", {
+        user: user,
+        token: token,
+      });
     } catch (error) {
       console.error(error);
       if (error.response && error.response.data) {

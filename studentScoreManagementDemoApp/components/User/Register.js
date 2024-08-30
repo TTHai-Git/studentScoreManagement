@@ -12,13 +12,39 @@ import {
 import { Button, HelperText, TextInput } from "react-native-paper";
 import * as ImagePicker from "expo-image-picker";
 import React from "react";
-import APIs, { endpoints } from "../../configs/APIs";
+import APIs, { authApi, endpoints } from "../../configs/APIs";
 import { useNavigation } from "@react-navigation/native";
 import { auth, database } from "../../configs/Firebase";
 import { createUserWithEmailAndPassword } from "firebase/auth";
 import { doc, setDoc } from "firebase/firestore";
+import { Dropdown } from "react-native-element-dropdown";
+import AntDesign from "react-native-vector-icons/AntDesign";
 
-const Register = () => {
+const Register = ({ route }) => {
+  const token = route.params?.token;
+  const loadRoles = async () => {
+    try {
+      setLoading(true);
+      const url = `${endpoints["roles"]}`;
+      const res = await authApi(token).get(url);
+      // console.log(res.data.results);
+      const arr = res.data.results.map((item) => ({
+        label: item.name,
+        value: item.name,
+      }));
+      setData(arr);
+    } catch (error) {
+      console.log(error.response);
+      if (error.response && error.response.data) {
+        Alert.alert("Error", error.response.data.message);
+      } else {
+        Alert.alert("Error", "An unexpected error occurred.");
+      }
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const generateRandomNumber = () => {
     const currentYear = new Date().getFullYear();
     const prefix = currentYear.toString().slice(-2);
@@ -29,7 +55,7 @@ const Register = () => {
   };
   const fadeAnim = useState(new Animated.Value(0))[0];
   const [user, setUser] = useState({
-    role: "student",
+    role: "",
     first_name: "",
     last_name: "",
     email: "...@ou.edu.vn",
@@ -45,6 +71,8 @@ const Register = () => {
   const [imageUploaded, setImageUploaded] = useState(false);
   const [loading, setLoading] = useState(false);
   const nav = useNavigation();
+  const [value, setValue] = useState(null);
+  const [data, setData] = useState([]);
 
   useEffect(() => {
     Animated.timing(fadeAnim, {
@@ -59,6 +87,10 @@ const Register = () => {
     }
   }, [user?.avatar]);
 
+  useEffect(() => {
+    loadRoles();
+  }, []);
+
   const picker = async () => {
     const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
     if (status !== "granted") {
@@ -71,9 +103,11 @@ const Register = () => {
         aspect: [1, 1],
         quality: 1,
       });
-      if (!res.canceled && res.assets.length > 0) {
+      if (!res.canceled && res.assets && res.assets.length > 0) {
         updateState("avatar", res.assets[0].uri);
         setErrors((prev) => ({ ...prev, avatar: "" }));
+      } else {
+        Alert.alert("No image selected");
       }
     }
   };
@@ -100,6 +134,7 @@ const Register = () => {
     if (user.password !== user.confirm)
       newErrors.confirm = "Passwords do not match";
     if (!user.avatar) newErrors.avatar = "Please upload a profile picture";
+    if (!user.role) newErrors.role = "Vui lòng chọn phân quyền người dùng";
 
     setErrors(newErrors);
     valid = Object.values(newErrors).every((error) => error === "");
@@ -126,14 +161,22 @@ const Register = () => {
     }
 
     setLoading(true);
+    let res;
     try {
-      let res = await APIs.post(endpoints["student-register"], form, {
+      const endpoint =
+        user.role === "teacher"
+          ? endpoints["register_teacher"]
+          : user.role === "student"
+          ? endpoints["register_student"]
+          : endpoints["register"];
+
+      res = await APIs.post(endpoint, form, {
         headers: {
           "Content-Type": "multipart/form-data",
         },
       });
+
       if (res.status === 201) {
-        // Successful registration, proceed with Firebase registration
         try {
           if (user.email !== "" && user.password !== "") {
             const userCredential = await createUserWithEmailAndPassword(
@@ -152,19 +195,20 @@ const Register = () => {
             });
           }
 
-          // Display success message and navigate after Firebase registration
-          Alert.alert("Registration successful!");
-          nav.navigate("Login");
+          Alert.alert("Success", "Cấp tài khoản cho người dùng thành công");
+          nav.navigate("Home");
         } catch (error) {
-          console.error("Firebase registration failed:", error);
+          console.error("Firebase registration error:", error.message || error);
           Alert.alert(
-            "Registration successful, but failed to register with Firebase. Please try again!"
+            "Warning",
+            "Cấp tài khoản cho người dùng thành công nhưng Đăng ký tài khoản chat Firebase thất bại"
           );
         }
       } else {
-        Alert.alert("Registration failed!");
+        Alert.alert("Error", "Cấp tài khoản cho người dùng thất bại");
       }
     } catch (ex) {
+      console.error("API registration error:", ex.message || ex);
       Alert.alert("An error occurred. Please try again!");
     } finally {
       setLoading(false);
@@ -190,6 +234,26 @@ const Register = () => {
     },
   ];
 
+  const renderItem = (item) => {
+    return (
+      <View style={styles.item}>
+        <Text style={styles.textItem}>{item.label}</Text>
+        {item.value === value && (
+          <AntDesign
+            style={styles.icon}
+            color="black"
+            name="Safety"
+            size={20}
+          />
+        )}
+      </View>
+    );
+  };
+
+  const handleItemChange = (item) => {
+    setUser((current) => ({ ...current, role: item.value }));
+  };
+
   return (
     <Animated.View style={[styles.container, { opacity: fadeAnim }]}>
       <KeyboardAvoidingView
@@ -197,6 +261,7 @@ const Register = () => {
         style={{ flex: 1 }}
       >
         <ScrollView
+          keyboardShouldPersistTaps="handled"
           contentContainerStyle={{
             flexGrow: 1,
             justifyContent: "center",
@@ -247,7 +312,33 @@ const Register = () => {
             <HelperText type="error" visible={!!errors.avatar}>
               {errors.avatar}
             </HelperText>
-
+            <Dropdown
+              style={styles.dropdown}
+              placeholderStyle={styles.placeholderStyle}
+              selectedTextStyle={styles.selectedTextStyle}
+              inputSearchStyle={styles.inputSearchStyle}
+              iconStyle={styles.iconStyle}
+              data={data}
+              search
+              maxHeight={300}
+              labelField="label"
+              valueField="value"
+              placeholder={"Chọn phân quyền tài khoản..."}
+              searchPlaceholder="Search..."
+              value={value}
+              onChange={(item) => {
+                handleItemChange(item);
+              }}
+              renderLeftIcon={() => (
+                <AntDesign
+                  style={styles.icon}
+                  color="black"
+                  name="Safety"
+                  size={20}
+                />
+              )}
+              renderItem={renderItem}
+            />
             <Button
               style={styles.submitButton}
               icon="account"
@@ -306,6 +397,49 @@ const styles = StyleSheet.create({
   submitButton: {
     marginTop: 20,
     borderRadius: 10,
+  },
+  dropdown: {
+    margin: 16,
+    height: 50,
+    backgroundColor: "white",
+    borderRadius: 12,
+    padding: 12,
+    shadowColor: "#000",
+    shadowOffset: {
+      width: 0,
+      height: 1,
+    },
+    shadowOpacity: 0.2,
+    shadowRadius: 1.41,
+
+    elevation: 2,
+  },
+  icon: {
+    marginRight: 5,
+  },
+  item: {
+    padding: 17,
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+  },
+  textItem: {
+    flex: 1,
+    fontSize: 16,
+  },
+  placeholderStyle: {
+    fontSize: 16,
+  },
+  selectedTextStyle: {
+    fontSize: 16,
+  },
+  iconStyle: {
+    width: 20,
+    height: 20,
+  },
+  inputSearchStyle: {
+    height: 40,
+    fontSize: 16,
   },
 });
 
