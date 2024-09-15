@@ -31,6 +31,13 @@ class Role(models.Model):
         return self.name
 
 
+class Department(BaseModel):
+    name = models.CharField(max_length=100)
+
+    def __str__(self):
+        return f'{self.id} - {self.name}'
+
+
 class User(AbstractUser):
     def validate_ou_mail(value):
         if str(value).endswith("@ou.edu.vn"):
@@ -50,13 +57,6 @@ class User(AbstractUser):
         return f'{self.id} - {self.last_name}  {self.first_name} - {self.username} - {self.role}'
 
 
-class Department(BaseModel):
-    name = models.CharField(max_length=100)
-
-    def __str__(self):
-        return f'{self.id} - {self.name}'
-
-
 class Group(BaseModel):
     name = models.CharField(max_length=10)
     department = models.ForeignKey(Department, on_delete=models.CASCADE)
@@ -67,7 +67,7 @@ class Group(BaseModel):
 
 class StudentClassRoom(BaseModel):
     name = models.CharField(max_length=10)
-    department = models.ForeignKey(Department, on_delete=models.CASCADE)
+    department = models.ForeignKey(Department, on_delete=models.CASCADE, null=True)
 
     def __str__(self):
         return f'{self.id} - {self.name} - {self.department.name}'
@@ -85,6 +85,8 @@ class Student(User):
 
 
 class Teacher(User):
+    department = models.ForeignKey(Department, on_delete=models.CASCADE, null=True)
+
     def __str__(self):
         return f'{self.id} - {self.code} - {self.last_name} {self.first_name} - {self.username}'
 
@@ -96,6 +98,8 @@ class Teacher(User):
 class Semester(models.Model):
     name = models.CharField(max_length=10)
     year = models.CharField(max_length=11, default="2023 - 2024")
+    started_date = models.DateField(null=True)
+    ended_date = models.DateField(null=True)
 
     def __str__(self):
         return f'{self.name} - {self.year}'
@@ -105,6 +109,7 @@ class Subject(BaseModel):
     name = models.CharField(max_length=100, unique=True)
     image = CloudinaryField(null=True)
     description = RichTextField()
+    code = models.CharField(max_length=10, unique=True, null=True)
 
     def __str__(self):
         return f'{self.id} - {self.name}'
@@ -235,3 +240,14 @@ class PointConversion(models.Model):
 
     def __str__(self):
         return f'{self.ten_point_scale_min} - {self.ten_point_scale_max} : {self.four_point_scale} - {self.grade}'
+
+
+class Event(BaseModel):
+    started_time = models.DateTimeField(null=True)
+    ended_time = models.DateTimeField(null=True)
+    descriptions = models.CharField(max_length=100, null=True)
+    semester = models.ForeignKey(Semester, on_delete=models.RESTRICT)
+    department = models.ForeignKey(Department, on_delete=models.CASCADE)
+
+    def __str__(self):
+        return f'{self.descriptions} - {self.department.name} - {self.semester.name} - {self.semester.year}'

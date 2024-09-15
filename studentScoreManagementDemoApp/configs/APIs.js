@@ -16,7 +16,8 @@ export const endpoints = {
   roles: "/roles/",
   years: "/semesters/years",
 
-  studyclassrooms: (teacher_id) => `/teachers/${teacher_id}/studyclassrooms`,
+  studyclassroomsofteacher: (teacher_id) =>
+    `/teachers/${teacher_id}/studyclassrooms`,
   "check-locked-scored-studyclassroom": (studyclassroom_id) =>
     `/studyclassrooms/${studyclassroom_id}/`,
   studyclassroomsofstudent: (student_id) =>
@@ -67,6 +68,9 @@ export const endpoints = {
   studies: (student_id) => `/students/${student_id}/studies/`,
   "evaluate-learning-results": (student_id) =>
     `/students/${student_id}/evaluate-learning-results`,
+
+  "list-registered": (student_id) => `/students/${student_id}/list-registered`,
+  "del-registered": (study_id) => `/studies/${study_id}/del-registered/`,
 };
 
 export const authApi = (accessToken) =>

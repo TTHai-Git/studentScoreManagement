@@ -45,9 +45,12 @@ class MembersOfChatRoomSerializer(serializers.Serializer):
 
 
 class TeacherSerializer(serializers.ModelSerializer):
+    department_name = serializers.CharField(source='department.name')
+
     class Meta:
         model = Teacher
-        fields = ['id', 'code', 'first_name', 'last_name', 'username', 'password', 'email', 'avatar', 'role']
+        fields = ['id', 'code', 'first_name', 'last_name', 'username', 'password', 'email', 'avatar', 'role',
+                  'department_name']
         extra_kwargs = {
             'password': {
                 'write_only': True
@@ -72,9 +75,13 @@ class TeacherSerializer(serializers.ModelSerializer):
 
 
 class StudentSerializer(serializers.ModelSerializer):
+    department_name = serializers.CharField(source='studentclassroom.department.name')
+    studentclassroom_name = serializers.CharField(source='studentclassroom.name')
+
     class Meta:
         model = Student
-        fields = ['id', 'code', 'first_name', 'last_name', 'username', 'password', 'email', 'avatar', 'role']
+        fields = ['id', 'code', 'first_name', 'last_name', 'username', 'password', 'email', 'avatar', 'role',
+                  'department_name', 'studentclassroom_name']
         extra_kwargs = {
             'password': {
                 'write_only': True
@@ -108,7 +115,7 @@ class ItemSerializer(serializers.ModelSerializer):
 class SubjectSerializer(ItemSerializer):
     class Meta:
         model = Subject
-        fields = ['id', 'name', 'image', 'created_date', 'active']
+        fields = ['id', 'code', 'name', 'image', 'created_date', 'active']
 
 
 class DepartmentSerializer(serializers.ModelSerializer):
@@ -139,6 +146,7 @@ class StudentClassRoom(serializers.ModelSerializer):
 
 class ScheduleSerializer(serializers.ModelSerializer):
     subject_name = serializers.CharField(source='studyclassroom.subject.name')
+    subject_code = serializers.CharField(source='studyclassroom.subject.code')
     studyclassroom_name = serializers.CharField(source='studyclassroom.name')
     studyclassroom_group = serializers.CharField(source='studyclassroom.group.name')
     teacher_name = serializers.SerializerMethodField()
@@ -148,12 +156,24 @@ class ScheduleSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Schedule
-        fields = ['id', 'started_time', 'ended_time', 'descriptions', 'subject_name', 'studyclassroom_name',
-                  'studyclassroom_group', 'teacher_name']
+        fields = ['id', 'started_time', 'ended_time', 'descriptions', 'subject_code', 'subject_name',
+                  'studyclassroom_name', 'studyclassroom_group', 'teacher_name']
+
+
+class EventSerializer(serializers.ModelSerializer):
+    department_name = serializers.CharField(source='department.name')
+    semester_name = serializers.CharField(source='semester.name')
+    semester_year = serializers.CharField(source='semester.year')
+
+    class Meta:
+        model = Event
+        fields = ['id', 'descriptions', 'department_name', 'semester_name', 'semester_year', 'started_date',
+                  'ended_date']
 
 
 class StudyClassRoomSerializer(serializers.ModelSerializer):
     subject_name = serializers.CharField(source='subject.name')
+    subject_code = serializers.CharField(source='subject.code')
     teacher_name = serializers.SerializerMethodField()
     semester_name = serializers.CharField(source='semester.name')
     semester_year = serializers.CharField(source='semester.year')
@@ -164,8 +184,8 @@ class StudyClassRoomSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = StudyClassRoom
-        fields = ['id', 'name', 'subject_name', 'teacher_name', 'group_name', 'semester_name', 'semester_year',
-                  'started_date', 'ended_date', 'islock', 'isregister']
+        fields = ['id', 'name', 'subject_code', 'subject_name', 'teacher_name', 'group_name', 'semester_name',
+                  'semester_year', 'started_date', 'ended_date', 'islock', 'isregister']
 
 
 class TopicSerializer(serializers.ModelSerializer):
@@ -265,6 +285,7 @@ class SDSerializer(serializers.Serializer):
 
 class StudyResultSerializer(serializers.Serializer):
     subject_name = serializers.CharField()
+    subject_code = serializers.CharField()
     semester_name = serializers.CharField()
     semester_year = serializers.CharField()
     ten_point_scale = serializers.DecimalField(max_digits=3, decimal_places=1)
@@ -297,3 +318,16 @@ class ScoresSerializer(serializers.Serializer):
         model = ScoreDetails
         fields = ['id', 'group_name', 'subject_name', 'teacher_name', 'semester_name', 'semester_year',
                   'scorecolumn_type', 'scorecolumn_percent', 'score']
+
+
+class ListRegisterStudySerializer(serializers.ModelSerializer):
+    subject_code = serializers.CharField(source='studyclassroom.subject.code')
+    subject_name = serializers.CharField(source='studyclassroom.subject.name')
+    group_name = serializers.CharField(source='studyclassroom.group.name')
+    started_date = serializers.DateField(source='studyclassroom.started_date')
+    ended_date = serializers.DateField(source='studyclassroom.ended_date')
+
+    class Meta:
+        model = Study
+        fields = ['id', 'subject_code', 'subject_name', 'group_name', 'created_date', 'active', 'started_date',
+                  'ended_date']

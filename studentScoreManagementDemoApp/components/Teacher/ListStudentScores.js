@@ -302,7 +302,7 @@ const ListStudentScores = ({ navigation, route }) => {
             mode="contained"
             onPress={lockScoreOfStudyClassRoom}
           >
-            {lockStatus ? "Mở khóa điểm" : "Khóa điểm"}
+            {lockStatus ? "Mở khóa điểm" : "Khóa điểm"} bảng điểm
           </Button>
           <Button
             icon={() => <Icon name="save" size={20} color="white" />}

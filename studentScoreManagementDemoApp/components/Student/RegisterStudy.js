@@ -3,22 +3,26 @@ import {
   Alert,
   RefreshControl,
   ScrollView,
-  Text,
   TouchableOpacity,
   View,
-  StyleSheet,
 } from "react-native";
 import { authApi, endpoints } from "../../configs/APIs";
 import {
   ActivityIndicator,
-  Button,
-  Provider,
   Searchbar,
+  Snackbar,
+  Modal,
+  Portal,
+  Text,
+  Button,
+  PaperProvider,
 } from "react-native-paper";
 import MyStyle from "../../styles/MyStyle";
 import Styles from "../General/Styles";
-import { Dropdown } from "react-native-element-dropdown";
+import { Row, Table } from "react-native-table-component";
 import AntDesign from "react-native-vector-icons/AntDesign";
+import Icon from "react-native-vector-icons/FontAwesome";
+import moment from "moment";
 
 const RegisterStudy = ({ navigation, route }) => {
   const token = route.params?.token;
@@ -28,49 +32,36 @@ const RegisterStudy = ({ navigation, route }) => {
   const [studyClassRooms, setStudyClassRooms] = useState([]);
   const [page, setPage] = useState(1);
   const [kw, setKw] = useState("");
-  const [semester, setSemester] = useState("");
-  const [data, setData] = useState([]);
-  const [value, setValue] = useState(null);
+  const [visible, setVisible] = useState(false);
+  const [snackbarVisible, setSnackbarVisible] = useState(false);
+  const [snackbarMessage, setSnackbarMessage] = useState("");
 
-  const loadSemester = async () => {
-    try {
-      const url = `${endpoints["list-semester"]}`;
-      const res = await authApi(token).get(url);
-      const arr = res.data.results.map((item) => ({
-        label: item.name,
-        value: item.name,
-      }));
-      arr.push({
-        label: "Show All",
-        value: "Show All",
-      });
-      setData(arr);
-    } catch (error) {
-      console.log(error.response);
-      if (error.response && error.response.data) {
-        Alert.alert("Error", error.response.data.message);
-      } else {
-        Alert.alert("Error", "An unexpected error occurred.");
-      }
-    } finally {
-      setLoading(false);
-    }
+  const [widthArr, setWidthArr] = useState([40, 400, 100]);
+  const tableHead = [
+    "STT",
+    "Mã Đăng ký",
+    "Mã môn học",
+    "Tên môn học",
+    "Nhóm",
+    "Thời gian đăng ký",
+    "Tình trạng",
+    "Thời gian bắt đầu",
+    "Thời gian kết thúc",
+  ];
+
+  const showModal = () => {
+    loadListRegistered();
+    setVisible(true);
   };
+  const hideModal = () => setVisible(false);
+  const containerStyle = { backgroundColor: "white", padding: 20 };
+  const [registerd, setRegisterd] = useState([]);
 
-  const renderItem = (item) => {
-    return (
-      <View style={styles.item}>
-        <Text style={styles.textItem}>{item.label}</Text>
-        {item.value === value && (
-          <AntDesign
-            style={styles.icon}
-            color="black"
-            name="Safety"
-            size={20}
-          />
-        )}
-      </View>
-    );
+  const formatDateTime = (datetimeString) => {
+    return moment(datetimeString).format("DD/MM/YYYY - HH:mm:ss");
+  };
+  const formatDate = (dateString) => {
+    return moment(dateString).format("DD/MM/YYYY");
   };
 
   const loadStudyClassRooms = async () => {
@@ -82,7 +73,6 @@ const RegisterStudy = ({ navigation, route }) => {
         user.id
       )}?page=${page}`;
       if (kw) url += `&kw=${kw}`;
-      if (semester) url += `&semester=${semester}`;
 
       const res = await authApi(token).get(url);
       setStudyClassRooms((prev) =>
@@ -90,12 +80,45 @@ const RegisterStudy = ({ navigation, route }) => {
       );
       if (!res.data.next) setPage(0); // No more pages to load
     } catch (error) {
-      console.log(error.response);
-      if (error.response && error.response.data) {
-        Alert.alert("Error", error.response.data.message);
-      } else {
-        Alert.alert("Error", "An unexpected error occurred.");
-      }
+      setSnackbarMessage(
+        error.response?.data?.message || "An unexpected error occurred."
+      );
+      setSnackbarVisible(true);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const loadListRegistered = async () => {
+    try {
+      setLoading(true);
+      let url = `${endpoints["list-registered"](user.id)}`;
+      const res = await authApi(token).get(url);
+      setRegisterd(res.data.results);
+      setWidthArr([40, 90, 100, 100, 100, 150, 90, 150, 150]);
+      // console.log(registerd);
+    } catch (error) {
+      setSnackbarMessage(
+        error.response?.data?.message || "An unexpected error occurred."
+      );
+      setSnackbarVisible(true);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const delRegistered = async (study_id) => {
+    try {
+      setLoading(true);
+      let url = `${endpoints["del-registered"](study_id)}`;
+      const res = await authApi(token).delete(url);
+      Alert.alert("Nofications", res.data.message);
+      loadListRegistered();
+    } catch (error) {
+      setSnackbarMessage(
+        error.response?.data?.message || "An unexpected error occurred."
+      );
+      setSnackbarVisible(true);
     } finally {
       setLoading(false);
     }
@@ -106,7 +129,7 @@ const RegisterStudy = ({ navigation, route }) => {
     contentOffset,
     contentSize,
   }) => {
-    const paddingToBottom = 100; // Increase padding if needed
+    const paddingToBottom = 100;
     return (
       layoutMeasurement.height + contentOffset.y >=
       contentSize.height - paddingToBottom
@@ -121,79 +144,45 @@ const RegisterStudy = ({ navigation, route }) => {
 
   useEffect(() => {
     loadStudyClassRooms();
-  }, [page, kw, semester]);
-
-  useEffect(() => {
-    loadSemester();
-  }, []);
+  }, [page, kw]);
 
   const handleSearchChange = (value) => {
     setPage(1);
     setKw(value);
   };
 
-  const handleItemChange = (item) => {
-    setPage(1);
-    setSemester(item.value);
-  };
-
   const registerStudy = async (studyclassroom_id) => {
     try {
       setLoading(true);
       const url = `${endpoints["register-study"](studyclassroom_id)}`;
-      const res = await authApi(token).post(url, {
-        student_id: user.id,
-      });
-      Alert.alert(res.data.message);
+      const res = await authApi(token).post(url, { student_id: user.id });
+      Alert.alert("Nofications", res.data.message);
       setPage(1); // Reset page after registration
     } catch (error) {
-      if (error.response && error.response.status === 400) {
-        Alert.alert("Error", error.response.data.message);
-      } else {
-        console.log("Unexpected error: ", error);
-        Alert.alert("Error", "Failed to register study.");
-      }
+      setSnackbarMessage(
+        error.response?.data?.message || "Failed to register study."
+      );
+      setSnackbarVisible(true);
     } finally {
       setLoading(false);
     }
   };
 
   return (
-    <Provider>
+    <PaperProvider>
       <View style={MyStyle.container}>
         <Searchbar
           onChangeText={handleSearchChange}
           value={kw}
           placeholder="Tìm theo kiếm môn học"
         />
-
-        <Dropdown
-          style={styles.dropdown}
-          placeholderStyle={styles.placeholderStyle}
-          selectedTextStyle={styles.selectedTextStyle}
-          inputSearchStyle={styles.inputSearchStyle}
-          iconStyle={styles.iconStyle}
-          data={data}
-          search
-          maxHeight={300}
-          labelField="label"
-          valueField="value"
-          placeholder={"Chọn học kỳ..."}
-          searchPlaceholder="Search..."
-          value={value}
-          onChange={(item) => {
-            handleItemChange(item);
-          }}
-          renderLeftIcon={() => (
-            <AntDesign
-              style={styles.icon}
-              color="black"
-              name="Safety"
-              size={20}
-            />
-          )}
-          renderItem={renderItem}
-        />
+        <Button
+          style={MyStyle.button_check_result_register}
+          mode="contained"
+          onPress={showModal}
+        >
+          Xem kết quả đăng ký môn học
+        </Button>
         {studyClassRooms.length > 0 ? (
           <ScrollView
             onScroll={loadMore}
@@ -212,7 +201,12 @@ const RegisterStudy = ({ navigation, route }) => {
               <TouchableOpacity key={c.id}>
                 <View style={Styles.class}>
                   <Text style={Styles.text_class}>Lớp: {c.name}</Text>
-                  <Text style={Styles.text_class}>Môn: {c.subject_name}</Text>
+                  <Text style={Styles.text_class}>
+                    Mã Môn: {c.subject_code}
+                  </Text>
+                  <Text style={Styles.text_class}>
+                    Tên Môn: {c.subject_name}
+                  </Text>
                   <Text style={Styles.text_class}>Nhóm: {c.group_name}</Text>
                   <Text style={Styles.text_class}>
                     Học kỳ: {c.semester_name}
@@ -224,10 +218,10 @@ const RegisterStudy = ({ navigation, route }) => {
                     Giảng viên: {c.teacher_name}
                   </Text>
                   <Text style={Styles.text_class}>
-                    Ngày Bắt Đầu: {c.started_date}
+                    Ngày Bắt Đầu: {formatDate(c.started_date)}
                   </Text>
                   <Text style={Styles.text_class}>
-                    Ngày Kết Thúc: {c.ended_date}
+                    Ngày Kết Thúc: {formatDate(c.ended_date)}
                   </Text>
                   <Button
                     style={MyStyle.button_user}
@@ -242,57 +236,127 @@ const RegisterStudy = ({ navigation, route }) => {
             {loading && page > 1 && <ActivityIndicator />}
           </ScrollView>
         ) : (
-          <Text>Không tìm thấy lớp học nào đang mở để đăng ký!!!</Text>
+          <Text>
+            Không tìm thấy lớp học nào đang mở để đăng ký Hoặc Ngoài thời gian
+            đăng ký môn học !!!
+          </Text>
         )}
+
+        <Portal>
+          <Modal
+            visible={visible}
+            onDismiss={hideModal}
+            contentContainerStyle={containerStyle}
+          >
+            {registerd.length === 0 ? (
+              <>
+                <Text>Chưa có kết quả đăng ký môn học</Text>
+              </>
+            ) : (
+              <>
+                <Text>Đã có kết quả đăng ký môn học</Text>
+                <ScrollView horizontal={true}>
+                  <View style={MyStyle.table}>
+                    <Table
+                      borderStyle={{ borderWidth: 1, borderColor: "#000" }}
+                    >
+                      <Row
+                        data={[...tableHead, "Hành động"]}
+                        style={MyStyle.head}
+                        textStyle={{ ...MyStyle.text, fontWeight: "bold" }}
+                        widthArr={[...widthArr, 100]}
+                      />
+                      {registerd.length > 0 ? (
+                        registerd.map((c, index) => (
+                          <Row
+                            key={index + 1}
+                            data={[
+                              index + 1,
+                              c.id,
+                              c.subject_code,
+                              c.subject_name,
+                              c.group_name,
+                              formatDateTime(c.created_date),
+                              c.active ? (
+                                <AntDesign
+                                  name="checkcircle"
+                                  size={20}
+                                  color="green"
+                                />
+                              ) : (
+                                <AntDesign
+                                  name="closecircle"
+                                  size={20}
+                                  color="red"
+                                />
+                              ),
+                              formatDate(c.started_date),
+                              formatDate(c.ended_date),
+                              // Add delete button here
+                              <TouchableOpacity
+                                style={MyStyle.button_del}
+                                onPress={() =>
+                                  Alert.alert(
+                                    "Delete Confirmation",
+                                    "Bạn có muốn xoá môn học đã đăng ký này không học này hay không?",
+                                    [
+                                      {
+                                        text: "Cancel",
+                                        style: "cancel",
+                                      },
+                                      {
+                                        text: "Delete",
+                                        onPress: () => delRegistered(c.id),
+                                        style: "destructive",
+                                      },
+                                    ]
+                                  )
+                                }
+                              >
+                                <Icon name="trash" size={22} color="#fff" />
+                                <Text style={MyStyle.buttonText_del}>Xoá</Text>
+                              </TouchableOpacity>,
+                            ]}
+                            style={MyStyle.body}
+                            textStyle={MyStyle.text}
+                            widthArr={[...widthArr, 100]} // Add width for the delete button column
+                          />
+                        ))
+                      ) : (
+                        <Row
+                          data={[
+                            "",
+                            "",
+                            "",
+                            ...Array(scoreTypes.length).fill(""),
+                          ]}
+                          style={MyStyle.body}
+                          textStyle={MyStyle.text}
+                          widthArr={widthArr}
+                        />
+                      )}
+                    </Table>
+                  </View>
+                </ScrollView>
+              </>
+            )}
+
+            <Button mode="contained" onPress={hideModal}>
+              Đóng
+            </Button>
+          </Modal>
+        </Portal>
+
+        <Snackbar
+          visible={snackbarVisible}
+          onDismiss={() => setSnackbarVisible(false)}
+          duration={3000}
+        >
+          {snackbarMessage}
+        </Snackbar>
       </View>
-    </Provider>
+    </PaperProvider>
   );
 };
 
 export default RegisterStudy;
-
-const styles = StyleSheet.create({
-  dropdown: {
-    margin: 16,
-    height: 50,
-    backgroundColor: "white",
-    borderRadius: 12,
-    padding: 12,
-    shadowColor: "#000",
-    shadowOffset: {
-      width: 0,
-      height: 1,
-    },
-    shadowOpacity: 0.2,
-    shadowRadius: 1.41,
-
-    elevation: 2,
-  },
-  icon: {
-    marginRight: 5,
-  },
-  item: {
-    padding: 17,
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-  },
-  textItem: {
-    flex: 1,
-    fontSize: 16,
-  },
-  placeholderStyle: {
-    fontSize: 16,
-  },
-  selectedTextStyle: {
-    fontSize: 16,
-  },
-  iconStyle: {
-    width: 20,
-    height: 20,
-  },
-  inputSearchStyle: {
-    height: 40,
-    fontSize: 16,
-  },
-});

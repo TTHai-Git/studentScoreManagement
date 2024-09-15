@@ -86,6 +86,10 @@ const Home = ({ navigation, route }) => {
         <>
           <Text style={Styles.text_detail}>MSSV: {user.code}</Text>
           <Text style={Styles.text_detail}>Email: {user.email}</Text>
+          <Text style={Styles.text_detail}>
+            Lớp Sinh Viên: {user.studentclassroom_name}
+          </Text>
+          <Text style={Styles.text_detail}>Khoa: {user.department_name}</Text>
         </>
       );
 
@@ -162,6 +166,7 @@ const Home = ({ navigation, route }) => {
         <>
           <Text style={Styles.text_detail}>MGV: {user.code}</Text>
           <Text style={Styles.text_detail}>Email: {user.email}</Text>
+          <Text style={Styles.text_detail}>Khoa: {user.department_name}</Text>
         </>
       );
 

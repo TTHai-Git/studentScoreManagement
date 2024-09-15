@@ -49,6 +49,7 @@ const ScheduleStudyClassrooms = ({ navigation, route }) => {
       }
       formattedData[date].push({
         id: item.id,
+        subject_code: item.subject_code,
         subject_name: item.subject_name,
         studyclassroom_name: item.studyclassroom_name,
         studyclassroom_group: item.studyclassroom_group,
@@ -91,7 +92,10 @@ const ScheduleStudyClassrooms = ({ navigation, route }) => {
           key={item.id}
           style={[styles.item, isFirst ? styles.firstItem : null]}
         >
-          <Text style={styles.itemTitle}>{item.subject_name}</Text>
+          <Text style={styles.itemTitle}>
+            {" "}
+            {item.subject_code} - {item.subject_name}
+          </Text>
           <Text style={styles.itemText}>
             <Icon name="building" size={16} color="#007bff" /> Classroom:{" "}
             {item.studyclassroom_name}

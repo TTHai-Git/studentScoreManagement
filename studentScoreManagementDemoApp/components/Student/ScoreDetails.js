@@ -23,6 +23,7 @@ const ScoreDetails = ({ navigation, route }) => {
   const [kw, setKw] = useState("");
   const [scoreTypes, setScoreTypes] = useState([]);
   const [widthArr, setWidthArr] = useState([40, 400, 100]);
+
   const [semester, setSemester] = useState("");
   const [data, setData] = useState([]);
   const [value, setValue] = useState(null);
@@ -64,6 +65,8 @@ const ScoreDetails = ({ navigation, route }) => {
       // Adjust widthArr dynamically
       setWidthArr([
         40,
+        40,
+        100,
         200,
         100,
         100,
@@ -114,7 +117,7 @@ const ScoreDetails = ({ navigation, route }) => {
     return (
       <View style={styles.item}>
         <Text style={styles.textItem}>{item.label}</Text>
-        {item.value === value && (
+        {item.value === semester && (
           <AntDesign
             style={styles.icon}
             color="black"
@@ -147,6 +150,7 @@ const ScoreDetails = ({ navigation, route }) => {
 
   const tableHead = [
     "STT",
+    "Mã môn học",
     "Tên môn học",
     "Học kỳ",
     "Năm học",
@@ -172,6 +176,7 @@ const ScoreDetails = ({ navigation, route }) => {
     );
 
     return {
+      subject_code: curr.subject_code,
       subject_name: curr.subject_name,
       semester_name: curr.semester_name,
       semester_year: curr.semester_year,
@@ -238,6 +243,7 @@ const ScoreDetails = ({ navigation, route }) => {
                     key={index + 1}
                     data={[
                       index + 1,
+                      c.subject_code,
                       c.subject_name,
                       c.semester_name,
                       c.semester_year,
