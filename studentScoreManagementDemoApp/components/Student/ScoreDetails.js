@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useContext, useEffect, useState } from "react";
 import {
   ActivityIndicator,
   ScrollView,
@@ -13,10 +13,10 @@ import { Searchbar } from "react-native-paper";
 import { Table, Row } from "react-native-table-component";
 import { Dropdown } from "react-native-element-dropdown";
 import AntDesign from "react-native-vector-icons/AntDesign";
+import { MyUserContext } from "../../configs/Contexts";
 
-const ScoreDetails = ({ navigation, route }) => {
-  const token = route.params?.token;
-  const user = route.params?.user;
+const ScoreDetails = () => {
+  const user = useContext(MyUserContext);
 
   const [loading, setLoading] = useState(false);
   const [studies, setStudies] = useState([]);
@@ -39,7 +39,7 @@ const ScoreDetails = ({ navigation, route }) => {
         url += `semester=${semester}`;
       }
 
-      let res = await authApi(token).get(url);
+      let res = await authApi(user.access_token).get(url);
 
       if (res.data.message) {
         Alert.alert("Notification", res.data.message);
@@ -65,16 +65,15 @@ const ScoreDetails = ({ navigation, route }) => {
       // Adjust widthArr dynamically
       setWidthArr([
         40,
-        40,
         100,
         200,
-        100,
-        100,
-        ...Array(scoreTypesArray.length).fill(100),
-        120,
-        120,
-        100,
         70,
+        100,
+        100,
+        ...Array(scoreTypesArray.length).fill(120),
+        120,
+        120,
+        100,
       ]);
     } catch (error) {
       console.log(error.response);
@@ -91,7 +90,7 @@ const ScoreDetails = ({ navigation, route }) => {
   const loadSemester = async () => {
     try {
       const url = `${endpoints["list-semester"]}`;
-      const res = await authApi(token).get(url);
+      const res = await authApi(user.access_token).get(url);
       const arr = res.data.results.map((item) => ({
         label: item.name + " " + item.year,
         value: item.name + " " + item.year,

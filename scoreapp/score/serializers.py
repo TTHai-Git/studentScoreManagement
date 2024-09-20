@@ -167,8 +167,8 @@ class EventSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Event
-        fields = ['id', 'descriptions', 'department_name', 'semester_name', 'semester_year', 'started_date',
-                  'ended_date']
+        fields = ['id', 'description', 'department_name', 'semester_name', 'semester_year', 'started_time',
+                  'ended_time', 'content']
 
 
 class StudyClassRoomSerializer(serializers.ModelSerializer):
@@ -311,13 +311,40 @@ class ScoresSerializer(serializers.Serializer):
     score_cols = ScoreColumnSerializer(many=True)
     score_details = ScoreDetailsSerializer(many=True)
 
-    def get_teacher_name(self, obj):
-        return obj.study.studyclassroom.teacher.last_name + ' ' + obj.study.studyclassroom.teacher.first_name
+    # def get_teacher_name(self, obj):
+    #     return obj.study.studyclassroom.teacher.last_name + ' ' + obj.study.studyclassroom.teacher.first_name
+    #
+    # class Meta:
+    #     model = ScoreDetails
+    #     fields = ['id', 'group_name', 'subject_name', 'teacher_name', 'semester_name', 'semester_year',
+    #               'scorecolumn_type', 'scorecolumn_percent', 'score']
 
+
+class SchedulesSerializer(serializers.Serializer):
+    schedule_id = serializers.IntegerField()
+    started_time = serializers.DateTimeField()
+    ended_time = serializers.DateTimeField()
+    status = serializers.CharField()
+
+
+class AttendOfStudyclassroomSerializer(serializers.Serializer):
+    study_id = serializers.IntegerField()
+    student_id = serializers.IntegerField()
+    student_code = serializers.CharField()
+    student_name = serializers.CharField()
+    student_email = serializers.CharField()
+    statuses = SchedulesSerializer(many=True)
+
+
+class McSerializer(serializers.ModelSerializer):
     class Meta:
-        model = ScoreDetails
-        fields = ['id', 'group_name', 'subject_name', 'teacher_name', 'semester_name', 'semester_year',
-                  'scorecolumn_type', 'scorecolumn_percent', 'score']
+        model = Schedule
+        fields = ['id', 'started_time', 'ended_time']
+
+
+class AttendsSerializer(serializers.Serializer):
+    schedule_cols = McSerializer(many=True)
+    attend_details = AttendOfStudyclassroomSerializer(many=True)
 
 
 class ListRegisterStudySerializer(serializers.ModelSerializer):

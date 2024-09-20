@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useContext, useEffect, useState } from "react";
 import {
   RefreshControl,
   ScrollView,
@@ -24,10 +24,10 @@ import Icon from "react-native-vector-icons/FontAwesome"; // Import FontAwesome 
 import { Dropdown } from "react-native-element-dropdown";
 import AntDesign from "react-native-vector-icons/AntDesign";
 import moment from "moment";
+import { MyUserContext } from "../../configs/Contexts";
 
 const StudyClassRooms = ({ navigation, route }) => {
-  let token = route.params?.token;
-  let user = route.params?.user;
+  const user = useContext(MyUserContext);
 
   const [loading, setLoading] = useState(false);
   const [studyClassRooms, setStudyClassRooms] = useState([]);
@@ -65,7 +65,7 @@ const StudyClassRooms = ({ navigation, route }) => {
           url += `&semester=${semester}`;
         }
 
-        let res = await authApi(token).get(url);
+        let res = await authApi(user.access_token).get(url);
 
         if (page === 1) {
           setStudyClassRooms(res.data.results); // Initial load
@@ -93,7 +93,7 @@ const StudyClassRooms = ({ navigation, route }) => {
   const loadSemester = async () => {
     try {
       const url = `${endpoints["list-semester"]}`;
-      const res = await authApi(token).get(url);
+      const res = await authApi(user.access_token).get(url);
       const arr = res.data.results.map((item) => ({
         label: item.name + " " + item.year,
         value: item.name + " " + item.year,
@@ -158,24 +158,18 @@ const StudyClassRooms = ({ navigation, route }) => {
   const goTopics = () => {
     navigation.navigate("Topics", {
       studyclassroom_id: studyclassroom_id,
-      token: token,
-      user: user,
     });
   };
 
   const goListStudentScores = () => {
     navigation.navigate("ListStudentScores", {
       studyclassroom_id: studyclassroom_id,
-      token: token,
-      user: user,
     });
   };
 
   const goListStudents = () => {
     navigation.navigate("ListStudents", {
       studyclassroom_id: studyclassroom_id,
-      token: token,
-      user: user,
     });
   };
 
@@ -232,7 +226,7 @@ const StudyClassRooms = ({ navigation, route }) => {
                     mode="contained"
                     onPress={goListStudents}
                   >
-                    Xem danh sách sinh viên
+                    Điểm danh
                   </Button>
                   <Button
                     icon={() => (

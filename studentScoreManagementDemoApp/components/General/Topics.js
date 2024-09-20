@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useContext, useEffect, useState } from "react";
 import {
   ActivityIndicator,
   Alert,
@@ -22,11 +22,11 @@ import {
 } from "react-native-paper";
 import Icon from "react-native-vector-icons/FontAwesome";
 import MyStyle from "../../styles/MyStyle";
+import { MyUserContext } from "../../configs/Contexts";
 
 const Topics = ({ navigation, route }) => {
   const studyclassroom_id = route.params?.studyclassroom_id;
-  const token = route.params?.token;
-  const user = route.params?.user;
+  const user = useContext(MyUserContext);
 
   const [topics, setTopics] = useState([]);
   const [loading, setLoading] = useState(false);
@@ -44,7 +44,7 @@ const Topics = ({ navigation, route }) => {
       try {
         setLoading(true);
         let url = `${endpoints["get-topics"](studyclassroom_id)}?page=${page}`;
-        let res = await authApi(token).get(url);
+        let res = await authApi(user.access_token).get(url);
         setTopics((prevTopics) =>
           page === 1 ? res.data.results : [...prevTopics, ...res.data.results]
         );
@@ -83,8 +83,8 @@ const Topics = ({ navigation, route }) => {
   const lockOrUnlockTopic = async (topic_id) => {
     try {
       let url = `${endpoints["lock-or-unlock-topic"](topic_id)}`;
-      let res = await authApi(token).patch(url);
-      Alert.alert(res.data.message);
+      let res = await authApi(user.access_token).patch(url);
+      Alert.alert("Success", res.data.message);
       setPage(1);
     } catch (error) {
       console.log(error.response);
@@ -102,8 +102,8 @@ const Topics = ({ navigation, route }) => {
     }
     try {
       let url = `${endpoints["add-topic"](studyclassroom_id)}`;
-      let res = await authApi(token).post(url, { title });
-      Alert.alert(res.data.message);
+      let res = await authApi(user.access_token).post(url, { title });
+      Alert.alert("Success", res.data.message);
       setTitle("");
       setPage(1);
     } catch (error) {
@@ -119,7 +119,7 @@ const Topics = ({ navigation, route }) => {
     try {
       setLoading(true);
       let url = `${endpoints["del-topic"](topic_id)}`;
-      let res = await authApi(token).delete(url);
+      let res = await authApi(user.access_token).delete(url);
       Alert.alert("Success", res.data.message);
       setPage(1);
     } catch (error) {
@@ -161,8 +161,6 @@ const Topics = ({ navigation, route }) => {
   const goComments = (topic_id) => {
     navigation.navigate("Comments", {
       topic_id: topic_id,
-      token: token,
-      user: user,
     });
   };
 

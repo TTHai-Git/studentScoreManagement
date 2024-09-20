@@ -25,6 +25,7 @@ import ScheduleStudyClassrooms from "./components/General/ScheduleStudyClassroom
 import UpdateSchedule from "./components/General/UpdateSchedule";
 import NewSchedule from "./components/Admin/NewSchedule";
 import EvaluateLearningResults from "./components/Student/EvaluateLearningResults";
+import Notification from "./components/General/Notification";
 
 const Tab = createBottomTabNavigator();
 const Stack = createStackNavigator();
@@ -133,6 +134,17 @@ const MyChatStack = () => {
     </Stack.Navigator>
   );
 };
+const NotificationStack = () => {
+  return (
+    <Stack.Navigator>
+      <Stack.Screen
+        name="Notification"
+        options={{ title: "Danh sách thông báo" }}
+        component={Notification}
+      />
+    </Stack.Navigator>
+  );
+};
 
 const MyTab = () => {
   const user = useContext(MyUserContext);
@@ -174,6 +186,17 @@ const MyTab = () => {
               title: "Home",
               tabBarIcon: ({ color, size }) => (
                 <Icon name="home" size={size} color={color} />
+              ),
+            }}
+          />
+          <Tab.Screen
+            key="NotificationStack"
+            name="NotificationStack"
+            component={NotificationStack}
+            options={{
+              title: "Thông Báo",
+              tabBarIcon: ({ color, size }) => (
+                <Icon name="bell" size={size} color={color} />
               ),
             }}
           />

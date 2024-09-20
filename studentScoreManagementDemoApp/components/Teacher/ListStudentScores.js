@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useCallback } from "react";
+import React, { useEffect, useState, useCallback, useContext } from "react";
 import {
   Alert,
   ScrollView,
@@ -20,9 +20,10 @@ import {
 import Styles from "../Teacher/Styles";
 import { Row, Table } from "react-native-table-component";
 import Icon from "react-native-vector-icons/FontAwesome"; // Importing FontAwesome icons
+import { MyUserContext } from "../../configs/Contexts";
 
 const ListStudentScores = ({ navigation, route }) => {
-  const token = route.params?.token;
+  const user = useContext(MyUserContext);
   const studyclassroom_id = route.params?.studyclassroom_id;
 
   const [loading, setLoading] = useState(false);
@@ -43,7 +44,7 @@ const ListStudentScores = ({ navigation, route }) => {
       if (kw) {
         url += `?kw=${kw}`;
       }
-      let res = await authApi(token).get(url);
+      let res = await authApi(user.access_token).get(url);
       setScores(res.data.scoredetails_with_scores.score_details);
       setScoreColumns(res.data.scoredetails_with_scores.score_cols);
     } catch (error) {
@@ -56,7 +57,7 @@ const ListStudentScores = ({ navigation, route }) => {
     } finally {
       setLoading(false);
     }
-  }, [studyclassroom_id, token, kw]);
+  }, [studyclassroom_id, user.access_token, kw]);
 
   useEffect(() => {
     loadScoresOfStudyClassRoom();
@@ -67,14 +68,14 @@ const ListStudentScores = ({ navigation, route }) => {
       let url = `${endpoints["check-locked-scored-studyclassroom"](
         studyclassroom_id
       )}`;
-      let res = await authApi(token).get(url);
+      let res = await authApi(user.access_token).get(url);
       setLockStatus(res.data.islock);
       // console.log(res.data.islock);
     } catch (ex) {
       console.error(ex);
       Alert.alert("Error", "Failed to check lock status.");
     }
-  }, [studyclassroom_id, token]);
+  }, [studyclassroom_id, user.access_token]);
 
   useEffect(() => {
     getLockedScoreStatus();
@@ -86,7 +87,7 @@ const ListStudentScores = ({ navigation, route }) => {
         studyclassroom_id
       )}`;
       setIsHandlingLockScore(true);
-      let res = await authApi(token).patch(url);
+      let res = await authApi(user.access_token).patch(url);
       Alert.alert("Success", res.data.message);
       setLockStatus(!lockStatus);
     } catch (ex) {
@@ -100,7 +101,7 @@ const ListStudentScores = ({ navigation, route }) => {
   const exportScoresCSV = async () => {
     try {
       let url = `${endpoints["export-csv-scores"](studyclassroom_id)}`;
-      let res = await authApi(token).get(url);
+      let res = await authApi(user.access_token).get(url);
       Alert.alert("Success", res.data.message);
     } catch (error) {
       console.log(error.response);
@@ -117,7 +118,7 @@ const ListStudentScores = ({ navigation, route }) => {
   const exportScoresPDF = async () => {
     try {
       let url = `${endpoints["export-pdf-scores"](studyclassroom_id)}`;
-      let res = await authApi(token).get(url);
+      let res = await authApi(user.access_token).get(url);
       Alert.alert("Success", res.data.message);
     } catch (error) {
       console.log(error.response);
@@ -137,12 +138,11 @@ const ListStudentScores = ({ navigation, route }) => {
 
   const tableHead = [
     "STT",
-    "ID",
     "MSSV",
-    "Họ và tên",
+    "Họ Và Tên",
     ...scoreColumns.map((col) => `${col.type}`),
   ];
-  const widthArr = [40, 40, 100, 200, ...scoreColumns.map(() => 120)];
+  const widthArr = [40, 100, 200, ...scoreColumns.map(() => 120)];
 
   const handleChangeScore = (student_id, col_id, value) => {
     const newScores = scores.map((score) => {
@@ -164,10 +164,10 @@ const ListStudentScores = ({ navigation, route }) => {
     setLoading(true);
     try {
       let url = `${endpoints["save-scores"](studyclassroom_id)}`;
-      let res = await authApi(token).post(url, {
+      let res = await authApi(user.access_token).post(url, {
         scores: scores,
       });
-      console.log(res.data);
+      // console.log(res.data);
       Alert.alert("Success", res.data.message);
     } catch (error) {
       console.log(error.response);
@@ -180,19 +180,6 @@ const ListStudentScores = ({ navigation, route }) => {
       setLoading(false);
     }
   };
-
-  const styles = StyleSheet.create({
-    container: {
-      backgroundColor: "gray",
-      padding: 15,
-    },
-    tableHeader: {
-      backgroundColor: "#DCDCDC",
-    },
-    cell: {
-      padding: 5,
-    },
-  });
 
   return (
     <Provider>
@@ -220,7 +207,6 @@ const ListStudentScores = ({ navigation, route }) => {
                       key={index + 1}
                       data={[
                         index + 1,
-                        score.student_id,
                         score.student_code,
                         score.student_name,
                         ...scoreColumns.map((col) => {
@@ -302,7 +288,7 @@ const ListStudentScores = ({ navigation, route }) => {
             mode="contained"
             onPress={lockScoreOfStudyClassRoom}
           >
-            {lockStatus ? "Mở khóa điểm" : "Khóa điểm"} bảng điểm
+            {lockStatus ? "Mở khóa điểm" : "Khóa điểm"}
           </Button>
           <Button
             icon={() => <Icon name="save" size={20} color="white" />}

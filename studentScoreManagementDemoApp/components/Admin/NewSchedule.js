@@ -1,5 +1,5 @@
 import DateTimePicker from "@react-native-community/datetimepicker";
-import { useEffect, useState } from "react";
+import { useContext, useEffect, useState } from "react";
 import {
   Alert,
   TouchableOpacity,
@@ -14,10 +14,10 @@ import { authApi, endpoints } from "../../configs/APIs";
 import { Dropdown } from "react-native-element-dropdown";
 import AntDesign from "react-native-vector-icons/AntDesign";
 import moment from "moment";
+import { MyUserContext } from "../../configs/Contexts";
 
 const NewSchedule = ({ navigation, route }) => {
-  const token = route.params?.token;
-  const user = route.params?.user;
+  const user = useContext(MyUserContext);
 
   // Receive the passed startedDate and endedDate
   const passedStartedDate = route.params?.startedDate;
@@ -68,12 +68,9 @@ const NewSchedule = ({ navigation, route }) => {
         descriptions: descriptions,
       };
 
-      const res = await authApi(token).post(url, data);
+      const res = await authApi(user.access_token).post(url, data);
       Alert.alert("Success", res.data.message);
-      navigation.navigate("Home", {
-        user: user,
-        token: token,
-      });
+      navigation.navigate("Home");
     } catch (error) {
       console.error(error);
       if (error.response && error.response.data) {
@@ -105,7 +102,7 @@ const NewSchedule = ({ navigation, route }) => {
   const loadStudyClassRooms = async () => {
     try {
       url = `${endpoints["studyclassrooms"](user.id)}`;
-      const res = await authApi(token).get(url);
+      const res = await authApi(user.access_token).get(url);
       const arr = res.data.results.map((item) => ({
         label: item.id + ": " + item.group_name + " - " + item.subject_name,
         value: item.id,

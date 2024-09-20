@@ -7,14 +7,14 @@ import {
   Alert,
 } from "react-native";
 import { BarChart } from "react-native-chart-kit";
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useState, useCallback, useContext } from "react";
 import { authApi, endpoints } from "../../configs/APIs";
 import { Dropdown } from "react-native-element-dropdown";
 import AntDesign from "react-native-vector-icons/AntDesign";
+import { MyUserContext } from "../../configs/Contexts";
 
-const EvaluateLearningResults = ({ navigation, route }) => {
-  const user = route.params?.user;
-  const token = route.params?.token;
+const EvaluateLearningResults = () => {
+  const user = useContext(MyUserContext);
   const [GPA, setGPA] = useState([]);
   const [semester, setSemester] = useState([]);
   const [loading, setLoading] = useState(false);
@@ -30,7 +30,7 @@ const EvaluateLearningResults = ({ navigation, route }) => {
       if (kw) {
         url += `?kw=${kw}`;
       }
-      const res = await authApi(token).get(url);
+      const res = await authApi(user.access_token).get(url);
       // console.log(res.data.results)
       const arrGPA = res.data.results.map((item) => item.GPA);
       const arrSemester = res.data.results.map((item) => item.semester_name);
@@ -53,7 +53,7 @@ const EvaluateLearningResults = ({ navigation, route }) => {
   const loadYears = async () => {
     try {
       const url = `${endpoints["years"]}`;
-      const res = await authApi(token).get(url);
+      const res = await authApi(user.access_token).get(url);
       const arr = res.data.results.map((item) => ({
         label: item.name,
         value: item.name,

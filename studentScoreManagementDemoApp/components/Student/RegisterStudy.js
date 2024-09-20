@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useContext, useEffect, useState } from "react";
 import {
   Alert,
   RefreshControl,
@@ -23,10 +23,10 @@ import { Row, Table } from "react-native-table-component";
 import AntDesign from "react-native-vector-icons/AntDesign";
 import Icon from "react-native-vector-icons/FontAwesome";
 import moment from "moment";
+import { MyUserContext } from "../../configs/Contexts";
 
-const RegisterStudy = ({ navigation, route }) => {
-  const token = route.params?.token;
-  const user = route.params?.user;
+const RegisterStudy = () => {
+  const user = useContext(MyUserContext);
 
   const [loading, setLoading] = useState(false);
   const [studyClassRooms, setStudyClassRooms] = useState([]);
@@ -74,7 +74,7 @@ const RegisterStudy = ({ navigation, route }) => {
       )}?page=${page}`;
       if (kw) url += `&kw=${kw}`;
 
-      const res = await authApi(token).get(url);
+      const res = await authApi(user.access_token).get(url);
       setStudyClassRooms((prev) =>
         page === 1 ? res.data.results : [...prev, ...res.data.results]
       );
@@ -93,7 +93,7 @@ const RegisterStudy = ({ navigation, route }) => {
     try {
       setLoading(true);
       let url = `${endpoints["list-registered"](user.id)}`;
-      const res = await authApi(token).get(url);
+      const res = await authApi(user.access_token).get(url);
       setRegisterd(res.data.results);
       setWidthArr([40, 90, 100, 100, 100, 150, 90, 150, 150]);
       // console.log(registerd);
@@ -111,8 +111,8 @@ const RegisterStudy = ({ navigation, route }) => {
     try {
       setLoading(true);
       let url = `${endpoints["del-registered"](study_id)}`;
-      const res = await authApi(token).delete(url);
-      Alert.alert("Nofications", res.data.message);
+      const res = await authApi(user.access_token).delete(url);
+      Alert.alert("success", res.data.message);
       loadListRegistered();
     } catch (error) {
       setSnackbarMessage(
@@ -155,8 +155,10 @@ const RegisterStudy = ({ navigation, route }) => {
     try {
       setLoading(true);
       const url = `${endpoints["register-study"](studyclassroom_id)}`;
-      const res = await authApi(token).post(url, { student_id: user.id });
-      Alert.alert("Nofications", res.data.message);
+      const res = await authApi(user.access_token).post(url, {
+        student_id: user.id,
+      });
+      Alert.alert("Success", res.data.message);
       setPage(1); // Reset page after registration
     } catch (error) {
       setSnackbarMessage(
@@ -254,7 +256,6 @@ const RegisterStudy = ({ navigation, route }) => {
               </>
             ) : (
               <>
-                <Text>Đã có kết quả đăng ký môn học</Text>
                 <ScrollView horizontal={true}>
                   <View style={MyStyle.table}>
                     <Table

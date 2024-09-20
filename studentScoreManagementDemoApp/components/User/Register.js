@@ -107,7 +107,7 @@ const Register = ({ route }) => {
         updateState("avatar", res.assets[0].uri);
         setErrors((prev) => ({ ...prev, avatar: "" }));
       } else {
-        Alert.alert("No image selected");
+        Alert.alert("Error", "No image selected");
       }
     }
   };
@@ -209,7 +209,7 @@ const Register = ({ route }) => {
       }
     } catch (ex) {
       console.error("API registration error:", ex.message || ex);
-      Alert.alert("An error occurred. Please try again!");
+      Alert.alert("Error", "An error occurred. Please try again!");
     } finally {
       setLoading(false);
     }

@@ -38,13 +38,15 @@ export const endpoints = {
   // "member-of-chatroom": (studyclassroom_id) =>
   //   `/studyclassrooms/${studyclassroom_id}/chat-room/`,
 
-  students: (studyclassroom_id) =>
-    `/studyclassrooms/${studyclassroom_id}/students/`,
+  attends: (studyclassroom_id) =>
+    `/studyclassrooms/${studyclassroom_id}/students/attends/`,
 
   scores: (studyclassroom_id) =>
     `/studyclassrooms/${studyclassroom_id}/students/scores/`,
   "save-scores": (studyclassroom_id) =>
     `/studyclassrooms/${studyclassroom_id}/save-scores/`,
+  "save-attends": (studyclassroom_id) =>
+    `/studyclassrooms/${studyclassroom_id}/save-attends/`,
   lock_or_unlock_scores_of_studyclassroom: (studyclassroom_id) =>
     `/studyclassrooms/${studyclassroom_id}/lock-or-unlock-scores-of-studyclassroom/`,
   "export-csv-scores": (studyclassroom_id) =>
@@ -71,6 +73,7 @@ export const endpoints = {
 
   "list-registered": (student_id) => `/students/${student_id}/list-registered`,
   "del-registered": (study_id) => `/studies/${study_id}/del-registered/`,
+  "load-notifications": (user_id) => `/users/${user_id}/notifications/`,
 };
 
 export const authApi = (accessToken) =>

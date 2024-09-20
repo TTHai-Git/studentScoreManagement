@@ -1,5 +1,5 @@
 import DateTimePicker from "@react-native-community/datetimepicker";
-import { useState } from "react";
+import { useContext, useState } from "react";
 import {
   Alert,
   TouchableOpacity,
@@ -10,10 +10,10 @@ import {
 } from "react-native";
 import { Button, Text, Surface } from "react-native-paper";
 import { authApi, endpoints } from "../../configs/APIs";
+import { MyUserContext } from "../../configs/Contexts";
 
 const UpdateSchedule = ({ navigation, route }) => {
-  const token = route.params?.token;
-  const user = route.params?.user;
+  const user = useContext(MyUserContext);
   const item_id = route.params?.item_id;
 
   const [startedDate, setStartedDate] = useState(new Date());
@@ -47,14 +47,11 @@ const UpdateSchedule = ({ navigation, route }) => {
         descriptions: descriptions,
       };
 
-      const res = await authApi(token).patch(url, data);
+      const res = await authApi(user.access_token).patch(url, data);
 
       if (res.status === 200) {
-        Alert.alert(res.data.message);
-        navigation.navigate("Home", {
-          token: token,
-          user: user,
-        });
+        Alert.alert("Success", res.data.message);
+        navigation.navigate("Home");
       } else {
         Alert.alert("Error", "Something went wrong. Please try again.");
       }

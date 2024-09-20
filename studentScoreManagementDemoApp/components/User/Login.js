@@ -20,7 +20,7 @@ import Icon from "react-native-vector-icons/FontAwesome";
 
 const Login = () => {
   const [user, setUser] = useState({
-    username: "Demo",
+    username: "DHThanh",
     password: "1234567890",
   });
   const [passwordVisible, setPasswordVisible] = useState(true);
@@ -90,13 +90,14 @@ const Login = () => {
         endpoints["current-user"]
       );
 
+      userRes.data.access_token = res.data.access_token;
       dispatch({
         type: "login",
         payload: userRes.data,
       });
 
       nav.navigate("Home", {
-        token: res.data.access_token,
+        // token: res.data.access_token,
         user: userRes.data,
       });
     } catch (ex) {

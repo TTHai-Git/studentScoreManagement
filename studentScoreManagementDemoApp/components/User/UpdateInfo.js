@@ -6,7 +6,6 @@ import {
   ScrollView,
   KeyboardAvoidingView,
   Platform,
-  Image,
 } from "react-native";
 import { Button, HelperText, TextInput } from "react-native-paper";
 import MyStyle from "../../styles/MyStyle";
@@ -16,16 +15,12 @@ import APIs, { authApi, endpoints } from "../../configs/APIs";
 import { useNavigation } from "@react-navigation/native";
 import Styles from "../User/Styles";
 
-import { auth, database } from "../../configs/Firebase";
-import { createUserWithEmailAndPassword } from "firebase/auth";
-import { doc, setDoc } from "firebase/firestore";
-import { MyDispatchContext } from "../../configs/Contexts";
+import { MyDispatchContext, MyUserContext } from "../../configs/Contexts";
 import { logOutFireBaseUser } from "../../configs/Reducers";
 
-const UpdateInfo = ({ navigation, route }) => {
+const UpdateInfo = () => {
   const dispatch = useContext(MyDispatchContext);
-  let token = route.params?.token;
-  let user_info = route.params?.user;
+  const user_info = useContext(MyUserContext);
   const [user, setUser] = useState({
     first_name: user_info.first_name,
     last_name: user_info.last_name,
@@ -122,13 +117,17 @@ const UpdateInfo = ({ navigation, route }) => {
 
     setLoading(true);
     try {
-      let res = await authApi(token).patch(endpoints["current-user"], form, {
-        headers: {
-          "Content-Type": "multipart/form-data",
-        },
-      });
+      let res = await authApi(user_info.access_token).patch(
+        endpoints["current-user"],
+        form,
+        {
+          headers: {
+            "Content-Type": "multipart/form-data",
+          },
+        }
+      );
       console.log(res.data.message);
-      Alert.alert(res.data.message);
+      Alert.alert("Success", res.data.message);
       logOutFireBaseUser(dispatch);
     } catch (error) {
       if (error.response && error.response.status === 400) {

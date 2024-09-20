@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useContext, useEffect, useState } from "react";
 import {
   View,
   StyleSheet,
@@ -11,10 +11,11 @@ import {
 import { Agenda } from "react-native-calendars";
 import Icon from "react-native-vector-icons/FontAwesome";
 import { authApi, endpoints } from "../../configs/APIs";
+import { MyUserContext } from "../../configs/Contexts";
 
 const ScheduleStudyClassrooms = ({ navigation, route }) => {
-  const user = route.params?.user;
-  const token = route.params?.token;
+  const user = useContext(MyUserContext);
+
   const [schedule, setSchedule] = useState({});
   const [loading, setLoading] = useState(false);
   const [selectedDate, setSelectedDate] = useState("");
@@ -24,7 +25,7 @@ const ScheduleStudyClassrooms = ({ navigation, route }) => {
     setLoading(true);
     try {
       const url = endpoints["get-schedule"];
-      const res = await authApi(token).get(url);
+      const res = await authApi(user.access_token).get(url);
       const formattedData = formatScheduleData(res.data.data);
       setSchedule(formattedData);
       setMarkedDates(generateMarkedDates(formattedData));
@@ -77,7 +78,7 @@ const ScheduleStudyClassrooms = ({ navigation, route }) => {
   const deleteSchedule = async (item_id) => {
     try {
       const url = `${endpoints["del-schedule"](item_id)}`;
-      const res = await authApi(token).delete(url);
+      const res = await authApi(user.access_token).delete(url);
       Alert.alert("Success", res.data.message);
       loadSchedule();
     } catch (ex) {
@@ -126,8 +127,6 @@ const ScheduleStudyClassrooms = ({ navigation, route }) => {
                 style={styles.button_up}
                 onPress={() =>
                   navigation.navigate("UpdateSchedule", {
-                    user: user,
-                    token: token,
                     item_id: item.id,
                   })
                 }
@@ -190,8 +189,6 @@ const ScheduleStudyClassrooms = ({ navigation, route }) => {
         );
 
         navigation.navigate("NewSchedule", {
-          user: user,
-          token: token,
           startedDate: formattedDate,
           endedDate: formattedDate,
         });

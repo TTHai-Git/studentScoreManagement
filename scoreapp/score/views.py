@@ -50,6 +50,26 @@ class UserViewSet(viewsets.ViewSet, generics.CreateAPIView, generics.ListAPIView
             return [permissions.IsAuthenticated()]
         return [permissions.AllowAny()]
 
+    @action(methods=['get'], url_path='notifications', detail=True)
+    def get_notifications(self, request, pk=None):
+        user = self.get_object()
+        events = Event.objects.all().order_by('-id')
+        if user.role.name == 'student':
+            student = Student.objects.get(id=user.id)
+            events = events.filter(department=student.studentclassroom.department).order_by('-id')
+        elif user.role.name == 'teacher':
+            teacher = Teacher.objects.get(id=user.id)
+            events = events.objects.filter(department=teacher.department).order_by('-id')
+
+        paginator = pagination.EventsPaginator()
+        page = paginator.paginate_queryset(events, request)
+
+        # Serialize the data
+        serializer = serializers.EventSerializer(page, many=True)
+
+        # Return paginated response
+        return paginator.get_paginated_response(serializer.data)
+
     @action(methods=['get', 'patch'], detail=False, url_path='current-user', url_name='current-user')
     def current_user(self, request):
         user = request.user
@@ -64,7 +84,7 @@ class UserViewSet(viewsets.ViewSet, generics.CreateAPIView, generics.ListAPIView
                     else:
                         setattr(user, k, v)
                 user.save()
-                return Response({'message': 'CẬP NHẬT THÔNG TIN CÁ NHÂN THÀNH CÔNG!!!'}, status=status.HTTP_200_OK)
+                return Response({'message': 'Cập nhật thông tin cá nhân thành công'}, status=status.HTTP_200_OK)
             else:
                 if user.role.name == 'teacher':
                     teacher = Teacher.objects.get(id=user.id)
@@ -124,7 +144,7 @@ class UserViewSet(viewsets.ViewSet, generics.CreateAPIView, generics.ListAPIView
                 send_mail(subject, message, email_from, recipient_list, fail_silently=False)
                 return Response({'message': f'ĐÃ GỬI TOKEN RESET PASSWORD TỚI EMAIL: {user.email} CỦA BẠN.'},
                                 status=status.HTTP_200_OK)
-            return Response({'message': f'GỬI TOKEN RESET PASSWORD THẤT BẠI!!! NGƯỜI DÙNG KHÔNG TỒN TẠI.'},
+            return Response({'message': f'GỬI TOKEN RESET PASSWORD THẤT BẠI! NGƯỜI DÙNG KHÔNG TỒN TẠI.'},
                             status=status.HTTP_400_BAD_REQUEST)
         except Exception as ex:
             return Response({"message": str(ex)}
@@ -204,7 +224,7 @@ class StudyViewSet(viewsets.ViewSet, generics.ListAPIView):
         ).first()
 
         event_exists = Event.objects.filter(semester=semester_real_time,
-                                            descriptions='ĐĂNG KÝ MÔN HỌC TRỰC TUYẾN',
+                                            description='ĐĂNG KÝ MÔN HỌC TRỰC TUYẾN',
                                             started_time__lt=real_time,
                                             ended_time__gt=real_time,
                                             department=student.studentclassroom.department
@@ -213,13 +233,13 @@ class StudyViewSet(viewsets.ViewSet, generics.ListAPIView):
         try:
             study_register = self.get_object()
             if not event_exists:
-                return Response({"message": "Xoá môn học đã đăng ký thất bại!!! Ngoài thời gian đăng ký"},
+                return Response({"message": "Xoá môn học đã đăng ký thất bại! Ngoài thời gian đăng ký"},
                                 status=status.HTTP_200_OK)
             if study_register.student != student:
-                return Response({"message": "Xoá môn học đã đăng ký thất bại!!! Người dùng không hợp lệ"},
+                return Response({"message": "Xoá môn học đã đăng ký thất bại! Người dùng không hợp lệ"},
                                 status=status.HTTP_401_UNAUTHORIZED)
             study_register.delete()
-            return Response({"message": "Xoá môn học đã đăng ký thành công"}, status=status.HTTP_200_OK)
+            return Response({"message": "Xoá lớp học đã đăng ký thành công"}, status=status.HTTP_200_OK)
 
         except Exception as ex:
             return Response({"message": f"An error occurred: {str(ex)}"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
@@ -243,7 +263,7 @@ class TopicViewSet(viewsets.ViewSet, generics.ListAPIView):
         try:
             topic = self.get_object()
         except Topic.DoesNotExist:
-            return Response({"message": "Chưa có topic nào được tạo!!!"}, status=status.HTTP_404_NOT_FOUND)
+            return Response({"message": "Chưa có topic nào được tạo!"}, status=status.HTTP_404_NOT_FOUND)
 
         topic.active = not topic.active
         topic.save()
@@ -266,7 +286,7 @@ class TopicViewSet(viewsets.ViewSet, generics.ListAPIView):
 
             if topic.active:
                 if not content:
-                    return Response({"message": "Nội dung comment không được bỏ trống!!!"},
+                    return Response({"message": "Nội dung comment không được bỏ trống!"},
                                     status=status.HTTP_400_BAD_REQUEST)
 
                 file_urls_names = []
@@ -275,7 +295,7 @@ class TopicViewSet(viewsets.ViewSet, generics.ListAPIView):
                     # Check the MIME type of the uploaded file
                     # file_mime_type, _ = mimetypes.guess_type(file.name)
                     if file.content_type in not_allowed_mime_types:
-                        return Response({"message": f"Loại tệp {file.name} không được phép!!!"},
+                        return Response({"message": f"Loại tệp {file.name} không được phép!"},
                                         status=status.HTTP_400_BAD_REQUEST)
 
                     # Upload the file to Cloudinary
@@ -299,12 +319,12 @@ class TopicViewSet(viewsets.ViewSet, generics.ListAPIView):
                                                file_public_id=url_name["public_id"], file_asset_id=url_name["asset_id"],
                                                file_resource_type=url_name["resource_type"], file_type=url_name["type"])
 
-                return Response({"message": f'Thêm bình luận vào {topic.title} thành công!'},
+                return Response({"message": f'Thêm bình luận vào {topic.title} thành công'},
                                 status=status.HTTP_201_CREATED)
 
             else:
                 return Response(
-                    {"message": f'Topic {topic.title} đã bị khóa!!! Bạn không thể comment vào topic này được nữa!!!'},
+                    {"message": f'Topic {topic.title} đã bị khóa! Bạn không thể comment vào topic này được nữa!'},
                     status=status.HTTP_400_BAD_REQUEST)
 
         except Exception as ex:
@@ -321,7 +341,7 @@ class TopicViewSet(viewsets.ViewSet, generics.ListAPIView):
                 serializer = serializers.CommentSerializer(page, many=True)
                 return paginator.get_paginated_response(serializer.data)
         except topic.DoesNotExist | KeyError:
-            return Response({"message": "Không tìm thấy topic!!!"}, status=status.HTTP_404_NOT_FOUND)
+            return Response({"message": "Không tìm thấy topic!"}, status=status.HTTP_404_NOT_FOUND)
         except Exception as ex:
             return Response({"message": str(ex)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
         return Response(serializers.CommentSerializer(comments, many=True).data, status=status.HTTP_200_OK)
@@ -333,8 +353,8 @@ class TopicViewSet(viewsets.ViewSet, generics.ListAPIView):
             teacher = Teacher.objects.get(id=request.user.id)
             if teacher == topic.studyclassroom.teacher:
                 topic.delete()
-                return Response({"message": f"Xoá diễn đàn {topic.title} thành công!"})
-            return Response({"message": "Bạn không có quyền xoá diễn đàn này!!!"},
+                return Response({"message": f"Xoá diễn đàn {topic.title} thành công"})
+            return Response({"message": "Bạn không có quyền xoá diễn đàn này!"},
                             status=status.HTTP_400_BAD_REQUEST)
         except Exception as ex:
             return Response({"message": str(ex)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
@@ -372,12 +392,12 @@ class CommentViewSet(viewsets.ViewSet, viewsets.generics.RetrieveAPIView):
                                          type=comment_file.file_type)
                         if result.get('result') != 'ok':
                             return Response(
-                                {"message": f"Xoá file {comment_file.file_public_id} thất bại trên Cloudinary!!!"},
+                                {"message": f"Xoá file {comment_file.file_public_id} thất bại trên Cloudinary!"},
                                 status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
                 comment.delete()
-                return Response({"message": "Xoá comment thành công!"})
-            return Response({"message": "Bạn không có quyền xoá comment này!!!"}, status=status.HTTP_400_BAD_REQUEST)
+                return Response({"message": "Xoá comment thành công"})
+            return Response({"message": "Bạn không có quyền xoá comment này!"}, status=status.HTTP_400_BAD_REQUEST)
         except Exception as e:
             return Response({"message": f"An error occurred: {str(e)}"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
@@ -430,7 +450,7 @@ class ScheduleViewSet(viewsets.ViewSet, viewsets.generics.ListAPIView, viewsets.
 
             if schedule_conflict:
                 return Response({
-                    'message': 'Cập nhật lịch thất bại!!! Trùng lịch với một lịch học khác.'
+                    'message': 'Cập nhật lịch thất bại! Trùng lịch với một lịch học khác.'
                 }, status=status.HTTP_409_CONFLICT)
 
             # Update the schedule with the new data
@@ -544,7 +564,7 @@ class SemesterViewSet(viewsets.ViewSet):
                 serializer = serializers.SemesterSerializer(page, many=True)
                 return paginator.get_paginated_response(serializer.data)
             else:
-                return Response({"message": "Lỗi load học kỳ!!!"}, status=status.HTTP_400_BAD_REQUEST)
+                return Response({"message": "Lỗi load học kỳ!"}, status=status.HTTP_400_BAD_REQUEST)
         except Exception as e:
             return Response(
                 {"message": f"An error occurred: {str(e)}"},
@@ -589,7 +609,7 @@ class StudyClassRoomViewSet(viewsets.ViewSet, viewsets.generics.ListAPIView, vie
             teacher = Teacher.objects.get(id=user.id)
             studyclassrooms = StudyClassRoom.objects.filter(teacher=teacher)
         else:
-            return Response({"message": "Người dùng không hợp lệ!!!"}, status=status.HTTP_401_UNAUTHORIZED)
+            return Response({"message": "Người dùng không hợp lệ!"}, status=status.HTTP_401_UNAUTHORIZED)
         kw = request.query_params.get('kw')  # Use query_params for GET requests
 
         if kw:
@@ -643,7 +663,7 @@ class StudyClassRoomViewSet(viewsets.ViewSet, viewsets.generics.ListAPIView, vie
 
             if schedule_conflict:
                 return Response(
-                    {'message': 'Trùng lịch học. Hãy chọn lịch học khác!!!.'},
+                    {'message': 'Trùng lịch học. Hãy chọn lịch học khác!.'},
                     status=status.HTTP_409_CONFLICT
                 )
 
@@ -739,7 +759,7 @@ class StudyClassRoomViewSet(viewsets.ViewSet, viewsets.generics.ListAPIView, vie
                         studyclassroom.subject.name == studyclassroom_register.subject.name and \
                         studyclassroom.semester == studyclassroom_register.semester:
                     return Response({
-                        "message": "Đăng ký lớp học thất bại!!! Trùng lớp học có cùng môn học trong cùng một học kỳ"
+                        "message": "Đăng ký lớp học thất bại! Trùng lớp học có cùng môn học trong cùng một học kỳ"
                     }, status=status.HTTP_400_BAD_REQUEST)
 
                 if studyclassroom.started_date == studyclassroom_register.started_date:
@@ -751,18 +771,18 @@ class StudyClassRoomViewSet(viewsets.ViewSet, viewsets.generics.ListAPIView, vie
                             if schedule.started_time == schedule_register.started_time and \
                                     schedule.ended_time == schedule_register.ended_time:
                                 return Response({
-                                    "message": f"Đăng ký lớp học thất bại!!! Trùng lịch học {studyclassroom.subject.name} "
+                                    "message": f"Đăng ký lớp học thất bại! Trùng lịch học {studyclassroom.subject.name} "
                                                "đã đăng ký từ trước trong cùng một học kỳ"
                                 }, status=status.HTTP_400_BAD_REQUEST)
 
                     return Response({
-                        "message": f"Đăng ký lớp học thất bại!! Trùng lịch học {studyclassroom.subject.name} "
+                        "message": f"Đăng ký lớp học thất bại! Trùng lịch học {studyclassroom.subject.name} "
                                    "đã đăng ký từ trước trong cùng một học kỳ"
                     }, status=status.HTTP_400_BAD_REQUEST)
 
             # No conflicts found, register the study
             study_register = Study.objects.create(student=student, studyclassroom=studyclassroom_register)
-            return Response({"message": "Đăng ký lớp học thành công!"}, status=status.HTTP_201_CREATED)
+            return Response({"message": "Đăng ký lớp học thành công"}, status=status.HTTP_201_CREATED)
 
         except Student.DoesNotExist:
             return Response({"message": "Student not found"}, status=status.HTTP_404_NOT_FOUND)
@@ -826,14 +846,14 @@ class StudyClassRoomViewSet(viewsets.ViewSet, viewsets.generics.ListAPIView, vie
                                 status=status.HTTP_401_UNAUTHORIZED)
         except Exception as ex:
             if str(ex).__eq__("Student matching query does not exist."):
-                return Response({"message": "Không tìm thấy sinh viên!!!"}, status=status.HTTP_404_NOT_FOUND)
+                return Response({"message": "Không tìm thấy sinh viên!"}, status=status.HTTP_404_NOT_FOUND)
             return Response({"message": str(ex)})
 
     @action(methods=['post'], url_path='save-scores', url_name='save-scores', detail=True)
     def save_scores(self, request, pk):
         studyclassroom = self.get_object()
         if studyclassroom.islock:
-            return Response({"message": "Thao tác điểm lên bảng điểm thất bại!!! Bảng điểm của lớp học đã bị khóa"},
+            return Response({"message": "Thao tác điểm lên bảng điểm thất bại! Bảng điểm của lớp học đã bị khóa"},
                             status=status.HTTP_400_BAD_REQUEST)
         else:
             try:
@@ -848,7 +868,7 @@ class StudyClassRoomViewSet(viewsets.ViewSet, viewsets.generics.ListAPIView, vie
                                 defaults={"study": study,
                                           "scorecolumn_id": score["col_id"]})
                             if float(score["score"]) < 0.0 or float(score["score"]) > 10.0:
-                                return Response({"message": "Lưu điểm thất bại!!! Sai định dạng điểm"},
+                                return Response({"message": "Lưu điểm thất bại! Sai định dạng điểm"},
                                                 status=status.HTTP_400_BAD_REQUEST)
                             else:
                                 scoredetail.score = float(score["score"])
@@ -856,6 +876,40 @@ class StudyClassRoomViewSet(viewsets.ViewSet, viewsets.generics.ListAPIView, vie
                 return Response({"message": "Lưu điểm thành công"}, status=status.HTTP_200_OK)
             except Exception as ex:
                 return Response({"message": str(ex)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+    @action(methods=['post'], url_path='save-attends', url_name='save-attends', detail=True)
+    def save_attends(self, request, pk):
+        try:
+            studyclassroom = self.get_object()
+            attends = request.data.get('attends')
+            for studentAttends in attends:
+                for st in studentAttends["statuses"]:
+                    if st['status'] in ["X", "V"]:
+                        study = Study.objects.get(student__id=studentAttends["student_id"],
+                                                  studyclassroom=studyclassroom)
+                        attenddetails, created = Attend.objects.get_or_create(
+                            study=study,
+                            schedule__id=st["schedule_id"],
+                            defaults={"study": study,
+                                      "schedule_id": st["schedule_id"]})
+                        attenddetails.status = st["status"]
+                        attenddetails.save()
+                    elif st['status'] is None:
+                        study = Study.objects.get(student__id=studentAttends["student_id"],
+                                                  studyclassroom=studyclassroom)
+                        attenddetails, created = Attend.objects.get_or_create(
+                            study=study,
+                            schedule__id=st["schedule_id"],
+                            defaults={"study": study,
+                                      "schedule_id": st["schedule_id"]})
+                        attenddetails.status = ""
+                        attenddetails.save()
+                    else:
+                        return Response({"message": "Lưu điểm danh thất bại! Sai định dạng điểm danh"},
+                                        status=status.HTTP_400_BAD_REQUEST)
+            return Response({"message": "Lưu bảng điểm danh thành công"}, status=status.HTTP_201_CREATED)
+        except Exception as ex:
+            return Response({"message": str(ex)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
     @action(methods=['get'], url_path='students/scores', detail=True)
     def get_students_scores_studyclassroom(self, request, pk):
@@ -914,6 +968,76 @@ class StudyClassRoomViewSet(viewsets.ViewSet, viewsets.generics.ListAPIView, vie
         except Exception as e:
             return Response({"message": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
+    @action(methods=['get'], url_path='students/attends', detail=True)
+    def get_students_attends_studyclassroom(self, request, pk=None):
+        try:
+            # Get the teacher and study classroom
+            teacher = Teacher.objects.get(id=request.user.id)
+            studyclassroom = self.get_object()
+
+            # Check if the teacher is assigned to the class
+            if studyclassroom.teacher != teacher:
+                return Response({"message": "Bạn không có quyền thao tác trên bảng điểm danh của lớp học này."},
+                                status=status.HTTP_401_UNAUTHORIZED)
+
+            # Filter students based on search keyword
+            kw = request.query_params.get('kw')
+            studies = Study.objects.filter(studyclassroom=studyclassroom)
+            student_ids = studies.values_list('student_id', flat=True)
+            students = Student.objects.filter(id__in=student_ids)
+
+            if kw:
+                students = students.annotate(search_name=Concat('last_name', Value(' '), 'first_name')) \
+                    .filter(
+                    Q(code__contains=kw) |
+                    Q(search_name__icontains=kw))
+
+            # Filter studies based on the filtered students
+            studies = Study.objects.filter(studyclassroom=studyclassroom, student__in=students).order_by(
+                'studyclassroom_id')
+
+            # Retrieve schedules and serialize them
+            schedules = Schedule.objects.filter(studyclassroom=studyclassroom)
+            schedulesSerializer = serializers.McSerializer(schedules, many=True).data
+
+            # Prepare the attendance statuses
+            liststatus = []
+            for study in studies:
+                statusdetails = []
+                for schedule in schedules:
+                    try:
+                        find = Attend.objects.get(study=study, schedule=schedule)
+                        statusdetail = {"schedule_id": find.schedule.id, "started_time": find.schedule.started_time,
+                                        "ended_time": find.schedule.ended_time, "status": str(find.status)}
+                    except Exception:
+                        statusdetail = {"schedule_id": schedule.id, "started_time": schedule.started_time,
+                                        "ended_time": schedule.ended_time, "status": None}
+                    statusdetails.append(statusdetail)
+
+                liststatus.append({
+                    "study_id": study.id,
+                    "student_id": study.student.id,
+                    "student_code": study.student.code,
+                    "student_name": study.student.last_name + ' ' + study.student.first_name,
+                    "student_email": study.student.email,  # Add student email as required by the serializer
+                    "statuses": serializers.SchedulesSerializer(statusdetails, many=True).data
+                })
+
+            # Serialize the attendance details
+            liststatusesSerializer = serializers.AttendOfStudyclassroomSerializer(liststatus, many=True).data
+
+            # Prepare final JSON response using the given serializer structure
+            dataJson = serializers.AttendsSerializer({
+                "schedule_cols": schedulesSerializer,  # schedule columns
+                "attend_details": liststatusesSerializer  # attendance details
+            })
+
+            return Response({
+                'schedules_with_statuses': dataJson.data
+            }, status=status.HTTP_200_OK)
+        except Exception as e:
+            return Response({"message": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
     @action(methods=['PATCH'], url_path='lock-or-unlock-scores-of-studyclassroom', detail=True)
     def lock_or_unlock_scores_of_studyclassroom(self, request, pk):
         try:
@@ -938,7 +1062,7 @@ class StudyClassRoomViewSet(viewsets.ViewSet, viewsets.generics.ListAPIView, vie
 
                         send_mail(subject, message, email_from, recipient_list, fail_silently=False)
                 else:
-                    return Response({"message": f'Mở khóa bảng điểm lớp {studyclassroom.name} thành công!'},
+                    return Response({"message": f'Mở khóa bảng điểm lớp {studyclassroom.name} thành công'},
                                     status=status.HTTP_201_CREATED)
 
             else:
@@ -947,7 +1071,7 @@ class StudyClassRoomViewSet(viewsets.ViewSet, viewsets.generics.ListAPIView, vie
 
         except (StudyClassRoom.DoesNotExist, Teacher.DoesNotExist):
             return Response(status=status.HTTP_404_NOT_FOUND)
-        return Response({"message": f'Khóa bảng điểm lớp {studyclassroom.name} thành công! '
+        return Response({"message": f'Khóa bảng điểm lớp {studyclassroom.name} thành công '
                                     f'Đã gửi mail thông báo tới email của Sinh Viên'},
                         status=status.HTTP_201_CREATED)
 
@@ -957,7 +1081,7 @@ class StudyClassRoomViewSet(viewsets.ViewSet, viewsets.generics.ListAPIView, vie
         try:
             if not studyclassroom.islock:
                 return Response(
-                    {'message': f'Xuất bảng điểm lớp {studyclassroom.name} thành file.csv và gửi email thất bại!!! '
+                    {'message': f'Xuất bảng điểm lớp {studyclassroom.name} thành file.csv và gửi email thất bại! '
                                 f'Bảng điểm của lớp học chưa khóa'},
                     status=status.HTTP_400_BAD_REQUEST)
             else:
@@ -1013,7 +1137,7 @@ class StudyClassRoomViewSet(viewsets.ViewSet, viewsets.generics.ListAPIView, vie
                     message = f"Kính gửi các sinh viên" \
                               f"\nĐây là bảng điểm tổng hợp của lớp học. Mọi thắc mắc vui lòng liên hệ về email của thầy:" \
                               f"\nGiáo viên: {teacher.last_name} {teacher.first_name} \nEmail: {teacher.email}" \
-                              f"\n\nTrân trọng!"
+                              f"\n\nTrân trọng"
                     from_email = settings.EMAIL_HOST_USER
 
                     for email in student_emails:
@@ -1044,7 +1168,7 @@ class StudyClassRoomViewSet(viewsets.ViewSet, viewsets.generics.ListAPIView, vie
         try:
             if not studyclassroom.islock:
                 return Response(
-                    {'message': f'Xuất bảng điểm lớp {studyclassroom.name} thành file.pdf và gửi email thất bại!!! '
+                    {'message': f'Xuất bảng điểm lớp {studyclassroom.name} thành file.pdf và gửi email thất bại! '
                                 f'Bảng điểm của lớp học đã chưa khóa'},
                     status=status.HTTP_400_BAD_REQUEST)
             else:
@@ -1123,7 +1247,7 @@ class StudyClassRoomViewSet(viewsets.ViewSet, viewsets.generics.ListAPIView, vie
                     message = f"Kính gửi các sinh viên" \
                               f"\nĐây là bảng điểm tổng hợp của lớp học. Mọi thắc mắc vui lòng liên hệ về email của thầy:" \
                               f"\nGiáo viên: {teacher.last_name} {teacher.first_name} \nEmail: {teacher.email}" \
-                              f"\n\nTrân trọng!"
+                              f"\n\nTrân trọng"
                     from_email = settings.EMAIL_HOST_USER
 
                     for email in student_emails:
@@ -1159,16 +1283,16 @@ class StudyClassRoomViewSet(viewsets.ViewSet, viewsets.generics.ListAPIView, vie
                 topic, created = Topic.objects.get_or_create(title=title, studyclassroom=studyclassroom)
                 if created:
                     topic.save()
-                    return Response({"message": f'Tạo diễn đàn {topic.title} thành công!'},
+                    return Response({"message": f'Tạo diễn đàn {topic.title} thành công'},
                                     status=status.HTTP_201_CREATED)
                 else:
-                    return Response({"message": "Tạo diễn đàn thất bại!!! Trùng tên diễn đàn"},
+                    return Response({"message": "Tạo diễn đàn thất bại! Trùng tên diễn đàn"},
                                     status=status.HTTP_400_BAD_REQUEST)
             else:
-                return Response({"message": "Bạn không có quyền để tạo topic cho lớp học này!!!"},
+                return Response({"message": "Bạn không có quyền để tạo topic cho lớp học này!"},
                                 status=status.HTTP_401_UNAUTHORIZED)
         except Teacher.DoesNotExist:
-            return Response({"message": "Không tìm thấy giáo viên tương ứng với lớp này!!!", },
+            return Response({"message": "Không tìm thấy giáo viên tương ứng với lớp này!"},
                             status=status.HTTP_404_NOT_FOUND)
 
     @action(methods=['get'], url_path='topics', detail=True)
@@ -1218,7 +1342,7 @@ class StudentViewSet(viewsets.ViewSet, generics.ListAPIView, generics.CreateAPIV
             studies = student.study_set.select_related('student').filter(studyclassroom__in=studyclassrooms)
 
             if not studies.exists():
-                return Response({"message": "Bạn không có kết quả học tập ở học kỳ này!!!"}, status=status.HTTP_200_OK)
+                return Response({"message": "Bạn không có kết quả học tập ở học kỳ này!"}, status=status.HTTP_200_OK)
 
             scoredetails = ScoreDetails.objects.filter(study__in=studies).select_related(
                 'scorecolumn', 'study__studyclassroom__subject', 'study__studyclassroom__semester'
@@ -1298,7 +1422,7 @@ class StudentViewSet(viewsets.ViewSet, generics.ListAPIView, generics.CreateAPIV
 
         if not studies.exists():
             return Response(
-                {"message": "Bạn không có kết quả học tập nào để tổng hợp GPA tích luỹ trong năm học này!!!"},
+                {"message": "Bạn không có kết quả học tập nào để tổng hợp GPA tích luỹ trong năm học này!"},
                 status=status.HTTP_400_BAD_REQUEST)
 
         # Fetch score details
@@ -1402,14 +1526,14 @@ class StudentViewSet(viewsets.ViewSet, generics.ListAPIView, generics.CreateAPIV
         event_exists = Event.objects.filter(
             semester=semester_real_time,
             department=student.studentclassroom.department,
-            descriptions='ĐĂNG KÝ MÔN HỌC TRỰC TUYẾN',
+            description='ĐĂNG KÝ MÔN HỌC TRỰC TUYẾN',
             started_time__lt=real_time,
             ended_time__gt=real_time
         ).exists()
 
         if not event_exists:
             return Response(
-                {"message": "Ngoài thời gian đăng ký môn học!!!"},
+                {"message": "Ngoài thời gian đăng ký môn học!"},
                 status=status.HTTP_404_NOT_FOUND
             )
 
@@ -1443,7 +1567,7 @@ class StudentViewSet(viewsets.ViewSet, generics.ListAPIView, generics.CreateAPIV
             )
 
     @action(methods=['get'], url_path='list-registered', detail=True)
-    def get_list_registerd(self, request, pk=None):
+    def get_list_registered(self, request, pk=None):
         student = self.get_object()
         real_time = datetime.now()
 

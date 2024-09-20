@@ -47,3 +47,7 @@ class StudyPaginator(pagination.PageNumberPagination):
 
 class ScoreDetailsPaginator(pagination.PageNumberPagination):
     page_size = 10
+
+
+class EventsPaginator(pagination.PageNumberPagination):
+    page_size = 5

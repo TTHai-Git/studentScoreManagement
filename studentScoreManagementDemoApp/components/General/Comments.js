@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useContext, useEffect, useState } from "react";
 import {
   ActivityIndicator,
   Alert,
@@ -22,11 +22,11 @@ import {
 } from "react-native-paper";
 import * as FileSystem from "expo-file-system";
 import { shareAsync } from "expo-sharing";
+import { MyUserContext } from "../../configs/Contexts";
 
-const Comments = ({ navigation, route }) => {
+const Comments = ({ route }) => {
   const topic_id = route.params?.topic_id;
-  const token = route.params?.token;
-  const user = route.params?.user;
+  const user = useContext(MyUserContext);
 
   const [loading, setLoading] = useState(false);
   const [comments, setComments] = useState([]);
@@ -44,7 +44,7 @@ const Comments = ({ navigation, route }) => {
       try {
         setLoading(true);
         const url = `${endpoints["comments"](topic_id)}?page=${page}`;
-        const res = await authApi(token).get(url);
+        const res = await authApi(user.access_token).get(url);
         if (page === 1) {
           setComments(res.data.results);
         } else {
@@ -76,7 +76,7 @@ const Comments = ({ navigation, route }) => {
       try {
         setLoading(true);
         const url = `${endpoints["commentfiles"]}?page=${page}`;
-        const res = await authApi(token).get(url);
+        const res = await authApi(user.access_token).get(url);
         if (page === 1) {
           setCommentFiles(res.data.results);
         } else {
@@ -142,7 +142,7 @@ const Comments = ({ navigation, route }) => {
 
     try {
       const url = `${endpoints["add-comment"](topic_id)}`;
-      const res = await authApi(token).post(url, formData, {
+      const res = await authApi(user.access_token).post(url, formData, {
         headers: {
           "Content-Type": "multipart/form-data",
         },
@@ -167,7 +167,7 @@ const Comments = ({ navigation, route }) => {
     try {
       setLoading(true);
       const url = `${endpoints["del-comment"](comment_id)}`;
-      const res = await authApi(token).delete(url);
+      const res = await authApi(user.access_token).delete(url);
       loadComments(true);
       Alert.alert("Success", res.data.message);
     } catch (error) {

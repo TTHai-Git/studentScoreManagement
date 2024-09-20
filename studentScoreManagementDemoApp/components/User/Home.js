@@ -13,7 +13,7 @@ import { ScrollView } from "react-native-gesture-handler";
 const Home = ({ navigation, route }) => {
   const user = useContext(MyUserContext);
   const dispatch = useContext(MyDispatchContext);
-  const token = route.params?.token;
+  // const token = route.params?.token;
   const [loading, setLoading] = useState(false);
   const [selectedImage, setSelectedImage] = useState(null);
 
@@ -48,7 +48,7 @@ const Home = ({ navigation, route }) => {
 
       try {
         setLoading(true);
-        const res = await authApi(token).patch(
+        const res = await authApi(user.access_token).patch(
           endpoints["current-user"],
           formData,
           {
@@ -59,10 +59,10 @@ const Home = ({ navigation, route }) => {
         );
 
         if (res.status === 200) {
-          Alert.alert("Avatar updated successfully!");
+          Alert.alert("Success", res.data.message);
           updateState("avatar", selectedAsset.uri);
         } else {
-          Alert.alert("Failed to upload avatar. Please try again!");
+          Alert.alert("Error", "Failed to upload avatar. Please try again!");
         }
       } catch (error) {
         console.log(error.response);
@@ -99,12 +99,7 @@ const Home = ({ navigation, route }) => {
             icon={() => <Icon name="book" size={20} color="#fff" />}
             style={MyStyle.button_user}
             mode="contained"
-            onPress={() =>
-              navigation.navigate("StudyClassRooms", {
-                token: token,
-                user: user,
-              })
-            }
+            onPress={() => navigation.navigate("StudyClassRooms")}
           >
             Xem danh sách lớp học
           </Button>
@@ -112,12 +107,7 @@ const Home = ({ navigation, route }) => {
             icon={() => <Icon name="calendar" size={20} color="#fff" />}
             style={MyStyle.button_user}
             mode="contained"
-            onPress={() =>
-              navigation.navigate("ScheduleStudyClassrooms", {
-                token: token,
-                user: user,
-              })
-            }
+            onPress={() => navigation.navigate("ScheduleStudyClassrooms")}
           >
             Xem lịch học
           </Button>
@@ -125,12 +115,7 @@ const Home = ({ navigation, route }) => {
             icon={() => <Icon name="pencil" size={20} color="#fff" />}
             style={MyStyle.button_user}
             mode="contained"
-            onPress={() =>
-              navigation.navigate("RegisterStudy", {
-                token: token,
-                user: user,
-              })
-            }
+            onPress={() => navigation.navigate("RegisterStudy")}
           >
             Đăng Ký Lớp Học
           </Button>
@@ -138,9 +123,7 @@ const Home = ({ navigation, route }) => {
             icon={() => <Icon name="line-chart" size={20} color="#fff" />}
             style={MyStyle.button_user}
             mode="contained"
-            onPress={() =>
-              navigation.navigate("ScoreDetails", { token: token, user: user })
-            }
+            onPress={() => navigation.navigate("ScoreDetails")}
           >
             Theo dõi kết quả học tập
           </Button>
@@ -148,12 +131,7 @@ const Home = ({ navigation, route }) => {
             icon={() => <Icon name="line-chart" size={20} color="#fff" />}
             style={MyStyle.button_user}
             mode="contained"
-            onPress={() =>
-              navigation.navigate("EvaluateLearningResults", {
-                token: token,
-                user: user,
-              })
-            }
+            onPress={() => navigation.navigate("EvaluateLearningResults")}
           >
             Đánh giá kết quả học tập
           </Button>
@@ -176,12 +154,7 @@ const Home = ({ navigation, route }) => {
             icon={() => <Icon name="book" size={20} color="#fff" />}
             style={MyStyle.button_user}
             mode="contained"
-            onPress={() =>
-              navigation.navigate("StudyClassRooms", {
-                token: token,
-                user: user,
-              })
-            }
+            onPress={() => navigation.navigate("StudyClassRooms")}
           >
             Xem danh sách lớp học
           </Button>
@@ -189,12 +162,7 @@ const Home = ({ navigation, route }) => {
             icon={() => <Icon name="calendar" size={20} color="#fff" />}
             style={MyStyle.button_user}
             mode="contained"
-            onPress={() =>
-              navigation.navigate("ScheduleStudyClassrooms", {
-                token: token,
-                user: user,
-              })
-            }
+            onPress={() => navigation.navigate("ScheduleStudyClassrooms")}
           >
             Xem Lịch Giảng Dạy
           </Button>
@@ -210,11 +178,7 @@ const Home = ({ navigation, route }) => {
             icon={() => <Icon name="user-plus" size={20} color="#fff" />}
             style={MyStyle.button_user}
             mode="contained"
-            onPress={() =>
-              navigation.navigate("Register", {
-                token: token,
-              })
-            }
+            onPress={() => navigation.navigate("Register")}
           >
             Cấp tài khoản cho người dùng
           </Button>
@@ -265,9 +229,7 @@ const Home = ({ navigation, route }) => {
           icon={() => <Icon name="user" size={20} color="#fff" />}
           style={MyStyle.button_user}
           mode="contained"
-          onPress={() =>
-            navigation.navigate("UpdateInfo", { token: token, user: user })
-          }
+          onPress={() => navigation.navigate("UpdateInfo")}
         >
           Cập nhật thông tin người dùng
         </Button>
