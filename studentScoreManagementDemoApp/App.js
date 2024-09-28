@@ -146,6 +146,30 @@ const NotificationStack = () => {
   );
 };
 
+const InitStack = () => {
+  return (
+    <Stack.Navigator>
+      <Stack.Screen
+        key="Login"
+        name="Login"
+        component={Login}
+        options={{
+          title: "Đăng nhập",
+        }}
+      />
+
+      <Stack.Screen
+        key="ForgotPassword"
+        name="ForgotPassword"
+        component={ForgotPassword}
+        options={{
+          title: "Quên mật khẩu",
+        }}
+      />
+    </Stack.Navigator>
+  );
+};
+
 const MyTab = () => {
   const user = useContext(MyUserContext);
 
@@ -153,7 +177,7 @@ const MyTab = () => {
     <Tab.Navigator screenOptions={{ headerShown: false }}>
       {user === null ? (
         <>
-          <Tab.Screen
+          {/* <Tab.Screen
             key="Login"
             name="Login"
             component={Login}
@@ -172,6 +196,17 @@ const MyTab = () => {
               title: "Quên mật khẩu",
               tabBarIcon: ({ color, size }) => (
                 <Icon name="lock-reset" size={size} color={color} />
+              ),
+            }}
+          /> */}
+          <Tab.Screen
+            key="InitStack"
+            name="InitStack"
+            component={InitStack}
+            options={{
+              title: "Đăng Nhập",
+              tabBarIcon: ({ color, size }) => (
+                <Icon name="home" size={size} color={color} />
               ),
             }}
           />

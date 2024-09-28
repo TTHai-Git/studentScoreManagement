@@ -200,6 +200,42 @@ class TeacherViewSet(viewsets.ViewSet, generics.ListAPIView, generics.CreateAPIV
             # Catch any other errors and return a meaningful message
             return Response({"message": f"An error occurred: {str(ex)}"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
+    @action(methods=['get'], url_path='studyclassrooms-for-combobox', detail=True)
+    def get_studyclassrooms_for_combobox(self, request, pk=None):
+        # Get the semester query parameter
+        semester = request.query_params.get('semester')
+
+        try:
+            # Get the teacher object
+            teacher = self.get_object()
+
+            # Query for active study classrooms for the teacher
+            studyclassrooms = StudyClassRoom.objects.filter(teacher=teacher, active=True)
+
+            # Filter by semester if provided and not 'Show All'
+            if semester and semester != "Show All":
+                studyclassrooms = studyclassrooms.annotate(
+                    search_semester=Concat('semester__name', Value(' '), 'semester__year')
+                ).filter(search_semester=semester)
+
+            # If no classrooms found, return a more user-friendly message with 200 status
+            if not studyclassrooms.exists():
+                return Response(
+                    {"results": []},
+                    status=status.HTTP_200_OK
+                )
+
+            return Response({"results": serializers.StudyClassRoomSerializer(studyclassrooms, many=True).data},
+                            status=status.HTTP_200_OK)
+
+        except StudyClassRoom.DoesNotExist:
+            # Specific exception handling for missing teacher object
+            return Response({"message": "Teacher not found."}, status=status.HTTP_404_NOT_FOUND)
+
+        except Exception as ex:
+            # Catch any other errors and return a meaningful message
+            return Response({"message": f"An error occurred: {str(ex)}"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
 
 class EventViewSet(viewsets.ViewSet, generics.ListAPIView):
     queryset = Event.objects.all()
@@ -418,11 +454,13 @@ class ScheduleViewSet(viewsets.ViewSet, viewsets.generics.ListAPIView, viewsets.
             # Retrieve the existing schedule
             schedule = self.get_object()
             user = request.user
-            studyclassrooms = StudyClassRoom.objects.filter(teacher__id=user.id)
+            teacher = Teacher.objects.get(id=user.id)
 
             # Extract and validate the request data
             started_time = request.data.get('started_time')
             ended_time = request.data.get('ended_time')
+
+            studyclassrooms = StudyClassRoom.objects.filter(teacher=teacher)
 
             try:
                 started_time = datetime.fromisoformat(started_time)
@@ -451,7 +489,7 @@ class ScheduleViewSet(viewsets.ViewSet, viewsets.generics.ListAPIView, viewsets.
             if schedule_conflict:
                 return Response({
                     'message': 'Cập nhật lịch thất bại! Trùng lịch với một lịch học khác.'
-                }, status=status.HTTP_409_CONFLICT)
+                }, status=status.HTTP_200_OK)
 
             # Update the schedule with the new data
             try:
@@ -588,26 +626,30 @@ class StudyClassRoomViewSet(viewsets.ViewSet, viewsets.generics.ListAPIView, vie
     pagination_class = pagination.StudyClassRoomPaginator
 
     def get_permissions(self):
-        if self.action in ['get_students_studyclassroom', 'get_score_collumns', 'get_students_scores_studyclassroom',
-                           'save_scores',
-                           'locked_score_of_studyclassroom', 'export_csv_scores_students_studyclassroom', 'add_topic',
-                           'new_schedule']:
+        if self.action in ['get_students_studyclassroom', 'get_students_scores_studyclassroom', 'save_scores',
+                           'lock_or_unlock_scores_of_studyclassroom', 'export_csv_scores_students_studyclassroom',
+                           'export_pdf_scores_students_studyclassroom', 'add_topic', 'new_schedule', 'update_schedule',
+                           'delete_schedule', 'get_students_scores_studyclassroom', 'save_attends']:
             return [permissions.IsAuthenticated(), perms.isTeacherOfStudyClassRoom()]
-        elif self.action in ['register_study']:
+        elif self.action in ['register_study', 'get_schedule_of_studyclassrooms', 'get_topics']:
             return [permissions.IsAuthenticated()]
         return [permissions.AllowAny()]
 
     @action(methods=['get'], url_path='get-schedule', detail=False)
     def get_schedule_of_studyclassrooms(self, request):
         user = request.user
+        real_time = datetime.now()
+        semester = Semester.objects.filter(started_date__lt=real_time.date(),
+                                           ended_date__gt=real_time.date()
+                                           ).first()
         if user.role.name == 'student':
             student = Student.objects.get(id=user.id)
             studies = Study.objects.filter(student=student)
             studyclassroom_ids = studies.values_list('studyclassroom', flat=True)
-            studyclassrooms = StudyClassRoom.objects.filter(id__in=studyclassroom_ids)
+            studyclassrooms = StudyClassRoom.objects.filter(id__in=studyclassroom_ids, semester=semester)
         elif user.role.name == 'teacher':
             teacher = Teacher.objects.get(id=user.id)
-            studyclassrooms = StudyClassRoom.objects.filter(teacher=teacher)
+            studyclassrooms = StudyClassRoom.objects.filter(teacher=teacher, semester=semester)
         else:
             return Response({"message": "Người dùng không hợp lệ!"}, status=status.HTTP_401_UNAUTHORIZED)
         kw = request.query_params.get('kw')  # Use query_params for GET requests
@@ -629,32 +671,38 @@ class StudyClassRoomViewSet(viewsets.ViewSet, viewsets.generics.ListAPIView, vie
     @action(methods=['post'], url_path='new-schedule', detail=True)
     def new_schedule(self, request, pk=None):
         try:
-            # Retrieve the study classroom object
+            user = request.user
+            teacher = Teacher.objects.get(id=user.id)
+
+            # List all the teacher's study classrooms in the current and before
+            list_studyclassrooms_of_teacher_now = StudyClassRoom.objects.filter(teacher=teacher)
+
+            # Retrieve the current study classroom
             studyclassroom = self.get_object()
 
-            # Extract and validate the request data
+            # Validate request data
             started_time = request.data.get('started_time')
             ended_time = request.data.get('ended_time')
             descriptions = request.data.get('descriptions')
 
-            # Convert times to datetime objects and validate the format
+            # Convert times to datetime objects
             try:
                 started_time = datetime.fromisoformat(started_time)
                 ended_time = datetime.fromisoformat(ended_time)
             except ValueError:
                 return Response(
-                    {'message': 'Invalid datetime format. Please use ISO 8601 format.'},
+                    {'message': 'Lỗi định dạng thời gian lịch học'},
                     status=status.HTTP_400_BAD_REQUEST
                 )
 
-            # Check if the end time is after the start time
+            # Ensure that end time is after start time
             if ended_time <= started_time:
                 return Response(
                     {'message': 'Thời gian kết thúc phải sau thời gian bắt đầu.'},
-                    status=status.HTTP_400_BAD_REQUEST
+                    status=status.HTTP_200_OK
                 )
 
-            # Check for overlapping schedules in the same classroom
+            # Check for schedule conflicts in the same study classroom
             schedule_conflict = Schedule.objects.filter(
                 studyclassroom=studyclassroom,
                 started_time__lt=ended_time,
@@ -663,9 +711,23 @@ class StudyClassRoomViewSet(viewsets.ViewSet, viewsets.generics.ListAPIView, vie
 
             if schedule_conflict:
                 return Response(
-                    {'message': 'Trùng lịch học. Hãy chọn lịch học khác!.'},
-                    status=status.HTTP_409_CONFLICT
+                    {'message': 'Trùng lịch học cùng lớp học này của giáo viên. Hãy chọn lịch học khác!'},
+                    status=status.HTTP_200_OK
                 )
+
+            # Check for conflicts in other study classrooms of the teacher
+            for studyclassroom_of_teacher in list_studyclassrooms_of_teacher_now:
+                schedule_conflict_others = Schedule.objects.filter(
+                    studyclassroom=studyclassroom_of_teacher,
+                    started_time__lt=ended_time,
+                    ended_time__gt=started_time
+                ).exists()
+
+                if schedule_conflict_others:
+                    return Response(
+                        {'message': 'Trùng lịch học khác lớp học này của giáo viên. Hãy chọn lịch học khác!'},
+                        status=status.HTTP_200_OK
+                    )
 
             # Create and save the new schedule
             schedule = Schedule.objects.create(
@@ -674,10 +736,11 @@ class StudyClassRoomViewSet(viewsets.ViewSet, viewsets.generics.ListAPIView, vie
                 studyclassroom=studyclassroom,
                 descriptions=descriptions
             )
-            # Initialize the Google Calendar API
+
+            # Initialize Google Calendar API
             service = build("calendar", "v3", credentials=creds)
 
-            # Define the Google Calendar event
+            # Define the event details for Google Calendar
             event = {
                 "summary": f"Class Schedule: {studyclassroom.name}",
                 "location": "Khu dân cư, Nhà Bè, Hồ Chí Minh",
@@ -703,7 +766,7 @@ class StudyClassRoomViewSet(viewsets.ViewSet, viewsets.generics.ListAPIView, vie
                 "guestsCanModify": False
             }
 
-            # Check if the time slot is free in Google Calendar
+            # Check for conflicts in the Google Calendar
             freebusy_query = service.freebusy().query(
                 body={
                     "timeMin": started_time.isoformat() + "+07:00",
@@ -716,7 +779,7 @@ class StudyClassRoomViewSet(viewsets.ViewSet, viewsets.generics.ListAPIView, vie
             busy_times = freebusy_query.get("calendars").get("primary").get("busy")
 
             if not busy_times:
-                # Insert the event into Google Calendar if the time slot is free
+                # Insert the event into Google Calendar if no conflicts are found
                 created_event = service.events().insert(calendarId="primary", body=event).execute()
 
                 # Save the event ID in the schedule object
@@ -729,10 +792,15 @@ class StudyClassRoomViewSet(viewsets.ViewSet, viewsets.generics.ListAPIView, vie
                 )
             else:
                 return Response(
-                    {"message": "Lịch đã được tạo nhưng chưa đồng bộ với Google Calendar."},
+                    {"message": "Lịch đã được tạo nhưng chưa đồng bộ với Google Calendar do trùng thời gian."},
                     status=status.HTTP_201_CREATED
                 )
 
+        except Teacher.DoesNotExist:
+            return Response(
+                {"message": "Teacher not found."},
+                status=status.HTTP_404_NOT_FOUND
+            )
         except Exception as e:
             return Response(
                 {"message": f"An error occurred: {str(e)}"},
@@ -792,62 +860,6 @@ class StudyClassRoomViewSet(viewsets.ViewSet, viewsets.generics.ListAPIView, vie
 
             return Response({"message": "An unexpected error occurred: " + str(ex)},
                             status=status.HTTP_500_INTERNAL_SERVER_ERROR)
-
-    @action(methods=['get'], url_path='chat-room', url_name='chat-room', detail=True)
-    def get_users_of_chat_room(self, request, pk):
-        studyclassroom = self.get_object()
-        teacher = Teacher.objects.get(id=studyclassroom.teacher.id)
-        studies = Study.objects.filter(studyclassroom=studyclassroom)
-        student_ids = studies.values_list('student_id', flat=True)
-        students = Student.objects.filter(id__in=student_ids)
-        listuser = [{
-            "code": teacher.code,
-            "name": teacher.last_name + ' ' + teacher.first_name,
-            "username": teacher.username,
-            "avatar": teacher.avatar.url,
-            "role": teacher.role.name,
-        }]
-
-        for student in students:
-            listuser.append({
-                "code": student.code,
-                "name": student.last_name + ' ' + student.first_name,
-                "username": student.username,
-                "avatar": student.avatar.url,
-                "role": student.role.name,
-            })
-        listuserserializers = serializers.MembersOfChatRoomSerializer(listuser, many=True).data
-        return Response({"members": listuserserializers}, status=status.HTTP_200_OK)
-
-    @action(methods=['get'], url_path='students', detail=True)
-    def get_students_studyclassroom(self, request, pk):
-        teacher = Teacher.objects.get(id=request.user.id)
-        kw = request.query_params.get('kw')
-        studyclassroom = self.get_object()
-        try:
-            if studyclassroom.teacher == teacher:
-                studies = Study.objects.filter(studyclassroom=studyclassroom)
-                if kw:
-                    student = Student.objects.annotate(search_name=Concat('last_name', Value(' '), 'first_name')) \
-                        .filter(
-                        Q(code__contains=kw) |
-                        Q(search_name__icontains=kw))
-                    studies = studies.filter(studyclassroom=studyclassroom, student__in=student)
-                paginator = pagination.StudyPaginator()
-                page = paginator.paginate_queryset(studies, request)
-
-                if page is not None:
-                    serializer = serializers.StudentsOfStudyClassRoom(page, many=True)
-                    return paginator.get_paginated_response(serializer.data)
-
-                return Response(serializers.StudentsOfStudyClassRoom(), status=status.HTTP_200_OK)
-            else:
-                return Response({"message": "Bạn không có quyền xem danh sách học sinh của lớp này."},
-                                status=status.HTTP_401_UNAUTHORIZED)
-        except Exception as ex:
-            if str(ex).__eq__("Student matching query does not exist."):
-                return Response({"message": "Không tìm thấy sinh viên!"}, status=status.HTTP_404_NOT_FOUND)
-            return Response({"message": str(ex)})
 
     @action(methods=['post'], url_path='save-scores', url_name='save-scores', detail=True)
     def save_scores(self, request, pk):
@@ -983,58 +995,61 @@ class StudyClassRoomViewSet(viewsets.ViewSet, viewsets.generics.ListAPIView, vie
             # Filter students based on search keyword
             kw = request.query_params.get('kw')
             studies = Study.objects.filter(studyclassroom=studyclassroom)
-            student_ids = studies.values_list('student_id', flat=True)
-            students = Student.objects.filter(id__in=student_ids)
+            if studies:
+                student_ids = studies.values_list('student_id', flat=True)
+                students = Student.objects.filter(id__in=student_ids)
 
-            if kw:
-                students = students.annotate(search_name=Concat('last_name', Value(' '), 'first_name')) \
-                    .filter(
-                    Q(code__contains=kw) |
-                    Q(search_name__icontains=kw))
+                if kw:
+                    students = students.annotate(search_name=Concat('last_name', Value(' '), 'first_name')) \
+                        .filter(
+                        Q(code__contains=kw) |
+                        Q(search_name__icontains=kw))
 
-            # Filter studies based on the filtered students
-            studies = Study.objects.filter(studyclassroom=studyclassroom, student__in=students).order_by(
-                'studyclassroom_id')
+                # Filter studies based on the filtered students
+                studies = Study.objects.filter(studyclassroom=studyclassroom, student__in=students).order_by(
+                    'studyclassroom_id')
 
-            # Retrieve schedules and serialize them
-            schedules = Schedule.objects.filter(studyclassroom=studyclassroom)
-            schedulesSerializer = serializers.McSerializer(schedules, many=True).data
+                # Retrieve schedules and serialize them
+                schedules = Schedule.objects.filter(studyclassroom=studyclassroom)
+                schedulesSerializer = serializers.McSerializer(schedules, many=True).data
 
-            # Prepare the attendance statuses
-            liststatus = []
-            for study in studies:
-                statusdetails = []
-                for schedule in schedules:
-                    try:
-                        find = Attend.objects.get(study=study, schedule=schedule)
-                        statusdetail = {"schedule_id": find.schedule.id, "started_time": find.schedule.started_time,
-                                        "ended_time": find.schedule.ended_time, "status": str(find.status)}
-                    except Exception:
-                        statusdetail = {"schedule_id": schedule.id, "started_time": schedule.started_time,
-                                        "ended_time": schedule.ended_time, "status": None}
-                    statusdetails.append(statusdetail)
+                # Prepare the attendance statuses
+                liststatus = []
+                for study in studies:
+                    statusdetails = []
+                    for schedule in schedules:
+                        try:
+                            find = Attend.objects.get(study=study, schedule=schedule)
+                            statusdetail = {"schedule_id": find.schedule.id, "started_time": find.schedule.started_time,
+                                            "ended_time": find.schedule.ended_time, "status": str(find.status)}
+                        except Exception:
+                            statusdetail = {"schedule_id": schedule.id, "started_time": schedule.started_time,
+                                            "ended_time": schedule.ended_time, "status": None}
+                        statusdetails.append(statusdetail)
 
-                liststatus.append({
-                    "study_id": study.id,
-                    "student_id": study.student.id,
-                    "student_code": study.student.code,
-                    "student_name": study.student.last_name + ' ' + study.student.first_name,
-                    "student_email": study.student.email,  # Add student email as required by the serializer
-                    "statuses": serializers.SchedulesSerializer(statusdetails, many=True).data
+                    liststatus.append({
+                        "study_id": study.id,
+                        "student_id": study.student.id,
+                        "student_code": study.student.code,
+                        "student_name": study.student.last_name + ' ' + study.student.first_name,
+                        "student_email": study.student.email,  # Add student email as required by the serializer
+                        "statuses": serializers.SchedulesSerializer(statusdetails, many=True).data
+                    })
+
+                # Serialize the attendance details
+                liststatusesSerializer = serializers.AttendOfStudyclassroomSerializer(liststatus, many=True).data
+
+                # Prepare final JSON response using the given serializer structure
+                dataJson = serializers.AttendsSerializer({
+                    "schedule_cols": schedulesSerializer,  # schedule columns
+                    "attend_details": liststatusesSerializer  # attendance details
                 })
 
-            # Serialize the attendance details
-            liststatusesSerializer = serializers.AttendOfStudyclassroomSerializer(liststatus, many=True).data
-
-            # Prepare final JSON response using the given serializer structure
-            dataJson = serializers.AttendsSerializer({
-                "schedule_cols": schedulesSerializer,  # schedule columns
-                "attend_details": liststatusesSerializer  # attendance details
-            })
-
-            return Response({
-                'schedules_with_statuses': dataJson.data
-            }, status=status.HTTP_200_OK)
+                return Response({
+                    'schedules_with_statuses': dataJson.data
+                }, status=status.HTTP_200_OK)
+            else:
+                return Response({"message": "Chua có sinh viên nào đăng ký vào lớp học này!"})
         except Exception as e:
             return Response({"message": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
@@ -1315,7 +1330,8 @@ class StudentViewSet(viewsets.ViewSet, generics.ListAPIView, generics.CreateAPIV
     parser_classes = [MultiPartParser]
 
     def get_permissions(self):
-        if self.action in ['get_studyclassrooms', 'get_details_study', 'list_studyclassrooms_for_register']:
+        if self.action in ['get_details_study','evaluate_learning_results', 'get_studyclassrooms',
+                           'list_studyclassrooms_for_register', 'get_list_registered']:
             return [permissions.IsAuthenticated()]
 
         return [permissions.AllowAny()]

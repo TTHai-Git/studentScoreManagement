@@ -18,6 +18,8 @@ export const endpoints = {
 
   studyclassroomsofteacher: (teacher_id) =>
     `/teachers/${teacher_id}/studyclassrooms`,
+  "studyclassrooms-for-combobox": (teacher_id) =>
+    `/teachers/${teacher_id}/studyclassrooms-for-combobox`,
   "check-locked-scored-studyclassroom": (studyclassroom_id) =>
     `/studyclassrooms/${studyclassroom_id}/`,
   studyclassroomsofstudent: (student_id) =>
@@ -35,8 +37,6 @@ export const endpoints = {
 
   "register-study": (studyclassroom_id) =>
     `/studyclassrooms/${studyclassroom_id}/register/`,
-  // "member-of-chatroom": (studyclassroom_id) =>
-  //   `/studyclassrooms/${studyclassroom_id}/chat-room/`,
 
   attends: (studyclassroom_id) =>
     `/studyclassrooms/${studyclassroom_id}/students/attends/`,

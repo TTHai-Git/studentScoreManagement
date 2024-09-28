@@ -51,6 +51,10 @@ const NewSchedule = ({ navigation, route }) => {
   const [value, setValue] = useState(null);
   const [studyclassrooms, setStudyClassRooms] = useState("");
 
+  const [semester, setSemester] = useState(null);
+  const [dataSemester, setDataSemester] = useState([]);
+  const [valueSemester, setValueSemester] = useState(null);
+
   const setSchedule = async () => {
     setLoading(true);
     try {
@@ -99,15 +103,35 @@ const NewSchedule = ({ navigation, route }) => {
     );
   };
 
-  const loadStudyClassRooms = async () => {
+  const renderItemSemester = (item) => {
+    return (
+      <View style={styles.item}>
+        <Text style={styles.textItem}>{item.label}</Text>
+        {item.value === value && (
+          <AntDesign
+            style={styles.icon}
+            color="black"
+            name="Safety"
+            size={20}
+          />
+        )}
+      </View>
+    );
+  };
+
+  const loadSemester = async () => {
     try {
-      url = `${endpoints["studyclassrooms"](user.id)}`;
+      const url = `${endpoints["list-semester"]}`;
       const res = await authApi(user.access_token).get(url);
       const arr = res.data.results.map((item) => ({
-        label: item.id + ": " + item.group_name + " - " + item.subject_name,
-        value: item.id,
+        label: item.name + " " + item.year,
+        value: item.name + " " + item.year,
       }));
-      setData(arr);
+      arr.push({
+        label: "Show All",
+        value: "Show All",
+      });
+      setDataSemester(arr);
     } catch (error) {
       console.log(error.response);
       if (error.response && error.response.data) {
@@ -120,8 +144,39 @@ const NewSchedule = ({ navigation, route }) => {
     }
   };
 
+  const loadStudyClassRooms = async () => {
+    setLoading(true); // Show loading indicator
+    try {
+      // Construct the base URL based on user role and semester
+      let url = `${endpoints["studyclassrooms-for-combobox"](user.id)}`;
+      if (semester && semester !== "Show All") {
+        url += `?semester=${semester}`;
+      }
+      const res = await authApi(user.access_token).get(url);
+
+      const arr = res.data.results.map((item) => ({
+        label: `${item.id}: ${item.group_name} - ${item.subject_name}`,
+        value: item.id,
+      }));
+      setData(arr);
+    } catch (error) {
+      console.error("Error:", error);
+      if (error.response && error.response.data) {
+        Alert.alert("Error", error.response.data.message);
+      } else {
+        Alert.alert("Error", "An unexpected error occurred.");
+      }
+    } finally {
+      setLoading(false); // Hide loading indicator
+    }
+  };
+
   useEffect(() => {
     loadStudyClassRooms();
+  }, [semester]);
+
+  useEffect(() => {
+    loadSemester();
   }, []);
 
   const handleItemChange = (item) => {
@@ -129,8 +184,42 @@ const NewSchedule = ({ navigation, route }) => {
     setValue(item.value); // Reflect the selected value in the dropdown
   };
 
+  const handleItemChangeSemester = (item) => {
+    setSemester(item.value);
+    setValueSemester(item.value); // Reflect the selected value in the dropdown
+    loadStudyClassRooms();
+  };
+
   return (
     <ScrollView style={styles.container}>
+      <Text style={styles.label}>Học Kỳ:</Text>
+      <Dropdown
+        style={styles.dropdown}
+        placeholderStyle={styles.placeholderStyle}
+        selectedTextStyle={styles.selectedTextStyle}
+        inputSearchStyle={styles.inputSearchStyle}
+        iconStyle={styles.iconStyle}
+        data={dataSemester}
+        search
+        maxHeight={300}
+        labelField="label"
+        valueField="value"
+        placeholder="Chọn học kỳ và năm học..."
+        searchPlaceholder="Search..."
+        value={valueSemester}
+        onChange={(item) => {
+          handleItemChangeSemester(item);
+        }}
+        renderLeftIcon={() => (
+          <AntDesign
+            style={styles.icon}
+            color="black"
+            name="Safety"
+            size={20}
+          />
+        )}
+        renderItem={renderItemSemester}
+      />
       <Text style={styles.label}>Lớp học:</Text>
       <Dropdown
         style={styles.dropdown}

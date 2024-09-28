@@ -130,7 +130,7 @@ const UpdateInfo = () => {
       Alert.alert("Success", res.data.message);
       logOutFireBaseUser(dispatch);
     } catch (error) {
-      if (error.response && error.response.status === 400) {
+      if (error.response) {
         Alert.alert("Error", error.response.data.message);
       } else {
         console.log("Unexpected error: ", error);

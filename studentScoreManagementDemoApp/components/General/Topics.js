@@ -11,6 +11,7 @@ import {
 } from "react-native";
 import { authApi, endpoints } from "../../configs/APIs";
 import moment from "moment";
+import vi from "moment/locale/vi";
 import {
   TextInput,
   Card,
@@ -181,7 +182,7 @@ const Topics = ({ navigation, route }) => {
                 <Card key={c.id} style={{ marginBottom: 10 }}>
                   <Card.Title
                     title={c.title}
-                    subtitle={moment(c.created_date).fromNow()}
+                    subtitle={moment(c.created_date).locale("vi", vi).fromNow()}
                     left={(props) => (
                       <Icon
                         {...props}

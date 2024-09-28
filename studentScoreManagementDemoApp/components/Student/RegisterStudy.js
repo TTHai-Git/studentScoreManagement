@@ -38,15 +38,13 @@ const RegisterStudy = () => {
 
   const [widthArr, setWidthArr] = useState([40, 400, 100]);
   const tableHead = [
-    "STT",
-    "Mã Đăng ký",
+    "Stt",
     "Mã môn học",
     "Tên môn học",
     "Nhóm",
-    "Thời gian đăng ký",
-    "Tình trạng",
-    "Thời gian bắt đầu",
-    "Thời gian kết thúc",
+    "Ngày đăng ký",
+    "Trạng thái",
+    "Thời gian học",
   ];
 
   const showModal = () => {
@@ -95,7 +93,7 @@ const RegisterStudy = () => {
       let url = `${endpoints["list-registered"](user.id)}`;
       const res = await authApi(user.access_token).get(url);
       setRegisterd(res.data.results);
-      setWidthArr([40, 90, 100, 100, 100, 150, 90, 150, 150]);
+      setWidthArr([40, 100, 100, 60, 100, 90, 100]);
       // console.log(registerd);
     } catch (error) {
       setSnackbarMessage(
@@ -273,7 +271,6 @@ const RegisterStudy = () => {
                             key={index + 1}
                             data={[
                               index + 1,
-                              c.id,
                               c.subject_code,
                               c.subject_name,
                               c.group_name,
@@ -291,8 +288,10 @@ const RegisterStudy = () => {
                                   color="red"
                                 />
                               ),
-                              formatDate(c.started_date),
-                              formatDate(c.ended_date),
+                              formatDate(c.started_date) +
+                                " - " +
+                                formatDate(c.ended_date),
+
                               // Add delete button here
                               <TouchableOpacity
                                 style={MyStyle.button_del}

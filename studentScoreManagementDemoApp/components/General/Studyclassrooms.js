@@ -301,7 +301,7 @@ const StudyClassRooms = ({ navigation, route }) => {
                       left={(props) => <List.Icon {...props} icon="school" />}
                     />
                     <Paragraph>Nhóm: {c.group_name}</Paragraph>
-                    <Paragraph>Học kỳ: {c.semester_name}</Paragraph>
+                    <Paragraph>Học Kỳ: {c.semester_name}</Paragraph>
                     <Paragraph>Năm Học: {c.semester_year}</Paragraph>
                     <Paragraph>Giảng viên: {c.teacher_name}</Paragraph>
                     <Paragraph>

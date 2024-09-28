@@ -118,6 +118,7 @@ const Login = () => {
     }
 
     try {
+      setLoading(true);
       const res = await APIs.post(
         endpoints["send-otp"],
         { username: user.username },
@@ -201,6 +202,7 @@ const Login = () => {
               mode="contained"
               onPress={sendOtp}
               style={{ marginTop: 30 }}
+              loading={loading}
             >
               Quên Mật Khẩu
             </Button>

@@ -8,10 +8,55 @@ import {
   Alert,
   ActivityIndicator,
 } from "react-native";
-import { Agenda } from "react-native-calendars";
+import { Agenda, LocaleConfig } from "react-native-calendars";
 import Icon from "react-native-vector-icons/FontAwesome";
 import { authApi, endpoints } from "../../configs/APIs";
 import { MyUserContext } from "../../configs/Contexts";
+
+LocaleConfig.locales["vi"] = {
+  monthNames: [
+    "Tháng 1",
+    "Tháng 2",
+    "Tháng 3",
+    "Tháng 4",
+    "Tháng 5",
+    "Tháng 6",
+    "Tháng 7",
+    "Tháng 8",
+    "Tháng 9",
+    "Tháng 10",
+    "Tháng 11",
+    "Tháng 12",
+  ],
+  monthNamesShort: [
+    "Th.1",
+    "Th.2",
+    "Th.3",
+    "Th.4",
+    "Th.5",
+    "Th.6",
+    "Th.7",
+    "Th.8",
+    "Th.9",
+    "Th.10",
+    "Th.11",
+    "Th.12",
+  ],
+  dayNames: [
+    "Chủ Nhật",
+    "Thứ hai",
+    "Thứ ba",
+    "Thứ tư",
+    "Thứ năm",
+    "Thứ sáu",
+    "Thứ bảy",
+  ],
+  dayNamesShort: ["CN", "T2", "T3", "T4", "T5", "T6", "T7"],
+  today: "Hôm nay",
+};
+
+// Set the default locale to Vietnamese
+LocaleConfig.defaultLocale = "vi";
 
 const ScheduleStudyClassrooms = ({ navigation, route }) => {
   const user = useContext(MyUserContext);
@@ -66,7 +111,17 @@ const ScheduleStudyClassrooms = ({ navigation, route }) => {
   const generateMarkedDates = (data) => {
     const marked = {};
     Object.keys(data).forEach((date) => {
-      marked[date] = { marked: true, dotColor: "#007bff" };
+      let dotColor = "#007bff"; // Default blue color
+
+      // Check if any description contains "Thi" for this date
+      const containsThi = data[date].some(
+        (item) => item.descriptions && item.descriptions.includes("Thi", "hop")
+      );
+      if (containsThi) {
+        dotColor = "#ff0000"; // Red color if "Thi" is found
+      }
+
+      marked[date] = { marked: true, dotColor };
     });
     return marked;
   };
@@ -98,27 +153,27 @@ const ScheduleStudyClassrooms = ({ navigation, route }) => {
             {item.subject_code} - {item.subject_name}
           </Text>
           <Text style={styles.itemText}>
-            <Icon name="building" size={16} color="#007bff" /> Classroom:{" "}
+            <Icon name="building" size={16} color="#007bff" /> Tên Lớp Học:{" "}
             {item.studyclassroom_name}
           </Text>
           <Text style={styles.itemText}>
-            <Icon name="group" size={16} color="#007bff" /> Group:{" "}
+            <Icon name="group" size={16} color="#007bff" /> Nhóm:{" "}
             {item.studyclassroom_group}
           </Text>
           <Text style={styles.itemText}>
-            <Icon name="user" size={16} color="#007bff" /> Teacher:{" "}
+            <Icon name="user" size={16} color="#007bff" /> Giảng Viên:{" "}
             {item.teacher_name}
           </Text>
           <Text style={styles.itemText}>
-            <Icon name="clock-o" size={16} color="#007bff" /> Start:{" "}
+            <Icon name="clock-o" size={16} color="#007bff" /> Thời gian bắt đầu:{" "}
             {item.started_time}
           </Text>
           <Text style={styles.itemText}>
-            <Icon name="clock-o" size={16} color="#007bff" /> End:{" "}
-            {item.ended_time}
+            <Icon name="clock-o" size={16} color="#007bff" /> Thời gian kết
+            thúc: {item.ended_time}
           </Text>
           <Text style={styles.itemText}>
-            <Icon name="info-circle" size={16} color="#007bff" /> Descriptions:{" "}
+            <Icon name="info-circle" size={16} color="#007bff" /> Mô Tả:{" "}
             {item.descriptions}
           </Text>
           {user.role === "teacher" && (
@@ -176,22 +231,44 @@ const ScheduleStudyClassrooms = ({ navigation, route }) => {
     setSelectedDate(selectedDate);
 
     const hasDot = markedDates[selectedDate]?.marked;
+    const formattedDate = new Date(selectedDate).toLocaleDateString("en-GB", {
+      day: "2-digit",
+      month: "2-digit",
+      year: "numeric",
+    });
 
-    if (!hasDot) {
-      if (user.role === "teacher") {
-        const formattedDate = new Date(selectedDate).toLocaleDateString(
-          "en-GB",
+    // Check if the date already has a schedule
+    if (hasDot) {
+      // Show a dialog with two options
+      Alert.alert(
+        "Chọn hành động",
+        `Bạn đã có lịch vào ngày ${formattedDate}. Bạn có muốn Thêm lịch học hay không?`,
+        [
           {
-            day: "2-digit",
-            month: "2-digit",
-            year: "numeric",
-          }
-        );
-
+            text: "Thêm lịch học",
+            onPress: () => {
+              // Logic to add a new schedule for the selected date
+              navigation.navigate("NewSchedule", {
+                startedDate: formattedDate,
+                endedDate: formattedDate,
+              });
+            },
+          },
+          {
+            text: "Cancel",
+            style: "cancel",
+          },
+        ]
+      );
+    } else {
+      // If there's no existing schedule, just go to "NewSchedule"
+      if (user.role === "teacher") {
         navigation.navigate("NewSchedule", {
           startedDate: formattedDate,
           endedDate: formattedDate,
         });
+      } else {
+        Alert.alert("Error", "Only teachers can create new schedules.");
       }
     }
   };

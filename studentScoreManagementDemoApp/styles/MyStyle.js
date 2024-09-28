@@ -113,4 +113,15 @@ export default StyleSheet.create({
     textAlign: "center",
     marginLeft: 5,
   },
+  inputContainer: {
+    flexDirection: "column", // Stack TextInput and note vertically
+    alignItems: "center",
+  },
+  noteContainer: {
+    marginTop: 2, // Adds a small margin between the input and the note
+  },
+  noteText: {
+    fontSize: 10, // Smaller text for the note
+    color: "gray", // Optional: Use gray to differentiate the note text
+  },
 });

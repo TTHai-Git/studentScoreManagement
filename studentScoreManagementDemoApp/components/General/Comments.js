@@ -12,6 +12,7 @@ import { authApi, endpoints } from "../../configs/APIs";
 import MyStyle from "../../styles/MyStyle";
 import Styles from "../General/Styles";
 import moment from "moment";
+import vi from "moment/locale/vi";
 import * as DocumentPicker from "expo-document-picker";
 import {
   Avatar,
@@ -274,7 +275,7 @@ const Comments = ({ route }) => {
             <Card key={c.id} style={{ marginBottom: 10 }}>
               <Card.Title
                 title={`${c.user.last_name} ${c.user.first_name}`}
-                subtitle={moment(c.created_date).fromNow()}
+                subtitle={moment(c.created_date).locale("vi", vi).fromNow()}
                 left={(props) => (
                   <Avatar.Image
                     {...props}
@@ -317,7 +318,7 @@ const Comments = ({ route }) => {
               <Card.Content>
                 <Text style={{ marginBottom: 10 }}>{c.content}</Text>
                 {commentfiles.length === 0 ? (
-                  <Text>Files: No files attached</Text>
+                  <Text>Tệp Tin Đính Kèm: Không có</Text>
                 ) : (
                   commentfiles
                     .filter((cf) => cf.comment_id === c.id)

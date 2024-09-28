@@ -210,7 +210,7 @@ const EvaluateLearningResults = () => {
                 withHorizontalLabels={true}
                 segments={4} // Number of horizontal lines in the chart
               />
-              <Text style={styles.xAxisLabel}>Semester</Text>
+              <Text style={styles.xAxisLabel}>Học Kỳ</Text>
             </View>
           )}
         </View>

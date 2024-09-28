@@ -48,7 +48,7 @@ const ListStudentScores = ({ navigation, route }) => {
       setScores(res.data.scoredetails_with_scores.score_details);
       setScoreColumns(res.data.scoredetails_with_scores.score_cols);
     } catch (error) {
-      if (error.response && error.response.status === 401) {
+      if (error.response) {
         Alert.alert("Error", error.response.data.message);
       } else {
         console.log("Unexpected error: ", error);
