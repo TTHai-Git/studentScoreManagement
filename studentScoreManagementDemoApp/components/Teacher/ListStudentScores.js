@@ -264,7 +264,7 @@ const ListStudentScores = ({ navigation, route }) => {
                 Xuất file điểm PDF
               </Button>
               <Button
-                icon={() => <Icon name="file-csv" size={20} color="white" />}
+                icon={() => <Icon name="file-text-o" size={20} color="white" />}
                 style={MyStyle.button_user}
                 mode="contained"
                 onPress={exportScoresCSV}

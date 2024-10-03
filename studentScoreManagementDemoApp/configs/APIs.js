@@ -74,6 +74,7 @@ export const endpoints = {
   "list-registered": (student_id) => `/students/${student_id}/list-registered`,
   "del-registered": (study_id) => `/studies/${study_id}/del-registered/`,
   "load-notifications": (user_id) => `/users/${user_id}/notifications/`,
+  "seen-notification": (notification_id) => `/events/${notification_id}/seen/`,
 };
 
 export const authApi = (accessToken) =>

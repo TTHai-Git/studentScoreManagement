@@ -52,23 +52,55 @@ class UserViewSet(viewsets.ViewSet, generics.CreateAPIView, generics.ListAPIView
 
     @action(methods=['get'], url_path='notifications', detail=True)
     def get_notifications(self, request, pk=None):
-        user = self.get_object()
-        events = Event.objects.all().order_by('-id')
-        if user.role.name == 'student':
-            student = Student.objects.get(id=user.id)
-            events = events.filter(department=student.studentclassroom.department).order_by('-id')
-        elif user.role.name == 'teacher':
-            teacher = Teacher.objects.get(id=user.id)
-            events = events.objects.filter(department=teacher.department).order_by('-id')
+        try:
+            user = self.get_object()
+            results = []
 
-        paginator = pagination.EventsPaginator()
-        page = paginator.paginate_queryset(events, request)
+            # Get the base queryset of events
+            events = Event.objects.all().order_by('-id')
+            eventdetails = EventDetails.objects.filter(user=user)
 
-        # Serialize the data
-        serializer = serializers.EventSerializer(page, many=True)
+            # Filter events based on user role
+            if user.role.name == 'student':
+                student = Student.objects.get(id=user.id)
+                events = events.filter(department=student.studentclassroom.department)
 
-        # Return paginated response
-        return paginator.get_paginated_response(serializer.data)
+            elif user.role.name == 'teacher':
+                teacher = Teacher.objects.get(id=user.id)
+                events = events.filter(department=teacher.department)
+
+            # Build results based on whether EventDetails exist for each event
+            for event in events:
+                # Find related event details for the current event
+                event_detail = eventdetails.filter(event=event, user=user).first()
+
+                # If event_detail exists, get seen status, otherwise default to False
+                seen_status = event_detail.seen if event_detail else False
+
+                # Add the event to the results list
+                results.append({
+                    "id": event.id,
+                    "title": event.title,
+                    "department_name": event.department.name,
+                    "semester_name": event.semester.name,
+                    "semester_year": event.semester.year,
+                    "content": event.content,
+                    "created_date": event.created_date,
+                    "seen": seen_status
+                })
+
+            # Paginate the results
+            paginator = pagination.EventsPaginator()
+            page = paginator.paginate_queryset(results, request)
+
+            # Serialize the paginated data
+            serializer = serializers.ListEventSerializer(page, many=True)
+
+            # Return the paginated response
+            return paginator.get_paginated_response(serializer.data)
+
+        except Exception as ex:
+            return Response({"message": str(ex)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
     @action(methods=['get', 'patch'], detail=False, url_path='current-user', url_name='current-user')
     def current_user(self, request):
@@ -239,8 +271,38 @@ class TeacherViewSet(viewsets.ViewSet, generics.ListAPIView, generics.CreateAPIV
 
 class EventViewSet(viewsets.ViewSet, generics.ListAPIView):
     queryset = Event.objects.all()
-    serializer_class = serializers.TopicSerializer
-    pagination_class = pagination.TopicPaginator
+    serializer_class = serializers.ListEventSerializer
+    pagination_class = pagination.EventsPaginator
+
+    def get_permissions(self):
+        if self.action == 'seen_event':
+            return [permissions.IsAuthenticated()]
+        return [permissions.AllowAny()]
+
+    @action(methods=['post'], url_path='seen', detail=True)
+    def seen_event(self, request, pk=None):
+        try:
+            user = request.user
+            event = self.get_object()
+
+            if event:
+                # Check if the event_detail exists
+                event_detail_exists = EventDetails.objects.filter(event=event, user=user, seen=True).exists()
+
+                if not event_detail_exists:
+                    # Create a new EventDetails entry
+                    new_event_details = EventDetails.objects.create(event=event, user=user, seen=True)
+                    return Response({"message": "Xem thông báo thành công!"}, status=status.HTTP_200_OK)
+                else:
+                    return Response({"message": "Bạn đã xem thông báo này rồi."}, status=status.HTTP_200_OK)
+            else:
+                return Response({"message": "Event không tồn tại!"}, status=status.HTTP_404_NOT_FOUND)
+
+        except Event.DoesNotExist:
+            return Response({"error": "Event not found"}, status=status.HTTP_404_NOT_FOUND)
+
+        except Exception as ex:
+            return Response({"error": str(ex)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 
 class StudyViewSet(viewsets.ViewSet, generics.ListAPIView):
@@ -260,7 +322,7 @@ class StudyViewSet(viewsets.ViewSet, generics.ListAPIView):
         ).first()
 
         event_exists = Event.objects.filter(semester=semester_real_time,
-                                            description='ĐĂNG KÝ MÔN HỌC TRỰC TUYẾN',
+                                            title='ĐĂNG KÝ MÔN HỌC TRỰC TUYẾN',
                                             started_time__lt=real_time,
                                             ended_time__gt=real_time,
                                             department=student.studentclassroom.department
@@ -1542,7 +1604,7 @@ class StudentViewSet(viewsets.ViewSet, generics.ListAPIView, generics.CreateAPIV
         event_exists = Event.objects.filter(
             semester=semester_real_time,
             department=student.studentclassroom.department,
-            description='ĐĂNG KÝ MÔN HỌC TRỰC TUYẾN',
+            title='ĐĂNG KÝ MÔN HỌC TRỰC TUYẾN',
             started_time__lt=real_time,
             ended_time__gt=real_time
         ).exists()

@@ -57,7 +57,7 @@ const MyStack = () => {
         name="UpdateSchedule"
         component={UpdateSchedule}
         options={{
-          title: "Form Tạo Lịch Học",
+          title: "Form Sửa Lịch Học",
           presentation: "transparentModal",
           headerShown: true,
         }}
@@ -139,7 +139,7 @@ const NotificationStack = () => {
     <Stack.Navigator>
       <Stack.Screen
         name="Notification"
-        options={{ title: "Danh sách thông báo" }}
+        options={{ title: "Sự Kiện Của Khoa" }}
         component={Notification}
       />
     </Stack.Navigator>

@@ -160,15 +160,15 @@ class ScheduleSerializer(serializers.ModelSerializer):
                   'studyclassroom_name', 'studyclassroom_group', 'teacher_name']
 
 
-class EventSerializer(serializers.ModelSerializer):
-    department_name = serializers.CharField(source='department.name')
-    semester_name = serializers.CharField(source='semester.name')
-    semester_year = serializers.CharField(source='semester.year')
-
-    class Meta:
-        model = Event
-        fields = ['id', 'description', 'department_name', 'semester_name', 'semester_year', 'started_time',
-                  'ended_time', 'content']
+class ListEventSerializer(serializers.Serializer):
+    id = serializers.IntegerField()
+    title = serializers.CharField()
+    department_name = serializers.CharField()
+    semester_name = serializers.CharField()
+    semester_year = serializers.CharField()
+    content = serializers.CharField()
+    created_date = serializers.DateTimeField()
+    seen = serializers.BooleanField()
 
 
 class StudyClassRoomSerializer(serializers.ModelSerializer):
@@ -310,14 +310,6 @@ class ScoreDetailsSerializer(serializers.Serializer):
 class ScoresSerializer(serializers.Serializer):
     score_cols = ScoreColumnSerializer(many=True)
     score_details = ScoreDetailsSerializer(many=True)
-
-    # def get_teacher_name(self, obj):
-    #     return obj.study.studyclassroom.teacher.last_name + ' ' + obj.study.studyclassroom.teacher.first_name
-    #
-    # class Meta:
-    #     model = ScoreDetails
-    #     fields = ['id', 'group_name', 'subject_name', 'teacher_name', 'semester_name', 'semester_year',
-    #               'scorecolumn_type', 'scorecolumn_percent', 'score']
 
 
 class SchedulesSerializer(serializers.Serializer):

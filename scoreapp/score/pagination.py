@@ -50,4 +50,4 @@ class ScoreDetailsPaginator(pagination.PageNumberPagination):
 
 
 class EventsPaginator(pagination.PageNumberPagination):
-    page_size = 5
+    page_size = 10

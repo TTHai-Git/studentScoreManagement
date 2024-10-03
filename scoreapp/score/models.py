@@ -245,13 +245,22 @@ class PointConversion(models.Model):
 class Event(BaseModel):
     started_time = models.DateTimeField(null=True)
     ended_time = models.DateTimeField(null=True)
-    description = models.CharField(max_length=100, null=True)
+    title = models.CharField(max_length=100, null=True)
     semester = models.ForeignKey(Semester, on_delete=models.RESTRICT)
     department = models.ForeignKey(Department, on_delete=models.CASCADE)
     content = RichTextField(null=True)
 
     def __str__(self):
-        return f'{self.description} - {self.department.name} - {self.semester.name} - {self.semester.year}'
+        return f'{self.title} - {self.department.name} - {self.semester.name} - {self.semester.year}'
+
+
+class EventDetails(BaseModel):
+    user = models.ForeignKey(User, on_delete=models.CASCADE)
+    event = models.ForeignKey(Event, on_delete=models.CASCADE)
+    seen = models.BooleanField(null=True)
+
+    def __str__(self):
+        return f'{self.user.id} - {self.event.id} - {self.seen}'
 
 
 class Attend(BaseModel):
