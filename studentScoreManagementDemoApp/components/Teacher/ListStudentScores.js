@@ -6,12 +6,14 @@ import {
   ActivityIndicator,
   TextInput,
   StyleSheet,
+  Text,
 } from "react-native";
 import APIs, { authApi, endpoints } from "../../configs/APIs";
 import MyStyle from "../../styles/MyStyle";
 import {
   Button,
   DataTable,
+  Dialog,
   Modal,
   Portal,
   Provider,
@@ -33,9 +35,20 @@ const ListStudentScores = ({ navigation, route }) => {
   const [visible, setVisible] = useState(false);
   const [lockStatus, setLockStatus] = useState(false);
   const [isHandlingLockScore, setIsHandlingLockScore] = useState(false);
+  const [lockDialogVisible, setLockDialogVisible] = useState(false);
+  const [isLocking, setIsLocking] = useState(false); // To indicate if locking or unlocking
 
   const showModal = () => setVisible(true);
   const hideModal = () => setVisible(false);
+
+  const showLockDialog = (isLockingAction) => {
+    setIsLocking(isLockingAction); // Set whether we're locking or unlocking
+    setLockDialogVisible(true);
+  };
+
+  const hideLockDialog = () => {
+    setLockDialogVisible(false);
+  };
 
   const loadScoresOfStudyClassRoom = useCallback(async () => {
     try {
@@ -189,7 +202,7 @@ const ListStudentScores = ({ navigation, route }) => {
           value={kw}
           placeholder="Tìm theo từ khóa"
         />
-        <ScrollView horizontal={true}>
+        <ScrollView horizontal={true} vertical={true}>
           <View style={MyStyle.table}>
             {loading ? (
               <ActivityIndicator size="large" color="#0000ff" />
@@ -286,7 +299,7 @@ const ListStudentScores = ({ navigation, route }) => {
             disabled={isHandlingLockScore}
             style={MyStyle.button_user}
             mode="contained"
-            onPress={lockScoreOfStudyClassRoom}
+            onPress={() => showLockDialog(lockStatus)} // Show confirmation dialog
           >
             {lockStatus ? "Mở khóa điểm" : "Khóa điểm"}
           </Button>
@@ -308,6 +321,32 @@ const ListStudentScores = ({ navigation, route }) => {
           </Button>
         </View>
       </View>
+      <Portal>
+        <Dialog visible={lockDialogVisible} onDismiss={hideLockDialog}>
+          <Dialog.Title>
+            {isLocking
+              ? "Xác Nhận Mở Khóa Bảng Điểm: "
+              : "Xác Nhận Khóa Bảng Điểm: "}
+          </Dialog.Title>
+          <Dialog.Content>
+            <Text>
+              Bạn có chắc chắn muốn {isLocking ? "mở khóa" : "khóa"} bảng điểm
+              không?
+            </Text>
+          </Dialog.Content>
+          <Dialog.Actions>
+            <Button onPress={hideLockDialog}>Hủy</Button>
+            <Button
+              onPress={async () => {
+                hideLockDialog(); // Hide the dialog first
+                await lockScoreOfStudyClassRoom(); // Then call the lock/unlock function
+              }}
+            >
+              Đồng ý
+            </Button>
+          </Dialog.Actions>
+        </Dialog>
+      </Portal>
     </Provider>
   );
 };

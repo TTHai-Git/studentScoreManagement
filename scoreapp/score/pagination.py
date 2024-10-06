@@ -34,11 +34,11 @@ class CommentPaginator(pagination.PageNumberPagination):
 
 
 class CommentFilePaginator(pagination.PageNumberPagination):
-    page_size = 10
+    page_size = 5
 
 
 class TopicPaginator(pagination.PageNumberPagination):
-    page_size = 10
+    page_size = 5
 
 
 class StudyPaginator(pagination.PageNumberPagination):

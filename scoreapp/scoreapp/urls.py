@@ -33,6 +33,7 @@ router.register('comments', views.CommentViewSet, basename='comments')
 router.register('commentfiles', views.CommentFileViewSet, basename='commentfiles')
 router.register('semesters', views.SemesterViewSet, basename='semesters')
 router.register('events', views.EventViewSet, basename='events')
+router.register('attends', views.AttendViewSet, basename='attends')
 router.register('studies', views.StudyViewSet, basename='studies')
 
 schema_view = get_schema_view(

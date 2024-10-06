@@ -171,6 +171,21 @@ class ListEventSerializer(serializers.Serializer):
     seen = serializers.BooleanField()
 
 
+class StudyClassRoomForRegisterSerializer(serializers.Serializer):
+    id = serializers.IntegerField()
+    name = serializers.CharField()
+    subject_code = serializers.CharField()
+    subject_name = serializers.CharField()
+    teacher_name = serializers.CharField()
+    group_name = serializers.CharField()
+    semester_name = serializers.CharField()
+    semester_year = serializers.CharField()
+    started_date = serializers.DateField()
+    ended_date = serializers.DateField()
+    isregister = serializers.BooleanField()
+    total_student = serializers.IntegerField()
+
+
 class StudyClassRoomSerializer(serializers.ModelSerializer):
     subject_name = serializers.CharField(source='subject.name')
     subject_code = serializers.CharField(source='subject.code')
@@ -317,6 +332,13 @@ class SchedulesSerializer(serializers.Serializer):
     started_time = serializers.DateTimeField()
     ended_time = serializers.DateTimeField()
     status = serializers.CharField()
+
+
+class AttendModelSerializer(serializers.Serializer):
+
+    class Meta:
+        model = Attend
+        fields = ['__all__']
 
 
 class AttendOfStudyclassroomSerializer(serializers.Serializer):

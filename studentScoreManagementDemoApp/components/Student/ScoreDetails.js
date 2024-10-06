@@ -221,6 +221,7 @@ const ScoreDetails = () => {
         )}
         renderItem={renderItem}
       />
+
       {studies.length === 0 && !loading ? (
         <Text>
           Không có kết quả học tập nào hoặc giảng viên chưa khóa điểm nên sinh
@@ -228,45 +229,47 @@ const ScoreDetails = () => {
         </Text>
       ) : (
         <ScrollView horizontal={true}>
-          <View style={MyStyle.table}>
-            <Table borderStyle={{ borderWidth: 1, borderColor: "#000" }}>
-              <Row
-                data={tableHead}
-                style={MyStyle.head}
-                textStyle={{ ...MyStyle.text, fontWeight: "bold" }}
-                widthArr={widthArr}
-              />
-              {groupedSubjects.length > 0 ? (
-                groupedSubjects.map((c, index) => (
+          <ScrollView style={{ flex: 1 }}>
+            <View style={MyStyle.table}>
+              <Table borderStyle={{ borderWidth: 1, borderColor: "#000" }}>
+                <Row
+                  data={tableHead}
+                  style={MyStyle.head}
+                  textStyle={{ ...MyStyle.text, fontWeight: "bold" }}
+                  widthArr={widthArr}
+                />
+                {groupedSubjects.length > 0 ? (
+                  groupedSubjects.map((c, index) => (
+                    <Row
+                      key={index + 1}
+                      data={[
+                        index + 1,
+                        c.subject_code,
+                        c.subject_name,
+                        c.semester_name,
+                        c.semester_year,
+                        ...scoreTypes.map((type) => c.scores[type] || ""),
+                        c.ten_point_scale,
+                        c.four_point_scale,
+                        c.grade,
+                        c.result,
+                      ]}
+                      style={MyStyle.body}
+                      textStyle={MyStyle.text}
+                      widthArr={widthArr}
+                    />
+                  ))
+                ) : (
                   <Row
-                    key={index + 1}
-                    data={[
-                      index + 1,
-                      c.subject_code,
-                      c.subject_name,
-                      c.semester_name,
-                      c.semester_year,
-                      ...scoreTypes.map((type) => c.scores[type] || ""),
-                      c.ten_point_scale,
-                      c.four_point_scale,
-                      c.grade,
-                      c.result, // Display the icon in the Result column
-                    ]}
+                    data={["", "", "", ...Array(scoreTypes.length).fill("")]}
                     style={MyStyle.body}
                     textStyle={MyStyle.text}
                     widthArr={widthArr}
                   />
-                ))
-              ) : (
-                <Row
-                  data={["", "", "", ...Array(scoreTypes.length).fill("")]}
-                  style={MyStyle.body}
-                  textStyle={MyStyle.text}
-                  widthArr={widthArr}
-                />
-              )}
-            </Table>
-          </View>
+                )}
+              </Table>
+            </View>
+          </ScrollView>
         </ScrollView>
       )}
       {loading && <ActivityIndicator size="large" />}

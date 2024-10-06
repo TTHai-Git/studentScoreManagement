@@ -15,6 +15,9 @@ export default StyleSheet.create({
     fontWeight: "bold",
     marginBottom: 5,
   },
+  text_red_color: {
+    color: "#fa0707",
+  },
   topic: {
     width: "100%",
     marginBottom: 10,

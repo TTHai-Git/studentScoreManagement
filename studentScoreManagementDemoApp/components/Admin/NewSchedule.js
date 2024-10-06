@@ -269,7 +269,7 @@ const NewSchedule = ({ navigation, route }) => {
         />
       )}
 
-      <Text style={styles.label}>Thời gian bắt đầu (HH:mm:sss):</Text>
+      <Text style={styles.label}>Thời gian bắt đầu (HH:mm:ss):</Text>
       <TouchableOpacity
         onPress={() => setShowStartTimePicker(true)}
         style={styles.dateTimePicker}
@@ -290,7 +290,7 @@ const NewSchedule = ({ navigation, route }) => {
         />
       )}
 
-      <Text style={styles.label}>Ngày kết thúc (dd/MM/YYY):</Text>
+      <Text style={styles.label}>Ngày kết thúc (dd/MM/YYYY):</Text>
       <TouchableOpacity
         onPress={() => setShowEndDatePicker(true)}
         style={styles.dateTimePicker}
@@ -311,7 +311,7 @@ const NewSchedule = ({ navigation, route }) => {
         />
       )}
 
-      <Text style={styles.label}>Thời gian kết thúc (HH:mm:sss):</Text>
+      <Text style={styles.label}>Thời gian kết thúc (HH:mm:ss):</Text>
       <TouchableOpacity
         onPress={() => setShowEndTimePicker(true)}
         style={styles.dateTimePicker}

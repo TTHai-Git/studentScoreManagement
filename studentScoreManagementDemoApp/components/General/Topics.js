@@ -146,7 +146,7 @@ const Topics = ({ navigation, route }) => {
     contentOffset,
     contentSize,
   }) => {
-    const paddingToBottom = 20;
+    const paddingToBottom = 1;
     return (
       layoutMeasurement.height + contentOffset.y >=
       contentSize.height - paddingToBottom
@@ -168,7 +168,9 @@ const Topics = ({ navigation, route }) => {
   return (
     <Provider>
       <View style={[MyStyle.container, { padding: 10 }]}>
-        {topics.length === 0 ? (
+        {loading && page === 1 ? (
+          <ActivityIndicator size="large" color="#007bff" />
+        ) : topics.length === 0 ? (
           <Text>Chưa có diễn đàn nào được tạo</Text>
         ) : (
           <ScrollView
@@ -192,31 +194,6 @@ const Topics = ({ navigation, route }) => {
                       />
                     )}
                   />
-                  {user.role === "teacher" && (
-                    <TouchableOpacity
-                      style={Styles.button_del}
-                      onPress={() =>
-                        Alert.alert(
-                          "Delete Confirmation",
-                          "Bạn có chắc muốn xoá diễn đàn này?",
-                          [
-                            {
-                              text: "Cancel",
-                              style: "cancel",
-                            },
-                            {
-                              text: "Delete",
-                              onPress: () => delTopic(c.id),
-                              style: "destructive",
-                            },
-                          ]
-                        )
-                      }
-                    >
-                      <Icon name="trash" size={16} color="#fff" />
-                      <Text style={Styles.buttonText_del}>Xoá</Text>
-                    </TouchableOpacity>
-                  )}
                   <Card.Content>
                     <Text style={Styles.topicStatus}>
                       <Icon
@@ -237,6 +214,31 @@ const Topics = ({ navigation, route }) => {
                       </Button>
                     )}
                   </Card.Content>
+                  {user.role === "teacher" && (
+                    <TouchableOpacity
+                      style={Styles.button_del}
+                      onPress={() =>
+                        Alert.alert(
+                          "Xác Nhận Xoá:",
+                          "Bạn có chắc muốn xoá diễn đàn này?",
+                          [
+                            {
+                              text: "Huỷ",
+                              style: "cancel",
+                            },
+                            {
+                              text: "Đồng Ý",
+                              onPress: () => delTopic(c.id),
+                              style: "destructive",
+                            },
+                          ]
+                        )
+                      }
+                    >
+                      <Icon name="trash" size={16} color="#fff" />
+                      <Text style={Styles.buttonText_del}>Xoá</Text>
+                    </TouchableOpacity>
+                  )}
                 </Card>
               </TouchableOpacity>
             ))}
@@ -269,30 +271,26 @@ const Topics = ({ navigation, route }) => {
             />
             <Button
               mode="contained"
-              icon={() => <Icon name="plus" size={16} color="#FFF" />}
+              icon={() => <Icon name="plus-circle" size={20} />}
               onPress={() => confirmAction(null, "add")}
             >
-              Thêm diễn đàn
+              Tạo Diễn Đàn
             </Button>
           </View>
         )}
-        {/* Confirmation Dialog */}
+
         <Portal>
           <Dialog
             visible={confirmVisible}
             onDismiss={() => setConfirmVisible(false)}
           >
-            <Dialog.Title>Xác nhận</Dialog.Title>
+            <Dialog.Title>Xác Nhận</Dialog.Title>
             <Dialog.Content>
-              <Paragraph>
-                {dialogState.action === "lockUnlock"
-                  ? "Bạn có chắc muốn thay đổi trạng thái diễn đàn?"
-                  : "Bạn có chắc muốn thêm diễn đàn này?"}
-              </Paragraph>
+              <Paragraph>Bạn có chắc chắn với hành động này không?</Paragraph>
             </Dialog.Content>
             <Dialog.Actions>
-              <Button onPress={() => setConfirmVisible(false)}>Hủy</Button>
-              <Button onPress={handleConfirmAction}>Đồng ý</Button>
+              <Button onPress={() => setConfirmVisible(false)}>Huỷ</Button>
+              <Button onPress={handleConfirmAction}>Đồng Ý</Button>
             </Dialog.Actions>
           </Dialog>
         </Portal>
@@ -301,79 +299,27 @@ const Topics = ({ navigation, route }) => {
   );
 };
 
+export default Topics;
+
 const Styles = StyleSheet.create({
   button_del: {
-    flexDirection: "row",
-    alignItems: "center",
+    padding: 10,
     backgroundColor: "#F44336",
-    paddingVertical: 8,
-    paddingHorizontal: 16,
     borderRadius: 5,
-    alignSelf: "flex-end",
-    marginTop: 10,
+    flexDirection: "row",
+    justifyContent: "center",
+    alignItems: "center",
   },
   buttonText_del: {
     color: "#fff",
-    marginLeft: 8,
-    fontWeight: "bold",
+    marginLeft: 5,
   },
   topicStatus: {
-    marginTop: 10,
-    fontSize: 16,
-    color: "#757575",
+    marginTop: 5,
+    fontStyle: "italic",
   },
   addTopic_Comment: {
-    flexDirection: "column",
-    paddingHorizontal: 15,
-    paddingVertical: 20,
-    borderRadius: 8,
-    backgroundColor: "#f9f9f9",
-    elevation: 3,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.3,
-    shadowRadius: 4,
-  },
-  cardContainer: {
-    backgroundColor: "#fff",
-    borderRadius: 8,
-    padding: 15,
-    marginBottom: 10,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 3,
-  },
-  cardTitle: {
-    fontSize: 18,
-    fontWeight: "bold",
-    color: "#333",
-  },
-  cardSubtitle: {
-    fontSize: 14,
-    color: "#757575",
-  },
-  inputField: {
-    backgroundColor: "#f4f4f4",
-    borderRadius: 5,
-    padding: 10,
-    fontSize: 16,
-    marginBottom: 10,
-  },
-  addTopicButton: {
-    backgroundColor: "#4CAF50",
-    paddingVertical: 10,
-    paddingHorizontal: 15,
-    borderRadius: 5,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  addTopicButtonText: {
-    color: "#fff",
-    fontWeight: "bold",
-    fontSize: 16,
+    borderTopWidth: 1,
+    borderColor: "#ddd",
   },
 });
-
-export default Topics;

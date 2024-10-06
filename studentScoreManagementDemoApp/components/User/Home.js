@@ -127,6 +127,15 @@ const Home = ({ navigation }) => {
             <Icon name="line-chart" size={30} color="#fff" />
             <Text style={styles.iconButtonText}>Theo dõi kết quả học tập</Text>
           </TouchableOpacity>
+          <TouchableOpacity
+            style={styles.iconButton}
+            onPress={() => navigation.navigate("EvaluateLearningResults")}
+          >
+            <Icon name="line-chart" size={30} color="#fff" />
+            <Text style={styles.iconButtonText}>
+              Theo dõi đánh giá kết quả học tập
+            </Text>
+          </TouchableOpacity>
         </>
       );
       break;

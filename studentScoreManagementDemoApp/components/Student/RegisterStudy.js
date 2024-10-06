@@ -171,70 +171,78 @@ const RegisterStudy = () => {
   return (
     <PaperProvider>
       <View style={MyStyle.container}>
-        <Searchbar
-          onChangeText={handleSearchChange}
-          value={kw}
-          placeholder="Tìm theo kiếm môn học"
-        />
-        <Button
-          style={MyStyle.button_check_result_register}
-          mode="contained"
-          onPress={showModal}
-        >
-          Xem kết quả đăng ký môn học
-        </Button>
         {studyClassRooms.length > 0 ? (
-          <ScrollView
-            onScroll={loadMore}
-            scrollEventThrottle={400}
-            refreshControl={
-              <RefreshControl
-                refreshing={loading}
-                onRefresh={() => {
-                  setPage(1);
-                  loadStudyClassRooms();
-                }}
-              />
-            }
-          >
-            {studyClassRooms.map((c) => (
-              <TouchableOpacity key={c.id}>
-                <View style={Styles.class}>
-                  <Text style={Styles.text_class}>Lớp: {c.name}</Text>
-                  <Text style={Styles.text_class}>
-                    Mã Môn: {c.subject_code}
-                  </Text>
-                  <Text style={Styles.text_class}>
-                    Tên Môn: {c.subject_name}
-                  </Text>
-                  <Text style={Styles.text_class}>Nhóm: {c.group_name}</Text>
-                  <Text style={Styles.text_class}>
-                    Học kỳ: {c.semester_name}
-                  </Text>
-                  <Text style={Styles.text_class}>
-                    Năm Học: {c.semester_year}
-                  </Text>
-                  <Text style={Styles.text_class}>
-                    Giảng viên: {c.teacher_name}
-                  </Text>
-                  <Text style={Styles.text_class}>
-                    Ngày Bắt Đầu: {formatDate(c.started_date)}
-                  </Text>
-                  <Text style={Styles.text_class}>
-                    Ngày Kết Thúc: {formatDate(c.ended_date)}
-                  </Text>
-                  <Button
-                    style={MyStyle.button_user}
-                    mode="contained"
-                    onPress={() => registerStudy(c.id)}
-                  >
-                    Đăng Ký
-                  </Button>
-                </View>
-              </TouchableOpacity>
-            ))}
-            {loading && page > 1 && <ActivityIndicator />}
-          </ScrollView>
+          <>
+            <Searchbar
+              onChangeText={handleSearchChange}
+              value={kw}
+              placeholder="Tìm theo kiếm môn học"
+            />
+            <Button
+              style={MyStyle.button_check_result_register}
+              mode="contained"
+              onPress={showModal}
+            >
+              Xem kết quả đăng ký môn học
+            </Button>
+            <ScrollView
+              onScroll={loadMore}
+              scrollEventThrottle={400}
+              refreshControl={
+                <RefreshControl
+                  refreshing={loading}
+                  onRefresh={() => {
+                    setPage(1);
+                    loadStudyClassRooms();
+                  }}
+                />
+              }
+            >
+              {studyClassRooms.map((c) => (
+                <TouchableOpacity key={c.id}>
+                  <View style={Styles.class}>
+                    <Text style={Styles.text_class}>Lớp: {c.name}</Text>
+                    <Text style={Styles.text_class}>
+                      Mã Môn: {c.subject_code}
+                    </Text>
+                    <Text style={Styles.text_class}>
+                      Tên Môn: {c.subject_name}
+                    </Text>
+                    <Text style={Styles.text_class}>Nhóm: {c.group_name}</Text>
+                    <Text style={Styles.text_class}>
+                      Học kỳ: {c.semester_name}
+                    </Text>
+                    <Text style={Styles.text_class}>
+                      Năm Học: {c.semester_year}
+                    </Text>
+                    <Text style={Styles.text_class}>
+                      Giảng viên: {c.teacher_name}
+                    </Text>
+                    <Text style={Styles.text_class}>
+                      Ngày Bắt Đầu: {formatDate(c.started_date)}
+                    </Text>
+                    <Text style={Styles.text_class}>
+                      Ngày Kết Thúc: {formatDate(c.ended_date)}
+                    </Text>
+                    <Text style={[Styles.text_class, Styles.text_red_color]}>
+                      Sỉ số hiện tại:{" "}
+                      {c.isregister
+                        ? c.total_student + "/90 (Sinh Viên)"
+                        : "Đã đủ sỉ số"}
+                    </Text>
+                    <Button
+                      style={MyStyle.button_user}
+                      mode="contained"
+                      onPress={() => registerStudy(c.id)}
+                    >
+                      Đăng Ký
+                    </Button>
+                  </View>
+                </TouchableOpacity>
+              ))}
+              {loading && page > 1 && <ActivityIndicator />}
+            </ScrollView>
+          </>
         ) : (
           <Text>
             Không tìm thấy lớp học nào đang mở để đăng ký Hoặc Ngoài thời gian
@@ -297,15 +305,15 @@ const RegisterStudy = () => {
                                 style={MyStyle.button_del}
                                 onPress={() =>
                                   Alert.alert(
-                                    "Delete Confirmation",
+                                    "Xác Nhận Xoá:",
                                     "Bạn có muốn xoá môn học đã đăng ký này không học này hay không?",
                                     [
                                       {
-                                        text: "Cancel",
+                                        text: "Huỷ",
                                         style: "cancel",
                                       },
                                       {
-                                        text: "Delete",
+                                        text: "Đồng Ý",
                                         onPress: () => delRegistered(c.id),
                                         style: "destructive",
                                       },

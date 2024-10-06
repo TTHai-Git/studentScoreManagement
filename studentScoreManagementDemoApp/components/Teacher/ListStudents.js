@@ -58,7 +58,7 @@ const ListStudents = ({ navigation, route }) => {
         Alert.alert("Error", error.response.data.message);
       } else {
         console.log("Unexpected error: ", error);
-        Alert.alert("Error", "Failed to load Scores of StudyClassrooms.");
+        Alert.alert("Error", "Chưa có danh sách sinh viên");
       }
     } finally {
       setLoading(false);
@@ -134,7 +134,7 @@ const ListStudents = ({ navigation, route }) => {
               value={kw}
               placeholder="Tìm theo từ khóa"
             />
-            <ScrollView horizontal={true}>
+            <ScrollView horizontal={true} vertical={true}>
               <View style={MyStyle.table}>
                 {loading ? (
                   <ActivityIndicator size="large" color="#0000ff" />

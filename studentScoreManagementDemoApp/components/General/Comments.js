@@ -293,15 +293,15 @@ const Comments = ({ route }) => {
                         size={20}
                         onPress={() =>
                           Alert.alert(
-                            "Delete Confirmation",
+                            "Xác Nhận Xoá:",
                             "Bạn có chắc muốn xoá bình luận này?",
                             [
                               {
-                                text: "Cancel",
+                                text: "Huỷ",
                                 style: "cancel",
                               },
                               {
-                                text: "Delete",
+                                text: "Đồng Ý",
                                 onPress: () => delComment(c.id),
                                 style: "destructive",
                               },

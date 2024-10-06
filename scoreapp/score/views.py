@@ -170,7 +170,8 @@ class UserViewSet(viewsets.ViewSet, generics.CreateAPIView, generics.ListAPIView
                 token = jwt.encode(token_payload, settings.SECRET_KEY, algorithm='HS256')  # Mã hóa token
 
                 subject = 'Mail Reset Password Ứng Dụng ScoreApp'
-                message = f'Mã Otp reset password của bạn dùng trong 1 lần hết hạn trong vòng 10 phút kể từ lúc gửi mail: {token}'
+                message = f'Mã Otp reset password của bạn dùng trong 1 lần ' \
+                          f'hết hạn trong vòng 10 phút kể từ lúc gửi mail: {token}'
                 email_from = settings.EMAIL_HOST_USER
                 recipient_list = [user.email]
                 send_mail(subject, message, email_from, recipient_list, fail_silently=False)
@@ -267,6 +268,12 @@ class TeacherViewSet(viewsets.ViewSet, generics.ListAPIView, generics.CreateAPIV
         except Exception as ex:
             # Catch any other errors and return a meaningful message
             return Response({"message": f"An error occurred: {str(ex)}"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+
+class AttendViewSet(viewsets.ViewSet, generics.ListAPIView):
+    queryset = Attend.objects.all()
+    serializer_class = serializers.AttendModelSerializer
+    # pagination_class = pagination.EventsPaginator
 
 
 class EventViewSet(viewsets.ViewSet, generics.ListAPIView):
@@ -656,13 +663,11 @@ class SemesterViewSet(viewsets.ViewSet):
 
     @action(methods=['get'], url_path='list', detail=False)
     def get_list_semester(self, request, pk=None):
-        semestes = Semester.objects.filter(year__icontains=str(datetime.now().year))
+        semesters = Semester.objects.all()
         try:
-            if semestes:
-                paginator = pagination.SemesterPaginator()
-                page = paginator.paginate_queryset(semestes, request)
-                serializer = serializers.SemesterSerializer(page, many=True)
-                return paginator.get_paginated_response(serializer.data)
+            if semesters:
+                return Response({"results": serializers.SemesterSerializer(semesters, many=True).data},
+                                status=status.HTTP_200_OK)
             else:
                 return Response({"message": "Lỗi load học kỳ!"}, status=status.HTTP_400_BAD_REQUEST)
         except Exception as e:
@@ -714,21 +719,15 @@ class StudyClassRoomViewSet(viewsets.ViewSet, viewsets.generics.ListAPIView, vie
             studyclassrooms = StudyClassRoom.objects.filter(teacher=teacher, semester=semester)
         else:
             return Response({"message": "Người dùng không hợp lệ!"}, status=status.HTTP_401_UNAUTHORIZED)
-        kw = request.query_params.get('kw')  # Use query_params for GET requests
-
-        if kw:
-            studyclassrooms = studyclassrooms.annotate(
-                search_semester=Concat('semester__name', Value(' '), 'semester__year')
-            ).filter(search_semester=kw)  # Corrected typo: search_semster to search_semester
 
         schedule_studyclassrooms = Schedule.objects.filter(studyclassroom__in=studyclassrooms)
         if schedule_studyclassrooms:
             return Response(
-                {"data": serializers.ScheduleSerializer(schedule_studyclassrooms, many=True).data},
+                {"results": serializers.ScheduleSerializer(schedule_studyclassrooms, many=True).data},
                 status=status.HTTP_200_OK
             )
         else:
-            return Response({"data": []}, status=status.HTTP_200_OK)
+            return Response({"results": []}, status=status.HTTP_200_OK)
 
     @action(methods=['post'], url_path='new-schedule', detail=True)
     def new_schedule(self, request, pk=None):
@@ -873,55 +872,57 @@ class StudyClassRoomViewSet(viewsets.ViewSet, viewsets.generics.ListAPIView, vie
     def register_study(self, request, pk):
         studyclassroom_register = self.get_object()
         id_student = request.data.get('student_id')
+        if studyclassroom_register.isregister:
+            try:
+                # Retrieve student object, handle case where student ID is invalid
+                student = Student.objects.get(id=id_student)
 
-        try:
-            # Retrieve student object, handle case where student ID is invalid
-            student = Student.objects.get(id=id_student)
+                # Retrieve all study classrooms the student is currently registered in
+                studies = Study.objects.filter(student=student)
+                studyclassroom_ids = studies.values_list('studyclassroom', flat=True)
+                studyclassrooms = StudyClassRoom.objects.filter(id__in=studyclassroom_ids)
 
-            # Retrieve all study classrooms the student is currently registered in
-            studies = Study.objects.filter(student=student)
-            studyclassroom_ids = studies.values_list('studyclassroom', flat=True)
-            studyclassrooms = StudyClassRoom.objects.filter(id__in=studyclassroom_ids)
+                # Check for conflicts
+                for studyclassroom in studyclassrooms:
+                    if studyclassroom.group != studyclassroom_register.group and \
+                            studyclassroom.subject.name == studyclassroom_register.subject.name and \
+                            studyclassroom.semester == studyclassroom_register.semester:
+                        return Response({
+                            "message": "Đăng ký lớp học thất bại! Trùng lớp học có cùng môn học trong cùng một học kỳ"
+                        }, status=status.HTTP_400_BAD_REQUEST)
 
-            # Check for conflicts
-            for studyclassroom in studyclassrooms:
-                if studyclassroom.group != studyclassroom_register.group and \
-                        studyclassroom.subject.name == studyclassroom_register.subject.name and \
-                        studyclassroom.semester == studyclassroom_register.semester:
-                    return Response({
-                        "message": "Đăng ký lớp học thất bại! Trùng lớp học có cùng môn học trong cùng một học kỳ"
-                    }, status=status.HTTP_400_BAD_REQUEST)
+                    if studyclassroom.started_date == studyclassroom_register.started_date:
+                        schedule_studyclassroom = Schedule.objects.filter(studyclassroom=studyclassroom)
+                        schedule_studyclassroom_register = Schedule.objects.filter(studyclassroom=studyclassroom_register)
 
-                if studyclassroom.started_date == studyclassroom_register.started_date:
-                    schedule_studyclassroom = Schedule.objects.filter(studyclassroom=studyclassroom)
-                    schedule_studyclassroom_register = Schedule.objects.filter(studyclassroom=studyclassroom_register)
+                        for schedule in schedule_studyclassroom:
+                            for schedule_register in schedule_studyclassroom_register:
+                                if schedule.started_time == schedule_register.started_time and \
+                                        schedule.ended_time == schedule_register.ended_time:
+                                    return Response({
+                                        "message": f"Đăng ký lớp học thất bại! Trùng lịch học {studyclassroom.subject.name} "
+                                                   "đã đăng ký từ trước trong cùng một học kỳ"
+                                    }, status=status.HTTP_400_BAD_REQUEST)
 
-                    for schedule in schedule_studyclassroom:
-                        for schedule_register in schedule_studyclassroom_register:
-                            if schedule.started_time == schedule_register.started_time and \
-                                    schedule.ended_time == schedule_register.ended_time:
-                                return Response({
-                                    "message": f"Đăng ký lớp học thất bại! Trùng lịch học {studyclassroom.subject.name} "
-                                               "đã đăng ký từ trước trong cùng một học kỳ"
-                                }, status=status.HTTP_400_BAD_REQUEST)
+                        return Response({
+                            "message": f"Đăng ký lớp học thất bại! Trùng lịch học {studyclassroom.subject.name} "
+                                       "đã đăng ký từ trước trong cùng một học kỳ"
+                        }, status=status.HTTP_400_BAD_REQUEST)
 
-                    return Response({
-                        "message": f"Đăng ký lớp học thất bại! Trùng lịch học {studyclassroom.subject.name} "
-                                   "đã đăng ký từ trước trong cùng một học kỳ"
-                    }, status=status.HTTP_400_BAD_REQUEST)
+                # No conflicts found, register the study
+                study_register = Study.objects.create(student=student, studyclassroom=studyclassroom_register)
+                return Response({"message": "Đăng ký lớp học thành công"}, status=status.HTTP_201_CREATED)
 
-            # No conflicts found, register the study
-            study_register = Study.objects.create(student=student, studyclassroom=studyclassroom_register)
-            return Response({"message": "Đăng ký lớp học thành công"}, status=status.HTTP_201_CREATED)
+            except Student.DoesNotExist:
+                return Response({"message": "Student not found"}, status=status.HTTP_404_NOT_FOUND)
+            except Exception as ex:
+                # Optional: log the exception if logging is set up
+                # logger.error(f"Unexpected error occurred: {ex}")
 
-        except Student.DoesNotExist:
-            return Response({"message": "Student not found"}, status=status.HTTP_404_NOT_FOUND)
-        except Exception as ex:
-            # Optional: log the exception if logging is set up
-            # logger.error(f"Unexpected error occurred: {ex}")
-
-            return Response({"message": "An unexpected error occurred: " + str(ex)},
-                            status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+                return Response({"message": "An unexpected error occurred: " + str(ex)},
+                                status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+        else:
+            return Response({"message": "Lớp này đã đủ sỉ số!"}, status=status.HTTP_400_BAD_REQUEST)
 
     @action(methods=['post'], url_path='save-scores', url_name='save-scores', detail=True)
     def save_scores(self, request, pk):
@@ -1212,7 +1213,8 @@ class StudyClassRoomViewSet(viewsets.ViewSet, viewsets.generics.ListAPIView, vie
                     subject = f"Bảng Điểm Tổng Hợp của lớp {studyclassroom.name} - {studyclassroom.subject.name} " \
                               f"- {studyclassroom.group.name} "
                     message = f"Kính gửi các sinh viên" \
-                              f"\nĐây là bảng điểm tổng hợp của lớp học. Mọi thắc mắc vui lòng liên hệ về email của thầy:" \
+                              f"\nĐây là bảng điểm tổng hợp của lớp học. " \
+                              f"Mọi thắc mắc vui lòng liên hệ về email của thầy:" \
                               f"\nGiáo viên: {teacher.last_name} {teacher.first_name} \nEmail: {teacher.email}" \
                               f"\n\nTrân trọng"
                     from_email = settings.EMAIL_HOST_USER
@@ -1392,7 +1394,7 @@ class StudentViewSet(viewsets.ViewSet, generics.ListAPIView, generics.CreateAPIV
     parser_classes = [MultiPartParser]
 
     def get_permissions(self):
-        if self.action in ['get_details_study','evaluate_learning_results', 'get_studyclassrooms',
+        if self.action in ['get_details_study', 'evaluate_learning_results', 'get_studyclassrooms',
                            'list_studyclassrooms_for_register', 'get_list_registered']:
             return [permissions.IsAuthenticated()]
 
@@ -1407,7 +1409,8 @@ class StudentViewSet(viewsets.ViewSet, generics.ListAPIView, generics.CreateAPIV
 
             # Filter study classrooms based on the query parameters
             if kw:
-                subjects = Subject.objects.filter(name__icontains=kw)
+                subjects = Subject.objects.annotate().filter(Q(name__icontains=kw) | Q(code__icontains=kw))
+
                 studyclassrooms = StudyClassRoom.objects.filter(subject__in=subjects, islock=True)
             elif semester and semester != "Show All":
                 studyclassrooms = StudyClassRoom.objects.annotate(
@@ -1420,7 +1423,9 @@ class StudentViewSet(viewsets.ViewSet, generics.ListAPIView, generics.CreateAPIV
             studies = student.study_set.select_related('student').filter(studyclassroom__in=studyclassrooms)
 
             if not studies.exists():
-                return Response({"message": "Bạn không có kết quả học tập ở học kỳ này!"}, status=status.HTTP_200_OK)
+                return Response({"message": "Bạn không có kết quả học tập ở học kỳ này "
+                                            "hoặc bảng điểm của lớp học dạy môn học này chưa khoá!"},
+                                status=status.HTTP_200_OK)
 
             scoredetails = ScoreDetails.objects.filter(study__in=studies).select_related(
                 'scorecolumn', 'study__studyclassroom__subject', 'study__studyclassroom__semester'
@@ -1487,14 +1492,7 @@ class StudentViewSet(viewsets.ViewSet, generics.ListAPIView, generics.CreateAPIV
         student = self.get_object()
         studyclassrooms = StudyClassRoom.objects.filter(islock=True)
         kw = request.query_params.get('kw')
-        current_year = datetime.now().year
-        year_format = f"{current_year - 1} - {current_year}"
-
-        # Filter the studies associated with the student and classrooms
-        studies = student.study_set.select_related('student').filter(
-            studyclassroom__in=studyclassrooms,
-            studyclassroom__semester__year=year_format
-        )
+        studies = student.study_set.select_related('student')
         if kw:
             studies = studies.filter(studyclassroom__semester__year=kw)
 
@@ -1542,7 +1540,7 @@ class StudentViewSet(viewsets.ViewSet, generics.ListAPIView, generics.CreateAPIV
 
         # Calculate GPA for each semester
         results = []
-        semesters = Semester.objects.filter(year=year_format)
+        semesters = Semester.objects.filter(year=kw)
 
         for semester in semesters:
             semester_results = [sr['four_point_scale'] for sr in studyresult if sr['semester_name'] == semester.name]
@@ -1614,7 +1612,6 @@ class StudentViewSet(viewsets.ViewSet, generics.ListAPIView, generics.CreateAPIV
                 {"message": "Ngoài thời gian đăng ký môn học!"},
                 status=status.HTTP_404_NOT_FOUND
             )
-
         try:
             # Exclude study classrooms already registered by the student
             studyclassrooms_for_register = StudyClassRoom.objects.filter(isregister=True, semester=semester_real_time)
@@ -1625,11 +1622,28 @@ class StudentViewSet(viewsets.ViewSet, generics.ListAPIView, generics.CreateAPIV
                 ).filter(
                     Q(subject__name__icontains=kw) | Q(search_name__icontains=kw) | Q(subject__code__icontains=kw)
                 )
+            data = []
+            for st in studyclassrooms_for_register:
+                total_student = Study.objects.filter(studyclassroom=st).count()
+                data.append({
+                    "id": st.id,
+                    "name": st.name,
+                    "subject_code": st.subject.code,
+                    "subject_name": st.subject.name,
+                    "teacher_name": st.teacher.last_name + ' ' + st.teacher.first_name,
+                    "group_name": st.group.name,
+                    "semester_name": st.semester.name,
+                    "semester_year": st.semester.year,
+                    "started_date": st.started_date,
+                    "ended_date": st.ended_date,
+                    "isregister": st.isregister,
+                    "total_student": total_student,
 
+                })
             # Initialize paginator
             paginator = pagination.StudyClassRoomPaginator()
-            page = paginator.paginate_queryset(studyclassrooms_for_register, request)
-            serializer = serializers.StudyClassRoomSerializer(page, many=True)
+            page = paginator.paginate_queryset(data, request)
+            serializer = serializers.StudyClassRoomForRegisterSerializer(page, many=True)
 
             return paginator.get_paginated_response(serializer.data)
 

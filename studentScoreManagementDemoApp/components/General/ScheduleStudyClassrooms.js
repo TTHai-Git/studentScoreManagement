@@ -67,13 +67,20 @@ const ScheduleStudyClassrooms = ({ navigation, route }) => {
   const [markedDates, setMarkedDates] = useState({});
 
   const loadSchedule = async () => {
-    setLoading(true);
     try {
+      setLoading(true);
       const url = endpoints["get-schedule"];
       const res = await authApi(user.access_token).get(url);
-      const formattedData = formatScheduleData(res.data.data);
-      setSchedule(formattedData);
-      setMarkedDates(generateMarkedDates(formattedData));
+      const formattedData = formatScheduleData(res.data.results);
+      if (res.data.results.length === 0) {
+        Alert.alert(
+          "Thông Báo: ",
+          "Chưa có lịch học tập của các lớp học cho sinh viên và giảng viên"
+        );
+      } else {
+        setSchedule(formattedData);
+        setMarkedDates(generateMarkedDates(formattedData));
+      }
     } catch (error) {
       console.error(error.response);
       if (error.response && error.response.data) {
@@ -194,17 +201,17 @@ const ScheduleStudyClassrooms = ({ navigation, route }) => {
                 style={styles.button_del}
                 onPress={() =>
                   Alert.alert(
-                    "Delete Confirmation",
+                    "Xác Nhận Xoá",
                     "Bạn có muốn xoá lịch học này hay không?",
                     [
                       {
-                        text: "Cancel",
-                        style: "cancel",
-                      },
-                      {
-                        text: "Delete",
+                        text: "Đồng Ý",
                         onPress: () => deleteSchedule(item.id),
                         style: "destructive",
+                      },
+                      {
+                        text: "Huỷ",
+                        style: "cancel",
                       },
                     ]
                   )
@@ -218,11 +225,7 @@ const ScheduleStudyClassrooms = ({ navigation, route }) => {
         </View>
       </>
     ) : (
-      <>
-        <Text style={styles.itemText}>
-          Bạn không có lịch học nào vào ngày hôm nay
-        </Text>
-      </>
+      <></>
     );
   };
 
@@ -238,10 +241,10 @@ const ScheduleStudyClassrooms = ({ navigation, route }) => {
     });
 
     // Check if the date already has a schedule
-    if (hasDot) {
+    if (hasDot && user.role === "teacher") {
       // Show a dialog with two options
       Alert.alert(
-        "Chọn hành động",
+        "Chọn Hành Động:",
         `Bạn đã có lịch vào ngày ${formattedDate}. Bạn có muốn Thêm lịch học hay không?`,
         [
           {
@@ -255,7 +258,7 @@ const ScheduleStudyClassrooms = ({ navigation, route }) => {
             },
           },
           {
-            text: "Cancel",
+            text: "Xem lịch học",
             style: "cancel",
           },
         ]
@@ -267,8 +270,6 @@ const ScheduleStudyClassrooms = ({ navigation, route }) => {
           startedDate: formattedDate,
           endedDate: formattedDate,
         });
-      } else {
-        Alert.alert("Error", "Only teachers can create new schedules.");
       }
     }
   };

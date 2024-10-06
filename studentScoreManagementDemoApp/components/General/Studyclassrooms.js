@@ -94,6 +94,7 @@ const StudyClassRooms = ({ navigation, route }) => {
     try {
       const url = `${endpoints["list-semester"]}`;
       const res = await authApi(user.access_token).get(url);
+      // console.log(res.data.results);
       const arr = res.data.results.map((item) => ({
         label: item.name + " " + item.year,
         value: item.name + " " + item.year,
