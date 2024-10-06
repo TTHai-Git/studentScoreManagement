@@ -872,7 +872,10 @@ class StudyClassRoomViewSet(viewsets.ViewSet, viewsets.generics.ListAPIView, vie
     def register_study(self, request, pk):
         studyclassroom_register = self.get_object()
         id_student = request.data.get('student_id')
+
         if studyclassroom_register.isregister:
+            if Study.objects.filter(studyclassroom=studyclassroom_register).count() >= 90:
+                return Response({"meesage": "Đăng ký lớp học thất bại! Lớp học đã đủ sỉ số."})
             try:
                 # Retrieve student object, handle case where student ID is invalid
                 student = Student.objects.get(id=id_student)
@@ -888,7 +891,7 @@ class StudyClassRoomViewSet(viewsets.ViewSet, viewsets.generics.ListAPIView, vie
                             studyclassroom.subject.name == studyclassroom_register.subject.name and \
                             studyclassroom.semester == studyclassroom_register.semester:
                         return Response({
-                            "message": "Đăng ký lớp học thất bại! Trùng lớp học có cùng môn học trong cùng một học kỳ"
+                            "message": "Đăng ký lớp học thất bại! Trùng lớp học có cùng môn học trong cùng một học kỳ."
                         }, status=status.HTTP_400_BAD_REQUEST)
 
                     if studyclassroom.started_date == studyclassroom_register.started_date:
@@ -901,12 +904,12 @@ class StudyClassRoomViewSet(viewsets.ViewSet, viewsets.generics.ListAPIView, vie
                                         schedule.ended_time == schedule_register.ended_time:
                                     return Response({
                                         "message": f"Đăng ký lớp học thất bại! Trùng lịch học {studyclassroom.subject.name} "
-                                                   "đã đăng ký từ trước trong cùng một học kỳ"
+                                                   "đã đăng ký từ trước trong cùng một học kỳ."
                                     }, status=status.HTTP_400_BAD_REQUEST)
 
                         return Response({
                             "message": f"Đăng ký lớp học thất bại! Trùng lịch học {studyclassroom.subject.name} "
-                                       "đã đăng ký từ trước trong cùng một học kỳ"
+                                       "đã đăng ký từ trước trong cùng một học kỳ."
                         }, status=status.HTTP_400_BAD_REQUEST)
 
                 # No conflicts found, register the study
