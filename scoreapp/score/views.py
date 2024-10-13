@@ -4,6 +4,7 @@ from datetime import timedelta, datetime
 from decimal import Decimal, ROUND_HALF_UP
 import jwt
 from cloudinary.uploader import destroy
+from django.dispatch import receiver
 from django.utils import timezone
 import cloudinary
 from django.core.mail import send_mail, EmailMessage
@@ -46,9 +47,47 @@ class UserViewSet(viewsets.ViewSet, generics.CreateAPIView, generics.ListAPIView
     parser_classes = [parsers.MultiPartParser]
 
     def get_permissions(self):
-        if self.action == 'current_user':
+        if self.action in ['current_user', 'update_last_login', 'load_activities']:
             return [permissions.IsAuthenticated()]
         return [permissions.AllowAny()]
+
+    @action(methods=['patch'], url_path='logout', detail=True)
+    def update_last_login(self, request, pk=None):
+        user = self.get_object()
+        user.last_login = datetime.now()
+        user.save()
+        return Response({"message": "Update datetime of last_login of User"}, status=status.HTTP_200_OK)
+
+    # @action(methods=['get'], url_path='load-activities', detail=True)
+    # def load_activities(self, request, pk=None):
+    #     user = self.get_object()
+    #     if user.role == 'teacher':
+    #         print('Hoat dong moi cua giao vien')
+    #     else:
+    #         dataTopic = []
+    #         dataComment = []
+    #         student = Student.objects.get(id=user.id)
+    #         studies = Study.objects.filter(student=student)
+    #         for study in studies:
+    #             topics = Topic.objects.filter(studyclassroom=study.studyclassroom, created_date__gt=student.last_login)
+    #             for topic in topics:
+    #                 if topic:
+    #                     dataTopic.append({
+    #                         "topic_id": topic.id,
+    #                         "topic_title": topic.title,
+    #                         "topic_created_date": topic.created_date,
+    #                     })
+    #                 else:
+    #                     comments = Comment.objects.filter(topic=topic, created_date__gt=student.last_login)
+    #                     if comments:
+    #                         for comment in comments:
+    #                             dataComment.append({
+    #                                 "user_comment": comment.user.last_name + ' ' + comment.user.first_name,
+    #                                 "comment_content": comment.content,
+    #                                 "comment_created_date": comment.created_date,
+    #                             })
+    #         return Response({"data_topic_results": serializers.TopicActivitiesSerializer(dataTopic, many=True).data},
+    #                         status=status.HTTP_200_OK)
 
     @action(methods=['get'], url_path='notifications', detail=True)
     def get_notifications(self, request, pk=None):
@@ -200,7 +239,7 @@ class TeacherViewSet(viewsets.ViewSet, generics.ListAPIView, generics.CreateAPIV
             teacher = self.get_object()
 
             # Query for active study classrooms for the teacher
-            studyclassrooms = StudyClassRoom.objects.filter(teacher=teacher, active=True)
+            studyclassrooms = StudyClassRoom.objects.filter(teacher=teacher, active=True, isregister=True)
 
             # Filter by semester if provided and not 'Show All'
             if semester and semester != "Show All":
@@ -485,6 +524,9 @@ class CommentViewSet(viewsets.ViewSet, viewsets.generics.RetrieveAPIView):
     @action(methods=['delete'], url_path='del-comment', detail=True)
     def del_comment(self, request, pk=None):
         comment = self.get_object()
+        topic = Topic.objects.get(id=comment.topic.id)
+        if not topic.active:
+            return Response({"message": "Xoá comment thất bại! Diễn đàn đã bị khoá."})
         comment_files = comment.files.all()
         user = request.user
 
@@ -535,7 +577,7 @@ class ScheduleViewSet(viewsets.ViewSet, viewsets.generics.ListAPIView, viewsets.
                 started_time = datetime.fromisoformat(started_time)
                 ended_time = datetime.fromisoformat(ended_time)
             except ValueError:
-                return Response({'message': 'Invalid datetime format.'}, status=status.HTTP_400_BAD_REQUEST)
+                return Response({'message': 'Lỗi định dạng thời gian.'}, status=status.HTTP_400_BAD_REQUEST)
 
             # Check if the end time is after the start time
             if ended_time <= started_time:
@@ -570,7 +612,7 @@ class ScheduleViewSet(viewsets.ViewSet, viewsets.generics.ListAPIView, viewsets.
                     else:
                         setattr(schedule, k, v)
             except ValueError:
-                return Response({'message': 'Invalid datetime format.'}, status=status.HTTP_400_BAD_REQUEST)
+                return Response({'message': 'Lỗi sai định dạng thời gian.'}, status=status.HTTP_400_BAD_REQUEST)
 
             schedule.save()
 
@@ -608,7 +650,7 @@ class ScheduleViewSet(viewsets.ViewSet, viewsets.generics.ListAPIView, viewsets.
                 service.events().patch(calendarId="primary", eventId=schedule.google_calendar_event_id,
                                        body=event).execute()
                 return Response(
-                    {"message": "Cập nhật lịch thành công và đã đồng bộ với Google Calendar."},
+                    {"message": "Cập nhật lịch và đã đồng bộ với Google Calendar thành công."},
                     status=status.HTTP_200_OK
                 )
             except Exception as e:
@@ -752,7 +794,7 @@ class StudyClassRoomViewSet(viewsets.ViewSet, viewsets.generics.ListAPIView, vie
                 ended_time = datetime.fromisoformat(ended_time)
             except ValueError:
                 return Response(
-                    {'message': 'Lỗi định dạng thời gian lịch học'},
+                    {'message': 'Lỗi sai định dạng thời gian'},
                     status=status.HTTP_400_BAD_REQUEST
                 )
 
@@ -848,7 +890,7 @@ class StudyClassRoomViewSet(viewsets.ViewSet, viewsets.generics.ListAPIView, vie
                 schedule.save()
 
                 return Response(
-                    {"message": "Tạo lịch thành công và đồng bộ với Google Calendar."},
+                    {"message": "Tạo lịch và đồng bộ với Google Calendar thành công."},
                     status=status.HTTP_201_CREATED
                 )
             else:
@@ -896,7 +938,8 @@ class StudyClassRoomViewSet(viewsets.ViewSet, viewsets.generics.ListAPIView, vie
 
                     if studyclassroom.started_date == studyclassroom_register.started_date:
                         schedule_studyclassroom = Schedule.objects.filter(studyclassroom=studyclassroom)
-                        schedule_studyclassroom_register = Schedule.objects.filter(studyclassroom=studyclassroom_register)
+                        schedule_studyclassroom_register = Schedule.objects.filter(
+                            studyclassroom=studyclassroom_register)
 
                         for schedule in schedule_studyclassroom:
                             for schedule_register in schedule_studyclassroom_register:
@@ -906,12 +949,6 @@ class StudyClassRoomViewSet(viewsets.ViewSet, viewsets.generics.ListAPIView, vie
                                         "message": f"Đăng ký lớp học thất bại! Trùng lịch học {studyclassroom.subject.name} "
                                                    "đã đăng ký từ trước trong cùng một học kỳ."
                                     }, status=status.HTTP_400_BAD_REQUEST)
-
-                        return Response({
-                            "message": f"Đăng ký lớp học thất bại! Trùng lịch học {studyclassroom.subject.name} "
-                                       "đã đăng ký từ trước trong cùng một học kỳ."
-                        }, status=status.HTTP_400_BAD_REQUEST)
-
                 # No conflicts found, register the study
                 study_register = Study.objects.create(student=student, studyclassroom=studyclassroom_register)
                 return Response({"message": "Đăng ký lớp học thành công"}, status=status.HTTP_201_CREATED)
@@ -951,7 +988,7 @@ class StudyClassRoomViewSet(viewsets.ViewSet, viewsets.generics.ListAPIView, vie
                             else:
                                 scoredetail.score = float(score["score"])
                                 scoredetail.save()
-                return Response({"message": "Lưu điểm thành công"}, status=status.HTTP_200_OK)
+                return Response({"message": "Lưu bảng điểm thành công"}, status=status.HTTP_200_OK)
             except Exception as ex:
                 return Response({"message": str(ex)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 

@@ -244,10 +244,7 @@ const RegisterStudy = () => {
             </ScrollView>
           </>
         ) : (
-          <Text>
-            Không tìm thấy lớp học nào đang mở để đăng ký Hoặc Ngoài thời gian
-            đăng ký môn học !!!
-          </Text>
+          <Text>Ngoài thời gian đăng ký môn học !!!</Text>
         )}
 
         <Portal>

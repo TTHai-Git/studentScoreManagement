@@ -195,8 +195,7 @@ const Register = ({ route }) => {
             });
           }
 
-          Alert.alert("Success", "Cấp tài khoản cho người dùng thành công");
-          nav.navigate("Home");
+          Alert.alert("Success", "Cấp tài khoản Firebase để chat thành công");
         } catch (error) {
           console.error("Firebase registration error:", error.message || error);
           Alert.alert(

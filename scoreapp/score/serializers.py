@@ -211,6 +211,18 @@ class TopicSerializer(serializers.ModelSerializer):
         fields = ['id', 'title', 'created_date', 'active', 'studyclassroom']
 
 
+class TopicActivitiesSerializer(serializers.Serializer):
+    topic_id = serializers.IntegerField()
+    topic_title = serializers.CharField()
+    topic_created_date = serializers.DateTimeField()
+
+
+class CommentActivitiesSerializer(serializers.Serializer):
+    user_comment = serializers.CharField()
+    comment_content = serializers.CharField()
+    comment_created_date = serializers.DateTimeField()
+
+
 class UserCommentSerializer(serializers.ModelSerializer):
     class Meta:
         model = User

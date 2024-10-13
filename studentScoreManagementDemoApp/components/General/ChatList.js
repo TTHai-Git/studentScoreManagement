@@ -1,21 +1,21 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useCallback, useRef } from "react";
 import {
   View,
   Text,
   FlatList,
   TouchableOpacity,
-  ActivityIndicator
+  ActivityIndicator,
 } from "react-native";
-import { useNavigation } from "@react-navigation/native";
+import { useNavigation, useFocusEffect } from "@react-navigation/native";
 import {
   collection,
   doc,
   getDocs,
-  limit,
   onSnapshot,
   orderBy,
   query,
   setDoc,
+  limit,
 } from "firebase/firestore";
 import { auth, database } from "../../configs/Firebase";
 import { Avatar } from "react-native-paper";
@@ -23,201 +23,171 @@ import MyStyle from "../../styles/MyStyle";
 
 const ChatList = () => {
   const [users, setUsers] = useState([]);
-  const [loading, setLoading] = useState(true); // State for loading indicator
-  const [imageError, setImageError] = useState(false);
+  const [loading, setLoading] = useState(true);
   const currentUser = auth.currentUser;
   const navigation = useNavigation();
 
-  const fetchUsers = async () => {
+  // Use ref to track active listeners
+  const unsubscribeRefs = useRef([]);
+
+  const fetchUsers = useCallback(async () => {
     try {
-      const userCollection = collection(database, "users");
-      const userSnapshot = await getDocs(userCollection);
+      const userSnapshot = await getDocs(collection(database, "users"));
       const userList = userSnapshot.docs.map((doc) => doc.data());
 
-      // Filter out the current user from the userList
-      const filteredUserList = userList.filter(
-        (user) => user.uid !== currentUser.uid && user.role !== "admin"
-      );
+      const usersWithMessages = await Promise.all(
+        userList.map(async (user) => {
+          const roomId = [currentUser.uid, user.uid].sort().join("_");
+          const messagesQuery = query(
+            collection(database, "rooms", roomId, "messages"),
+            orderBy("createdAt", "desc"),
+            limit(1)
+          );
+          const messageSnapshot = await getDocs(messagesQuery);
 
-      const fetchLastMessages = filteredUserList.map(async (user) => {
-        const roomId = [currentUser.uid, user.uid].sort().join("_");
-        const messagesCollection = collection(
-          database,
-          "rooms",
-          roomId,
-          "messages"
-        );
-        const lastMessageQuery = query(
-          messagesCollection,
-          orderBy("createdAt", "desc"),
-          limit(1)
-        );
-        const lastMessageSnapshot = await getDocs(lastMessageQuery);
+          const lastMessageData = messageSnapshot.empty
+            ? { text: "Chưa có tin nhắn", createdAt: null }
+            : messageSnapshot.docs[0].data();
 
-        if (!lastMessageSnapshot.empty) {
-          const lastMessageData = lastMessageSnapshot.docs[0].data();
           return {
             ...user,
             lastMessage: lastMessageData.text,
-            lastMessageTime: lastMessageData.createdAt.toDate(),
+            lastMessageTime: lastMessageData.createdAt?.toDate() || null,
+            hasImageError: false,
           };
-        } else {
-          return {
-            ...user,
-            lastMessage: "Chưa có tin nhắn",
-            lastMessageTime: null,
-          };
-        }
-      });
+        })
+      );
 
-      const usersWithLastMessages = await Promise.all(fetchLastMessages);
+      usersWithMessages.sort(
+        (a, b) =>
+          (b.lastMessageTime?.getTime() || 0) -
+          (a.lastMessageTime?.getTime() || 0)
+      );
 
-      // Sort users by lastMessageTime in descending order
-      usersWithLastMessages.sort((a, b) => {
-        if (a.lastMessageTime && b.lastMessageTime) {
-          return b.lastMessageTime - a.lastMessageTime;
-        } else if (a.lastMessageTime) {
-          return -1;
-        } else if (b.lastMessageTime) {
-          return 1;
-        } else {
-          return 0;
-        }
-      });
-
-      setUsers(usersWithLastMessages);
-      setLoading(false); // Set loading to false after data is fetched
+      setUsers(usersWithMessages);
     } catch (error) {
-      console.error("Lỗi khi tải người dùng:", error);
-      setLoading(false); // Set loading to false if there is an error
+      console.error("Error fetching users:", error);
+    } finally {
+      setLoading(false);
     }
-  };
-
-  useEffect(() => {
-    fetchUsers();
   }, [currentUser]);
 
   useEffect(() => {
-    const unsubscribes = users.map((user) => {
-      const roomId = [currentUser.uid, user.uid].sort().join("_");
-      const messagesCollection = collection(
-        database,
-        "rooms",
-        roomId,
-        "messages"
-      );
-      const lastMessageQuery = query(
-        messagesCollection,
-        orderBy("createdAt", "desc"),
-        limit(1)
-      );
+    fetchUsers();
+  }, [fetchUsers]);
 
-      return onSnapshot(lastMessageQuery, (snapshot) => {
-        if (!snapshot.empty) {
-          const lastMessageData = snapshot.docs[0].data();
-          setUsers((prevUsers) => {
-            const updatedUsers = prevUsers.map((u) => {
-              if (u.uid === user.uid) {
-                return {
-                  ...u,
-                  lastMessage: lastMessageData.text,
-                  lastMessageTime: lastMessageData.createdAt.toDate(),
-                };
-              }
-              return u;
-            });
+  // Start listeners when the screen is focused
+  useFocusEffect(
+    useCallback(() => {
+      users.forEach((user) => {
+        const roomId = [currentUser.uid, user.uid].sort().join("_");
+        const messagesQuery = query(
+          collection(database, "rooms", roomId, "messages"),
+          orderBy("createdAt", "desc"),
+          limit(1)
+        );
 
-            // Sort users by lastMessageTime in descending order
-            updatedUsers.sort((a, b) => {
-              if (a.lastMessageTime && b.lastMessageTime) {
-                return b.lastMessageTime - a.lastMessageTime;
-              } else if (a.lastMessageTime) {
-                return -1;
-              } else if (b.lastMessageTime) {
-                return 1;
-              } else {
-                return 0;
-              }
-            });
+        const unsubscribe = onSnapshot(messagesQuery, (snapshot) => {
+          if (!snapshot.empty) {
+            const lastMessageData = snapshot.docs[0].data();
+            setUsers((prevUsers) =>
+              prevUsers.map((u) =>
+                u.uid === user.uid
+                  ? {
+                      ...u,
+                      lastMessage: lastMessageData.text,
+                      lastMessageTime: lastMessageData.createdAt.toDate(),
+                    }
+                  : u
+              )
+            );
+          }
+        });
 
-            return updatedUsers;
-          });
-        }
+        // Store the unsubscribe function
+        unsubscribeRefs.current.push(unsubscribe);
       });
-    });
 
-    return () => {
-      // Unsubscribe from all listeners when component unmounts
-      unsubscribes.forEach((unsubscribe) => unsubscribe());
-    };
-  }, [users, currentUser]);
+      // Cleanup listeners when the screen is unfocused
+      return () => {
+        unsubscribeRefs.current.forEach((unsubscribe) => unsubscribe());
+        unsubscribeRefs.current = []; // Reset the ref
+      };
+    }, [users, currentUser])
+  );
 
   const createChatRoom = async (otherUser) => {
-    if (!currentUser || !currentUser.uid) {
-      console.error("Invalid currentUser:", currentUser);
-      return;
-    }
-    if (!otherUser || !otherUser.uid) {
-      console.error("Invalid otherUser:", otherUser);
-      return;
-    }
-
-    const roomId = [currentUser.uid, otherUser.uid].sort().join("_");
-    const roomRef = doc(database, "rooms", roomId);
-
     try {
+      const roomId = [currentUser.uid, otherUser.uid].sort().join("_");
+      const roomRef = doc(database, "rooms", roomId);
+
       await setDoc(roomRef, {
         users: [currentUser.uid, otherUser.uid],
         createdAt: new Date(),
       });
+
+      // Unsubscribe from chat list listeners before navigating
+      unsubscribeRefs.current.forEach((unsubscribe) => unsubscribe());
+      unsubscribeRefs.current = [];
+
       navigation.navigate("ChatRoom", { roomId });
     } catch (error) {
-      console.error("Lỗi khi tạo phòng chat:", error);
+      console.error("Error creating chat room:", error);
     }
   };
 
+  const renderUserItem = ({ item }) => (
+    <TouchableOpacity
+      style={{ flexDirection: "row", margin: 10 }}
+      onPress={() => createChatRoom(item)}
+    >
+      <Avatar.Image
+        size={50}
+        source={
+          item.avatar
+            ? { uri: item.avatar }
+            : require("../../assets/images/default-avatar.png")
+        }
+        onError={() =>
+          setUsers((prevUsers) =>
+            prevUsers.map((u) =>
+              u.uid === item.uid ? { ...u, hasImageError: true } : u
+            )
+          )
+        }
+      />
+      <View style={{ flex: 1, padding: 5 }}>
+        <View style={{ flexDirection: "row", justifyContent: "space-between" }}>
+          <Text style={{ fontWeight: "bold" }}>
+            {item.name} - {item.role}
+          </Text>
+          <Text>
+            {item.lastMessageTime
+              ? item.lastMessageTime.toLocaleTimeString()
+              : "Chưa có tin nhắn"}
+          </Text>
+        </View>
+        <Text>{item.lastMessage}</Text>
+      </View>
+    </TouchableOpacity>
+  );
+
   if (loading) {
-    return <ActivityIndicator size="large" color="#0000ff" />; // Display loading indicator while fetching data
+    return <ActivityIndicator size="large" color="#0000ff" />;
   }
 
   return (
     <View style={MyStyle.container}>
       <FlatList
-          data={users}
-          keyExtractor={(item) => item.uid}
-          renderItem={({ item }) => (
-            <TouchableOpacity
-              style={{ flex: 1, flexDirection: "row", margin: 10 }}
-              onPress={() => createChatRoom(item)}
-            >
-              <Avatar.Image
-                size={50}
-                source={
-                  imageError || !item.avatar
-                    ? require("../../assets/images/default-avatar.png") // Path to your default image
-                    : { uri: item.avatar }
-                }
-                onError={() => setImageError(true)}
-              />
-
-              <View style={{ flex: 1, padding: 5 }}>
-                <View
-                  style={{
-                    justifyContent: "space-between",
-                    flexDirection: "row",
-                  }}
-                >
-                  <Text style={{ fontWeight: "bold" }}>{item.name}</Text>
-                  <Text>
-                    {item.lastMessageTime
-                      ? item.lastMessageTime.toLocaleTimeString()
-                      : "Chưa có tin nhắn"}
-                  </Text>
-                </View>
-                <Text>{item.lastMessage}</Text>
-              </View>
-            </TouchableOpacity>
-          )}
+        data={users}
+        keyExtractor={(item) => item.uid}
+        renderItem={renderUserItem}
+        initialNumToRender={10}
+        getItemLayout={(_, index) => ({
+          length: 70,
+          offset: 70 * index,
+          index,
+        })}
       />
     </View>
   );

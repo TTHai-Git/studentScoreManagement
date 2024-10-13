@@ -216,7 +216,7 @@ const Home = ({ navigation }) => {
       </View>
       <View style={styles.info}>
         <Text style={styles.textName}>
-          {user.last_name} {user.first_name}
+          Chào {user.last_name} {user.first_name}
         </Text>
         <View style={styles.infoDetail}>{info_detail}</View>
       </View>
@@ -240,7 +240,7 @@ const Home = ({ navigation }) => {
         {icon_user}
         <TouchableOpacity
           style={styles.sliderButton}
-          onPress={() => logOutFireBaseUser(dispatch)}
+          onPress={() => logOutFireBaseUser(dispatch, user)}
         >
           <Icon name="sign-out" size={30} color="#fff" />
           <Text style={styles.sliderButtonText}>Đăng xuất</Text>

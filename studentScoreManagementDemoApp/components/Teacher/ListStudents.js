@@ -256,7 +256,7 @@ const ListStudents = ({ navigation, route }) => {
           </>
         ) : (
           <>
-            <Text>Chưa có sinh viên nào đăng ký vào lớp học này</Text>
+            <Text>Chưa có danh sách sinh viên hoàn chỉnh cho lớp học này</Text>
           </>
         )}
       </View>

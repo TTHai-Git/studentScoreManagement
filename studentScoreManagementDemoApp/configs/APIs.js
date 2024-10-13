@@ -5,6 +5,7 @@ const BASE_URL = "http://127.0.0.1:8000";
 export const endpoints = {
   login: "/o/token/",
   "current-user": "/users/current-user/",
+  logout: (user_id) => `/users/${user_id}/logout/`,
 
   register: "/users/",
   register_teacher: "/teachers/",
