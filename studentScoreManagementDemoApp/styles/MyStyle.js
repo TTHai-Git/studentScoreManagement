@@ -124,4 +124,36 @@ export default StyleSheet.create({
     fontSize: 10, // Smaller text for the note
     color: "gray", // Optional: Use gray to differentiate the note text
   },
+  bellIconContainer: {
+    position: "relative",
+  },
+  bellIcon: {
+    marginRight: -10,
+  },
+  badge: {
+    position: "absolute",
+    top: -2,
+    right: -2,
+    backgroundColor: "red",
+    color: "white",
+  },
+  notificationItem: {
+    paddingVertical: 8,
+    borderBottomWidth: 1,
+    borderColor: "#ddd",
+  },
+  notificationText: {
+    fontSize: 16,
+  },
+  notificationTime: {
+    fontSize: 12,
+    color: "#999",
+    marginTop: 4,
+  },
+  headerContainer: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    paddingVertical: 16,
+  },
 });

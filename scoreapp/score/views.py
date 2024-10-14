@@ -58,36 +58,7 @@ class UserViewSet(viewsets.ViewSet, generics.CreateAPIView, generics.ListAPIView
         user.save()
         return Response({"message": "Update datetime of last_login of User"}, status=status.HTTP_200_OK)
 
-    # @action(methods=['get'], url_path='load-activities', detail=True)
-    # def load_activities(self, request, pk=None):
-    #     user = self.get_object()
-    #     if user.role == 'teacher':
-    #         print('Hoat dong moi cua giao vien')
-    #     else:
-    #         dataTopic = []
-    #         dataComment = []
-    #         student = Student.objects.get(id=user.id)
-    #         studies = Study.objects.filter(student=student)
-    #         for study in studies:
-    #             topics = Topic.objects.filter(studyclassroom=study.studyclassroom, created_date__gt=student.last_login)
-    #             for topic in topics:
-    #                 if topic:
-    #                     dataTopic.append({
-    #                         "topic_id": topic.id,
-    #                         "topic_title": topic.title,
-    #                         "topic_created_date": topic.created_date,
-    #                     })
-    #                 else:
-    #                     comments = Comment.objects.filter(topic=topic, created_date__gt=student.last_login)
-    #                     if comments:
-    #                         for comment in comments:
-    #                             dataComment.append({
-    #                                 "user_comment": comment.user.last_name + ' ' + comment.user.first_name,
-    #                                 "comment_content": comment.content,
-    #                                 "comment_created_date": comment.created_date,
-    #                             })
-    #         return Response({"data_topic_results": serializers.TopicActivitiesSerializer(dataTopic, many=True).data},
-    #                         status=status.HTTP_200_OK)
+
 
     @action(methods=['get'], url_path='notifications', detail=True)
     def get_notifications(self, request, pk=None):
@@ -395,12 +366,35 @@ class TopicViewSet(viewsets.ViewSet, generics.ListAPIView):
     pagination_class = pagination.TopicPaginator
 
     def get_permissions(self):
-        if self.action == 'add_comment':
+        if self.action in ['add_comment', 'load_new_notifications_comments', 'get_comments']:
             return [permissions.IsAuthenticated(), perms.CanCommentOnPost()]
         if self.action == 'lock_or_unlock_topic':
             return [permissions.IsAuthenticated(), perms.CanOrUnLockTopic()]
         else:
             return [permissions.AllowAny()]
+
+    @action(methods=['get'], url_path='load-new-notifications-comments', detail=True)
+    def load_new_notifications_comments(self, request, pk=None):
+        try:
+            user = request.user
+            topic = self.get_object()
+            dataComments = []
+            comments = Comment.objects.filter(topic=topic, created_date__gt=user.last_login)
+            if comments:
+                for comment in comments:
+                    dataComments.append({
+                        "comment_id": comment.id,
+                        "user_comment": comment.user.last_name + ' ' + comment.user.first_name,
+                        "comment_content": comment.content,
+                        "comment_created_date": comment.created_date,
+                    })
+                return Response(
+                    {"results": serializers.CommentActivitiesSerializer(dataComments, many=True).data},
+                    status=status.HTTP_200_OK)
+            else:
+                return Response({"results": []}, status=status.HTTP_200_OK)
+        except Exception as ex:
+            return Response({"message": f"An error occurred: {str(ex)}"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
     @action(methods=['patch'], detail=True)
     def lock_or_unlock_topic(self, request, pk=None):
@@ -463,7 +457,7 @@ class TopicViewSet(viewsets.ViewSet, generics.ListAPIView):
                                                file_public_id=url_name["public_id"], file_asset_id=url_name["asset_id"],
                                                file_resource_type=url_name["resource_type"], file_type=url_name["type"])
 
-                return Response({"message": f'Thêm bình luận vào {topic.title} thành công'},
+                return Response({"message": f'Thêm bình luận vào diễn đàn {topic.title} thành công'},
                                 status=status.HTTP_201_CREATED)
 
             else:
@@ -743,6 +737,28 @@ class StudyClassRoomViewSet(viewsets.ViewSet, viewsets.generics.ListAPIView, vie
         elif self.action in ['register_study', 'get_schedule_of_studyclassrooms', 'get_topics']:
             return [permissions.IsAuthenticated()]
         return [permissions.AllowAny()]
+
+    @action(methods=['get'], url_path='load-new-notifications-topics', detail=True)
+    def load_new_notifications_topics(self, request, pk=None):
+        try:
+            user = request.user
+            studyclassroom = self.get_object()
+            dataTopics = []
+            topics = Topic.objects.filter(studyclassroom=studyclassroom, created_date__gt=user.last_login)
+            if topics:
+                for topic in topics:
+                    dataTopics.append({
+                        "topic_id": topic.id,
+                        "topic_title": topic.title,
+                        "topic_created_date": topic.created_date,
+                    })
+                return Response(
+                    {"results": serializers.TopicActivitiesSerializer(dataTopics, many=True).data},
+                    status=status.HTTP_200_OK)
+            else:
+                return Response({"results": []}, status=status.HTTP_200_OK)
+        except Exception as ex:
+            return Response({"message": f"An error occurred: {str(ex)}"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
     @action(methods=['get'], url_path='get-schedule', detail=False)
     def get_schedule_of_studyclassrooms(self, request):
@@ -1418,7 +1434,8 @@ class StudyClassRoomViewSet(viewsets.ViewSet, viewsets.generics.ListAPIView, vie
     def get_topics(self, request, pk):
         try:
             studyclassroom = self.get_object()
-            topics = studyclassroom.topic_set.select_related('studyclassroom')
+
+            topics = studyclassroom.topic_set.select_related('studyclassroom').order_by('-id')
             paginator = pagination.TopicPaginator()
             page = paginator.paginate_queryset(topics, request)
             serializer = serializers.TopicSerializer(page, many=True)

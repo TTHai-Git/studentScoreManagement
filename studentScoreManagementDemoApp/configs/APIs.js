@@ -76,6 +76,10 @@ export const endpoints = {
   "del-registered": (study_id) => `/studies/${study_id}/del-registered/`,
   "load-notifications": (user_id) => `/users/${user_id}/notifications/`,
   "seen-notification": (notification_id) => `/events/${notification_id}/seen/`,
+  "load-notifications-topic": (studyclassroom_id) =>
+    `/studyclassrooms/${studyclassroom_id}/load-new-notifications-topics/`,
+  "load-notifications-comment": (topic_id) =>
+    `/topics/${topic_id}/load-new-notifications-comments/`,
 };
 
 export const authApi = (accessToken) =>

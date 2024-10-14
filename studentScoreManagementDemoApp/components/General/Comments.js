@@ -20,10 +20,14 @@ import {
   TextInput,
   Card,
   IconButton,
+  Provider,
+  Badge,
 } from "react-native-paper";
 import * as FileSystem from "expo-file-system";
 import { shareAsync } from "expo-sharing";
 import { MyUserContext } from "../../configs/Contexts";
+import Popover from "react-native-popover-view";
+import { TouchableOpacity } from "react-native-gesture-handler";
 
 const Comments = ({ route }) => {
   const topic_id = route.params?.topic_id;
@@ -36,6 +40,25 @@ const Comments = ({ route }) => {
   const [refreshing, setRefreshing] = useState(false);
   const [selectedFiles, setSelectedFiles] = useState([]);
   const [commentfiles, setCommentFiles] = useState([]);
+  const [notifications, setNotifications] = useState([]);
+
+  const loadNotifications = async () => {
+    try {
+      setLoading(true);
+      let url = `${endpoints["load-notifications-comment"](topic_id)}`;
+      let res = await authApi(user.access_token).get(url);
+      // console.log(res.data.results);
+      setNotifications(res.data.results);
+    } catch (error) {
+      console.log(error.response);
+      Alert.alert(
+        "Error",
+        error.response?.data?.message || "Unexpected error occurred."
+      );
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const loadComments = async (reset = false) => {
     if (reset) {
@@ -68,6 +91,10 @@ const Comments = ({ route }) => {
   useEffect(() => {
     loadComments();
   }, [page]);
+
+  useEffect(() => {
+    loadNotifications();
+  }, []);
 
   const loadFilesOfComments = async (reset = false) => {
     if (reset) {
@@ -263,135 +290,176 @@ const Comments = ({ route }) => {
   };
 
   return (
-    <View style={[MyStyle.container, { padding: 10 }]}>
-      {comments.length > 0 ? (
-        <ScrollView
-          onScroll={loadMore}
-          refreshControl={
-            <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
-          }
-        >
-          {comments.map((c) => (
-            <Card key={c.id} style={{ marginBottom: 10 }}>
-              <Card.Title
-                title={`${c.user.last_name} ${c.user.first_name}`}
-                subtitle={moment(c.created_date).locale("vi", vi).fromNow()}
-                left={(props) => (
-                  <Avatar.Image
-                    {...props}
-                    size={40}
-                    source={{ uri: c.user.avatar }}
-                  />
-                )}
-                right={(props) =>
-                  user.id === c.user.id ? (
-                    <>
-                      <IconButton
-                        {...props}
-                        icon="close"
-                        color="red"
-                        size={20}
-                        onPress={() =>
-                          Alert.alert(
-                            "Xác Nhận Xoá:",
-                            "Bạn có chắc muốn xoá bình luận này?",
-                            [
-                              {
-                                text: "Huỷ",
-                                style: "cancel",
-                              },
-                              {
-                                text: "Đồng Ý",
-                                onPress: () => delComment(c.id),
-                                style: "destructive",
-                              },
-                            ]
-                          )
-                        }
-                      />
-                    </>
-                  ) : (
-                    <></>
-                  )
-                }
+    <Provider>
+      <Popover
+        from={
+          <TouchableOpacity style={Styles.headerContainer}>
+            <View style={Styles.bellIconContainer}>
+              <Text style={Styles.notificationLabel}>Thông báo</Text>
+              <IconButton
+                icon="bell-outline"
+                size={28}
+                onPress={() => {}}
+                style={Styles.bellIcon}
               />
-              <Card.Content>
-                <Text style={{ marginBottom: 10 }}>{c.content}</Text>
-                {commentfiles.length === 0 ? (
-                  <Text>Tệp Tin Đính Kèm: Không có</Text>
-                ) : (
-                  commentfiles
-                    .filter((cf) => cf.comment_id === c.id)
-                    .map((cf) => (
-                      <Button
-                        key={cf.id}
-                        icon="file-download"
-                        mode="outlined"
-                        onPress={() => downloadFile(cf.file_url, cf.file_name)}
-                      >
-                        {cf.file_name}
-                      </Button>
-                    ))
-                )}
-              </Card.Content>
-            </Card>
-          ))}
-          {loading && page > 1 && <ActivityIndicator />}
-        </ScrollView>
-      ) : (
-        <Text>Chưa có bình luận nào trong diễn đàn này</Text>
-      )}
-
-      <View
-        style={[
-          Styles.addTopic_Comment,
-          {
-            padding: 10,
-            borderTopWidth: 1,
-            borderColor: "#ddd",
-            backgroundColor: "#fff",
-            elevation: 2,
-          },
-        ]}
+              {notifications.length > 0 && (
+                <Badge style={Styles.badge}>{notifications.length}</Badge>
+              )}
+            </View>
+          </TouchableOpacity>
+        }
+        popoverStyle={Styles.popoverContainer}
       >
-        <TextInput
-          placeholder="Viết bình luận"
-          value={content}
-          onChangeText={(t) => setContent(t)}
-          style={{
-            marginBottom: 10,
-            backgroundColor: "#f4f4f4",
-            borderRadius: 5,
-          }}
-        />
-        <Button
-          icon="paperclip"
-          mode="contained"
-          style={{ marginBottom: 10 }}
-          onPress={selectFiles}
-        >
-          Chọn tệp
-        </Button>
-        {selectedFiles.length > 0 && (
-          <Text style={{ marginBottom: 10 }}>
-            Các file đã chọn:{" "}
-            {selectedFiles.map((file) => file.name).join(", ")}
-          </Text>
+        <ScrollView contentContainerStyle={Styles.scrollContainer}>
+          {notifications.length > 0 ? (
+            notifications.map((n) => (
+              <View style={Styles.notificationItem} key={n.comment_id}>
+                <Text style={Styles.notificationText}>
+                  {n.user_comment} vừa bình luận:{" "}
+                  <Text style={Styles.topicTitle}>{n.comment_content}</Text>
+                </Text>
+                <Text style={Styles.notificationTime}>
+                  vào {moment(n.comment_created_date).locale("vi").fromNow()}
+                </Text>
+              </View>
+            ))
+          ) : (
+            <Text style={Styles.topicTitle}>Không có bình luận mới</Text>
+          )}
+        </ScrollView>
+      </Popover>
+      <View style={[MyStyle.container, { padding: 10 }]}>
+        {comments.length > 0 ? (
+          <ScrollView
+            onScroll={loadMore}
+            refreshControl={
+              <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
+            }
+          >
+            {comments.map((c) => (
+              <Card key={c.id} style={{ marginBottom: 10 }}>
+                <Card.Title
+                  title={`${c.user.last_name} ${c.user.first_name}`}
+                  subtitle={moment(c.created_date).locale("vi", vi).fromNow()}
+                  left={(props) => (
+                    <Avatar.Image
+                      {...props}
+                      size={40}
+                      source={{ uri: c.user.avatar }}
+                    />
+                  )}
+                  right={(props) =>
+                    user.id === c.user.id ? (
+                      <>
+                        <IconButton
+                          {...props}
+                          icon="close"
+                          color="red"
+                          size={20}
+                          onPress={() =>
+                            Alert.alert(
+                              "Xác Nhận Xoá:",
+                              "Bạn có chắc muốn xoá bình luận này?",
+                              [
+                                {
+                                  text: "Huỷ",
+                                  style: "cancel",
+                                },
+                                {
+                                  text: "Đồng Ý",
+                                  onPress: () => delComment(c.id),
+                                  style: "destructive",
+                                },
+                              ]
+                            )
+                          }
+                        />
+                      </>
+                    ) : (
+                      <></>
+                    )
+                  }
+                />
+                <Card.Content>
+                  <Text style={{ marginBottom: 10 }}>{c.content}</Text>
+                  {commentfiles.length === 0 ? (
+                    <Text>Tệp Tin Đính Kèm: Không có</Text>
+                  ) : (
+                    commentfiles
+                      .filter((cf) => cf.comment_id === c.id)
+                      .map((cf) => (
+                        <Button
+                          key={cf.id}
+                          icon="file-download"
+                          mode="outlined"
+                          onPress={() =>
+                            downloadFile(cf.file_url, cf.file_name)
+                          }
+                        >
+                          {cf.file_name}
+                        </Button>
+                      ))
+                  )}
+                </Card.Content>
+              </Card>
+            ))}
+            {loading && page > 1 && <ActivityIndicator />}
+          </ScrollView>
+        ) : (
+          <Text>Chưa có bình luận nào trong diễn đàn này</Text>
         )}
-        <Button
-          mode="contained"
-          onPress={addComment}
-          icon={
-            loading
-              ? () => <ActivityIndicator size="small" color="#fff" />
-              : "send"
-          }
-          disabled={loading}
+
+        <View
+          style={[
+            Styles.addTopic_Comment,
+            {
+              padding: 10,
+              borderTopWidth: 1,
+              borderColor: "#ddd",
+              backgroundColor: "#fff",
+              elevation: 2,
+            },
+          ]}
         >
-          Bình luận
-        </Button>
+          <TextInput
+            placeholder="Viết bình luận"
+            value={content}
+            onChangeText={(t) => setContent(t)}
+            style={{
+              marginBottom: 10,
+              backgroundColor: "#f4f4f4",
+              borderRadius: 5,
+            }}
+          />
+          <Button
+            icon="paperclip"
+            mode="contained"
+            style={{ marginBottom: 10 }}
+            onPress={selectFiles}
+          >
+            Chọn tệp
+          </Button>
+          {selectedFiles.length > 0 && (
+            <Text style={{ marginBottom: 10 }}>
+              Các file đã chọn:{" "}
+              {selectedFiles.map((file) => file.name).join(", ")}
+            </Text>
+          )}
+          <Button
+            mode="contained"
+            onPress={addComment}
+            icon={
+              loading
+                ? () => <ActivityIndicator size="small" color="#fff" />
+                : "send"
+            }
+            disabled={loading}
+          >
+            Bình luận
+          </Button>
+        </View>
       </View>
-    </View>
+    </Provider>
   );
 };
 

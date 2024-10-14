@@ -218,6 +218,7 @@ class TopicActivitiesSerializer(serializers.Serializer):
 
 
 class CommentActivitiesSerializer(serializers.Serializer):
+    comment_id = serializers.IntegerField()
     user_comment = serializers.CharField()
     comment_content = serializers.CharField()
     comment_created_date = serializers.DateTimeField()

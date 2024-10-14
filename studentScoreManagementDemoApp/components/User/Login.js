@@ -20,7 +20,7 @@ import Icon from "react-native-vector-icons/FontAwesome";
 
 const Login = () => {
   const [user, setUser] = useState({
-    username: "Demo",
+    username: "DHThanh",
     password: "1234567890",
   });
   const [passwordVisible, setPasswordVisible] = useState(true);

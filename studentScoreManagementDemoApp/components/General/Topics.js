@@ -20,10 +20,13 @@ import {
   Portal,
   Provider,
   Button,
+  IconButton,
+  Badge,
 } from "react-native-paper";
 import Icon from "react-native-vector-icons/FontAwesome";
 import MyStyle from "../../styles/MyStyle";
 import { MyUserContext } from "../../configs/Contexts";
+import Popover from "react-native-popover-view";
 
 const Topics = ({ navigation, route }) => {
   const studyclassroom_id = route.params?.studyclassroom_id;
@@ -39,6 +42,28 @@ const Topics = ({ navigation, route }) => {
     topicId: null,
     action: null,
   });
+
+  const [notifications, setNotifications] = useState([]);
+
+  const loadNotifications = async () => {
+    if (page > 0) {
+      try {
+        setLoading(true);
+        let url = `${endpoints["load-notifications-topic"](studyclassroom_id)}`;
+        let res = await authApi(user.access_token).get(url);
+        // console.log(res.data.results);
+        setNotifications(res.data.results);
+      } catch (error) {
+        console.log(error.response);
+        Alert.alert(
+          "Error",
+          error.response?.data?.message || "Unexpected error occurred."
+        );
+      } finally {
+        setLoading(false);
+      }
+    }
+  };
 
   const loadTopics = async () => {
     if (page > 0) {
@@ -65,6 +90,10 @@ const Topics = ({ navigation, route }) => {
   useEffect(() => {
     loadTopics();
   }, [page]);
+
+  useEffect(() => {
+    loadNotifications();
+  }, []);
 
   const confirmAction = (topic_id, action) => {
     setDialogState({ topicId: topic_id, action: action });
@@ -167,6 +196,44 @@ const Topics = ({ navigation, route }) => {
 
   return (
     <Provider>
+      <Popover
+        from={
+          <TouchableOpacity style={Styles.headerContainer}>
+            <View style={Styles.bellIconContainer}>
+              <Text style={Styles.notificationLabel}>Thông báo</Text>
+              <IconButton
+                icon="bell-outline"
+                size={28}
+                onPress={() => {}}
+                style={Styles.bellIcon}
+              />
+              {notifications.length > 0 && (
+                <Badge style={Styles.badge}>{notifications.length}</Badge>
+              )}
+            </View>
+          </TouchableOpacity>
+        }
+        popoverStyle={Styles.popoverContainer}
+      >
+        <ScrollView contentContainerStyle={Styles.scrollContainer}>
+          {notifications.length > 0 ? (
+            notifications.map((n) => (
+              <View style={Styles.notificationItem} key={n.topic_id}>
+                <Text style={Styles.notificationText}>
+                  Diễn đàn{" "}
+                  <Text style={Styles.topicTitle}>{n.topic_title}</Text>
+                </Text>
+                <Text style={Styles.notificationTime}>
+                  mới được tạo khoảng{" "}
+                  {moment(n.topic_created_date).locale("vi").fromNow()}
+                </Text>
+              </View>
+            ))
+          ) : (
+            <Text style={Styles.topicTitle}>Không có diễn đàn mới</Text>
+          )}
+        </ScrollView>
+      </Popover>
       <View style={[MyStyle.container, { padding: 10 }]}>
         {loading && page === 1 ? (
           <ActivityIndicator size="large" color="#007bff" />
@@ -286,7 +353,10 @@ const Topics = ({ navigation, route }) => {
           >
             <Dialog.Title>Xác Nhận</Dialog.Title>
             <Dialog.Content>
-              <Paragraph>Bạn có chắc chắn với hành động này không?</Paragraph>
+              <Paragraph>
+                Bạn có chắc chắn muốn thay đổi trạng thái khoá của diễn đàn hay
+                không?
+              </Paragraph>
             </Dialog.Content>
             <Dialog.Actions>
               <Button onPress={() => setConfirmVisible(false)}>Huỷ</Button>
@@ -321,5 +391,75 @@ const Styles = StyleSheet.create({
   addTopic_Comment: {
     borderTopWidth: 1,
     borderColor: "#ddd",
+  },
+  headerContainer: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    padding: 10,
+    backgroundColor: "#99ebff",
+    borderRadius: 8,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 3,
+  },
+  bellIconContainer: {
+    flexDirection: "row",
+    alignItems: "center",
+    position: "relative",
+  },
+  notificationLabel: {
+    fontSize: 18,
+    fontWeight: "600",
+    marginRight: 8,
+  },
+  bellIcon: {
+    marginHorizontal: 8,
+  },
+  badge: {
+    position: "absolute",
+    top: -5,
+    right: -5,
+    backgroundColor: "#FF5252",
+    color: "#fff",
+    fontSize: 12,
+  },
+  popoverContainer: {
+    backgroundColor: "#f9f9f9",
+    padding: 10,
+    borderRadius: 10,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.1,
+    shadowRadius: 5,
+    elevation: 3,
+  },
+  notificationItem: {
+    paddingVertical: 8,
+    borderBottomWidth: 1,
+    borderBottomColor: "#ddd",
+  },
+  notificationText: {
+    fontSize: 16,
+    color: "#333",
+    fontWeight: "500",
+  },
+  topicTitle: {
+    color: "#4CAF50",
+    fontWeight: "bold",
+  },
+  notificationTime: {
+    fontSize: 14,
+    color: "#777",
+    marginTop: 4,
+    fontStyle: "italic",
+  },
+  noNotificationText: {
+    textAlign: "center",
+    fontSize: 16,
+    color: "#555",
+    marginTop: 20,
   },
 });
