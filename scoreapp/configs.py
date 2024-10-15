@@ -7,6 +7,7 @@ SCOPES = ['https://www.googleapis.com/auth/calendar', 'https://www.googleapis.co
 creds = None
 
 tokenPath = ".env/token.json"
+credentialsPath = ".env/credentials.json"
 
 if os.path.exists(tokenPath):
     creds = Credentials.from_authorized_user_file(tokenPath, SCOPES)
@@ -14,7 +15,7 @@ if not creds or not creds.valid:
     if creds and creds.expired and creds.refresh_token:
         creds.refresh(Request())
     else:
-        flow = InstalledAppFlow.from_client_secrets_file("credentials.json", SCOPES)
+        flow = InstalledAppFlow.from_client_secrets_file(credentialsPath, SCOPES)
         creds = flow.run_local_server()
 
     with open(tokenPath, "w") as token:
