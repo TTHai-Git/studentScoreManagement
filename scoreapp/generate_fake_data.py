@@ -2,12 +2,14 @@ import random
 from faker import Faker
 from django.core.management.base import BaseCommand
 from django.contrib.auth import get_user_model
-from django.contrib.auth.hashers import make_password
 from score.models import *
 from oauth2_provider.models import Application
 from django.utils import timezone
-
+import os
+from dotenv import load_dotenv
+load_dotenv('.env/.env')
 fake = Faker()
+
 
 class Command(BaseCommand):
     help = 'Generate fake data for models'
@@ -63,8 +65,8 @@ class Command(BaseCommand):
             superuser = get_user_model().objects.get(username='admin')
             Application.objects.create(
                 user=superuser,
-                client_id='3jFUdqJsKwnhj1X5wf5WihTyp2g7mfdWp6V3mhl5',
-                client_secret='3FJlILnIxptAwsnoQxSUcltQzwLhV87sEXbVRkrsMlJbM3aZjNy90o6VqNtGwNzK9y09NQBqIlVGn8fi3Cnq7ZnRDXNo8f7NsyQQTyVTfJpzbMEePYsSV97NMXBDZZnt',
+                client_id=os.getenv('client_id_db_oauth_toolkit'),
+                client_secret=os.getenv('client_secret_db_oauth_toolkit'),
                 client_type='confidential',
                 authorization_grant_type='password'
             )

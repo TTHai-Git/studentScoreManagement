@@ -10,8 +10,10 @@ For the full list of settings and their values, see
 https://docs.djangoproject.com/en/5.0/ref/settings/
 """
 import os
+import cloudinary
 from pathlib import Path
-from google.oauth2.credentials import Credentials
+from dotenv import load_dotenv
+load_dotenv('../.env/.env')
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -23,18 +25,18 @@ MEDIA_ROOT = '%s/score/static/' % BASE_DIR
 # See https://docs.djangoproject.com/en/5.0/howto/deployment/checklist/
 
 # SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = 'django-insecure-n4h&0zdg98q8&-(&47rnc7^a3_(mj&b$arida+9pnba-+ztt%)'
+SECRET_KEY = os.getenv('SECRET_KEY')
 
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
 # Email Settings
-EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
-EMAIL_HOST = 'smtp.gmail.com'
+EMAIL_BACKEND = os.getenv('EMAIL_BACKEND')
+EMAIL_HOST = os.getenv('EMAIL_HOST')
 EMAIL_USE_TLS = True
-EMAIL_PORT = 587
-EMAIL_HOST_USER = 'spaceboy534@gmail.com'
-EMAIL_HOST_PASSWORD = 'jhcg sbrg vqzc gxgg'
+EMAIL_PORT = os.getenv('EMAIL_PORT')
+EMAIL_HOST_USER = os.getenv('EMAIL_HOST_USER')
+EMAIL_HOST_PASSWORD = os.getenv('EMAIL_HOST_PASSWORD')
 
 ALLOWED_HOSTS = []
 
@@ -167,26 +169,8 @@ STATIC_URL = 'static/'
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
-import cloudinary
-
-# Hải
 cloudinary.config(
-    cloud_name="dh5jcbzly",
-    api_key="956284944785852",
-    api_secret="ZYqL_9IS8N4a6uZ1esDJUBHNeq4"
+    cloud_name=os.getenv('cloud_name'),
+    api_key=os.getenv('api_key'),
+    api_secret=os.getenv('api_secret')
 )
-
-# Hoàng
-# cloudinary.config(
-#     cloud_name="dvsnl4nsh",
-#     api_key="672181655553596",
-#     api_secret="4ve100xmuA2kUAOvcmfWC9xSM1c"
-# )
-
-# creds = Credentials(
-#     None,
-#     refresh_token="1//04vTaSNMOkUTECgYIARAAGAQSNwF-L9IrE9Ik-YDj3gUP4CG-rtvbdVFMvmZtrESS9gZF56aHoD2FiM2POKW5KZKs_V3unE0_BOg",
-#     token_uri="https://oauth2.googleapis.com/token",
-#     client_id="962643796714-gpg2bgiioi38e0h861rc54al5mbhqgg6.apps.googleusercontent.com",
-#     client_secret="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",
-# )

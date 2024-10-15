@@ -1341,9 +1341,16 @@ class StudyClassRoomViewSet(viewsets.ViewSet, viewsets.generics.ListAPIView, vie
 
                     # Construct the file name based on studyclassroom name
                     filename = f"{studyclassroom.name} - {studyclassroom.subject.name}_Bảng Điểm Tổng Hợp.pdf"
+
+                    BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+
+                    # Use os.path.join to build the relative path to the 'Score_csv' folder
+                    relative_path = os.path.join(BASE_DIR, 'score', 'static', 'Score_csv', filename)
+
                     file_path = os.path.join(
-                        'F:\\PythonProject\\studentScoreManagement\\scoreapp\\score\\static\\Score_pdf',
-                        filename)
+                        # 'F:\\PythonProject\\studentScoreManagement\\scoreapp\\score\\static\\Score_pdf',
+                        # filename)
+                        relative_path)
 
                     # Generate PDF
                     response = HttpResponse(content_type='application/pdf')
